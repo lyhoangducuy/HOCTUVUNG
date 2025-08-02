@@ -1,0 +1,129 @@
+/* Tổng quát container */
+.signup-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f8f9fa;
+  padding: 20px;
+}
+
+.signup-form {
+  background-color: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+h2 {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.social-login {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.google-btn, .facebook-btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.google-btn {
+  background-color: #db4437;
+  color: white;
+}
+
+.facebook-btn {
+  background-color: #3b5998;
+  color: white;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+input:focus, select:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+.error {
+  color: red;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 10px;
+}
+
+button.submit-button {
+  padding: 12px;
+  font-size: 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%;
+}
+
+button.submit-button:hover {
+  background-color: #218838;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .signup-form {
+    padding: 20px;
+    width: 100%;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  input, select, .google-btn, .facebook-btn, .submit-button {
+    font-size: 14px;
+    padding: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .signup-form {
+    padding: 15px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  input, select, .google-btn, .facebook-btn, .submit-button {
+    font-size: 12px;
+    padding: 6px;
+  }
+}
