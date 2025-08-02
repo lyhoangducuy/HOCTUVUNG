@@ -25,17 +25,21 @@ function DangNhap() {
             <span>Sign Up</span>
             <span className="active">Login</span>
           </div>
+          <button className="login-btn social google">
+            <FontAwesomeIcon
+              icon={faGoogle}
+              style={{ color: "rgb(234, 67, 53)" }}
+            />
+            Login with Google
+          </button>
+
           <button className="login-btn social facebook">
             <FontAwesomeIcon
               icon={faFacebook}
               size={20}
-              style={{ color: "#EA4335" }}
-            />{" "}
+              style={{ color: "#6e65f1ff" }}
+            />
             Login with Facebook
-          </button>
-          <button className="login-btn social google">
-            <FontAwesomeIcon icon={faGoogle} style={{ color: "#1877F2" }} />{" "}
-            Login with Google
           </button>
 
           <div className="divider">
