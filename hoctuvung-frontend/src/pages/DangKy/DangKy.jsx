@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";  // Để điều hướng sau khi form được submit
-import './SignUp.css'; // Đảm bảo đã tạo file CSS riêng để style form
+import './DangKy.css'; // Đảm bảo đã tạo file CSS riêng để style form
 
 export default function SignUp() {
   const navigate = useNavigate();
