@@ -1,64 +1,82 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useForm } from "react-hook-form";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFacebook, faGoogle } from "@fortawesome/free-brands-svg-icons";
+import "./DangNhap.css";
 
-export default function DangNhap() {
-  const navigate = useNavigate();
+function DangNhap() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
 
-  const [email, setEmail] = useState('');
-  const [matkhau, setMatkhau] = useState('');
-  const [error, setError] = useState('');
-
-  const handleDangNhap = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    try {
-      const response = await axios.post('http://localhost:8080/api/nguoidung/dangnhap', {
-        email,
-        matkhau,
-      });
-
-      if (response.data) {
-        alert('Đăng nhập thành công!');
-        navigate('/'); // 👉 chuyển trang sau khi đăng nhập
-      } else {
-        setError('Sai email hoặc mật khẩu.');
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Lỗi kết nối hoặc máy chủ.');
-    }
+  const onSubmit = (data) => {
+    console.log(data);
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: 'auto', paddingTop: '40px' }}>
-      <h2>Đăng nhập</h2>
-      <form onSubmit={handleDangNhap}>
-        <div style={{ marginBottom: '10px' }}>
-          <label>Email:</label><br />
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px' }}
-          />
+    <div className="login-container">
+      <div className="login-card">
+        <div className="login-left">
+          <img src="/src/image/formimg.png" alt="imgloginform" />
         </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>Mật khẩu:</label><br />
-          <input
-            type="password"
-            value={matkhau}
-            onChange={e => setMatkhau(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px' }}
-          />
-        </div>
-        <button type="submit" style={{ padding: '10px 20px' }}>Đăng nhập</button>
-      </form>
+        <div className="login-right">
+          <div className="login-tabs">
+            <span>Sign Up</span>
+            <span className="active">Login</span>
+          </div>
+          <button className="login-btn social google">
+            <FontAwesomeIcon
+              icon={faGoogle}
+              style={{ color: "rgb(234, 67, 53)" }}
+            />
+            Login with Google
+          </button>
 
-      {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
+          <button className="login-btn social facebook">
+            <FontAwesomeIcon
+              icon={faFacebook}
+              size={20}
+              style={{ color: "#6e65f1ff" }}
+            />
+            Login with Facebook
+          </button>
+
+          <div className="divider">
+            <span>Or Email</span>
+          </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="login-form">
+            <label>Email</label>
+            <input
+              type="email"
+              {...register("email", { required: "Vui lòng nhập email" })}
+            />
+            {errors.email && (
+              <span className="error">{errors.email.message}</span>
+            )}
+            <label>Password</label>
+            <input
+              type="password"
+              {...register("password", {
+                required: "Vui lòng nhập mật khẩu",
+                minLength: { value: 6, message: "Mật khẩu tối thiểu 6 ký tự" },
+              })}
+            />
+            {errors.password && (
+              <span className="error">{errors.password.message}</span>
+            )}
+            <div className="forgot">
+              <a href="/">Quên mật khẩu</a>
+            </div>
+            <button type="submit" className="login-btn submit">
+              Đăng Nhập
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
+
+export default DangNhap;
+
