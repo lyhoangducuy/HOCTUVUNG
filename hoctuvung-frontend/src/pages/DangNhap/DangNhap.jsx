@@ -38,7 +38,7 @@ function DangNhap() {
             Login with Google
           </button>
 
-          <div class="divider">
+          <div className="divider">
             <span>Or Email</span>
           </div>
           <form onSubmit={handleSubmit(onSubmit)} className="login-form">
