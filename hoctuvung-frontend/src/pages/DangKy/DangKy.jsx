@@ -58,13 +58,13 @@ function DangKy() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-left">
-          <img src="/src/image/formimg.png" alt="imgloginform" />
+    <div className="signup-container">
+      <div className="signup-card">
+        <div className="signup-left">
+          <img src="/src/image/formimg.png" alt="imgsignupform" />
         </div>
-        <div className="login-right">
-          <div className="login-tabs">
+        <div className="signup-right">
+          <div className="signup-tabs">
             <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
               Đăng ký
             </span>
@@ -72,20 +72,31 @@ function DangKy() {
               Đăng nhập
             </span>
           </div>
-          <form onSubmit={handleSubmit(onSubmit)} className="login-form">
+          <form onSubmit={handleSubmit(onSubmit)} className="signup-form">
             {/* Email */}
             <label>Email</label>
-            <input type="email" {...register("email")} />
+            <input 
+              type="email" 
+              {...register("email")} 
+              className={errors.email ? "error" : ""}
+            />
             {errors.email && <span className="error">{errors.email.message}</span>}
 
             {/* Tên người dùng */}
             <label>Tên người dùng</label>
-            <input type="text" {...register("username")} />
+            <input 
+              type="text" 
+              {...register("username")} 
+              className={errors.username ? "error" : ""}
+            />
             {errors.username && <span className="error">{errors.username.message}</span>}
 
             {/* Vai trò */}
             <label>Vai trò</label>
-            <select {...register("role")}>
+            <select 
+              {...register("role")} 
+              className={errors.role ? "error" : ""}
+            >
               <option value="">-- Chọn vai trò --</option>
               <option value="giangvien">Giảng viên</option>
               <option value="hocvien">Học viên</option>
@@ -94,15 +105,23 @@ function DangKy() {
 
             {/* Mật khẩu */}
             <label>Mật khẩu</label>
-            <input type="password" {...register("password")} />
+            <input 
+              type="password" 
+              {...register("password")} 
+              className={errors.password ? "error" : ""}
+            />
             {errors.password && <span className="error">{errors.password.message}</span>}
 
             {/* Nhập lại mật khẩu */}
             <label>Nhập lại mật khẩu</label>
-            <input type="password" {...register("passwordConfirm")} />
+            <input 
+              type="password" 
+              {...register("passwordConfirm")} 
+              className={errors.passwordConfirm ? "error" : ""}
+            />
             {errors.passwordConfirm && <span className="error">{errors.passwordConfirm.message}</span>}
 
-            <button type="submit" className="login-btn submit" disabled={loading}>
+            <button type="submit" className="signup-btn submit" disabled={loading}>
               {loading ? "Đang đăng ký..." : "Đăng Ký"}
             </button>
           </form>

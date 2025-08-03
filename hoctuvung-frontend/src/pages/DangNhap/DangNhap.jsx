@@ -72,6 +72,7 @@ function DangNhap() {
             <input
               type="email"
               {...register("email", { required: "Vui lòng nhập email" })}
+              className={errors.email ? "error" : ""}
             />
             {errors.email && <span className="error">{errors.email.message}</span>}
 
@@ -82,6 +83,7 @@ function DangNhap() {
                 required: "Vui lòng nhập mật khẩu",
                 minLength: { value: 6, message: "Mật khẩu tối thiểu 6 ký tự" },
               })}
+              className={errors.password ? "error" : ""}
             />
             {errors.password && <span className="error">{errors.password.message}</span>}
 

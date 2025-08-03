@@ -1,129 +1,186 @@
-/* Tổng quát container */
 .signup-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: #f8f9fa;
+  min-height: 100vh;
+  background: #f2f2f2;
+  box-sizing: border-box;
   padding: 20px;
 }
 
-.signup-form {
-  background-color: white;
+.signup-card {
+  display: flex;
+  width: 800px;
+  height: 600px; 
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.signup-left {
+  flex: 1;
+  background: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.signup-left img {
+  max-width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.signup-right {
+  flex: 1;
   padding: 40px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 400px;
-}
-
-h2 {
-  text-align: center;
-  font-size: 24px;
-  margin-bottom: 20px;
-}
-
-.social-login {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.google-btn, .facebook-btn {
-  width: 100%;
-  padding: 12px;
-  font-size: 16px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  border-radius: 5px;
-}
-
-.google-btn {
-  background-color: #db4437;
-  color: white;
-}
-
-.facebook-btn {
-  background-color: #3b5998;
-  color: white;
-}
-
-form {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
 }
 
-.form-group {
-  margin-bottom: 15px;
+.signup-tabs {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+  gap:20px;
+  flex-shrink: 0;
 }
 
-label {
+.signup-tabs span {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 18px;
+  color: #333;
+}
+
+.signup-tabs .active {
+  border-bottom: 2px solid #007bff;
+}
+
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 10px;
+}
+
+.signup-form::-webkit-scrollbar {
+  width: 6px;
+}
+
+.signup-form::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.signup-form::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.signup-form::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.signup-form label {
+  font-weight: 500;
+  margin-top: 5px;
+  display: block;
   font-size: 14px;
-  margin-bottom: 5px;
 }
 
-input, select {
+.signup-form input,
+.signup-form select {
   width: 100%;
   padding: 10px;
-  font-size: 14px;
   border: 1px solid #ccc;
-  border-radius: 5px;
+  border-radius: 6px;
+  box-sizing: border-box;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+  height: 40px; /* Cố định chiều cao input */
 }
 
-input:focus, select:focus {
-  border-color: #007bff;
+.signup-form input:focus,
+.signup-form select:focus {
   outline: none;
+  border-color: #1565ff;
+  box-shadow: 0 0 0 2px rgba(21, 101, 255, 0.1);
+}
+
+/* Style cho input có lỗi */
+.signup-form input.error,
+.signup-form select.error {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
 }
 
 .error {
-  color: red;
-  font-size: 14px;
-  text-align: center;
-  margin-top: 10px;
+  color: #dc3545;
+  font-size: 11px;
+  margin: 0;
+  display: block;
+  line-height: 1.2;
+  min-height: 13px;
+  height: 13px; /* Cố định chiều cao error message */
+  overflow: hidden;
 }
 
-button.submit-button {
-  padding: 12px;
-  font-size: 16px;
-  background-color: #28a745;
+button.signup-btn.submit {
+  width: 50%;
+  background-color: #1565ff;  
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 999px;
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
-  width: 100%;
+  transition: background-color 0.3s ease;
+  margin: 20px auto 0 auto;
+  flex-shrink: 0;
 }
 
-button.submit-button:hover {
-  background-color: #218838;
+button.signup-btn.submit:hover {
+  background-color: #0d47a1; 
 }
 
-/* Responsive Design */
+button.signup-btn.submit:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+a{
+    text-decoration: none;
+}
+
+/* Responsive design */
 @media (max-width: 768px) {
-  .signup-form {
-    padding: 20px;
+  .signup-card {
     width: 100%;
+    max-width: 400px;
+    height: auto;
+    min-height: 500px;
+    flex-direction: column;
   }
-
-  h2 {
-    font-size: 20px;
+  
+  .signup-left {
+    display: none;
   }
-
-  input, select, .google-btn, .facebook-btn, .submit-button {
-    font-size: 14px;
-    padding: 8px;
+  
+  .signup-right {
+    padding: 30px 20px;
+    overflow: visible;
   }
-}
-
-@media (max-width: 480px) {
+  
   .signup-form {
-    padding: 15px;
-  }
-
-  h2 {
-    font-size: 18px;
-  }
-
-  input, select, .google-btn, .facebook-btn, .submit-button {
-    font-size: 12px;
-    padding: 6px;
+    overflow-y: visible;
+    padding-right: 0;
   }
 }
