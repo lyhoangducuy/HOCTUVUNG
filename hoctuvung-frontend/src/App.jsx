@@ -24,8 +24,7 @@ export default function App() {
         <Route path="/" element={<TrangChu />} />
         <Route path="/hocvien" element={<TrangChuHocVien />} />
         <Route path="/giangvien" element={<TrangChuGiangVien/>}>
-          
-        </Route>
+      </Route>
       </Route>
       <Route element={<AdminLayout />}>
         <Route path="/admin" element={<TrangChuAdmin />} />

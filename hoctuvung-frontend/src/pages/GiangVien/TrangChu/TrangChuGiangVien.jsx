@@ -5,9 +5,8 @@ import Giangvien_Sidebar from "../../../components/GiangVien/Sidebar/Giangvien_S
 export default function TrangChuGiangVien() {
   return (
     <>
-      <Giangvien_Header />
-      <Giangvien_Sidebar/>
-      <Outlet/>
+     Trang chủ giảng viên
+      
     </>
   );
 }

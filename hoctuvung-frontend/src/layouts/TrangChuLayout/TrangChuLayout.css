@@ -1,0 +1,22 @@
+.trangchu-layout-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.trangchu-layout-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.trangchu-layout-sidebar {
+  /* Có thể đặt width cố định nếu muốn */
+  /* width: 240px; */
+}
+
+.trangchu-layout-content {
+  flex: 1;
+  padding: 24px;
+  min-width: 0;
+}
