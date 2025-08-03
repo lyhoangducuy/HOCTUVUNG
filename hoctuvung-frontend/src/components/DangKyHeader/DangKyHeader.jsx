@@ -14,7 +14,6 @@ export default function DangKyHeader() {
               </text>
             </svg>
           </Link>
-          <div className='title'>Đăng ký</div>
         </nav>
       </div>
     </header>
