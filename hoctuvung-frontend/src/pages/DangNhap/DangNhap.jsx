@@ -62,7 +62,7 @@ function DangNhap() {
             <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
               Đăng ký
             </span>
-            <span onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
+            <span className="active" onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
               Đăng nhập
             </span>
           </div>
@@ -103,7 +103,6 @@ function DangNhap() {
 
             <div className="forgot">
               <a href="#">Quên mật khẩu</a>
-              <a href="/dang-ky">Đăng ký</a>
             </div>
 
             <button type="submit" className="login-btn submit">Đăng Nhập</button>
