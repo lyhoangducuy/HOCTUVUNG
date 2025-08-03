@@ -64,7 +64,14 @@ function DangKy() {
           <img src="/src/image/formimg.png" alt="imgloginform" />
         </div>
         <div className="login-right">
-          <h2>Đăng ký tài khoản</h2>
+          <div className="login-tabs">
+            <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
+              Đăng ký
+            </span>
+            <span onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
+              Đăng nhập
+            </span>
+          </div>
           <form onSubmit={handleSubmit(onSubmit)} className="login-form">
             {/* Email */}
             <label>Email</label>

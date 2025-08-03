@@ -47,8 +47,12 @@ function DangNhap() {
         </div>
         <div className="login-right">
           <div className="login-tabs">
-            <span>Sign Up</span>
-            <span className="active">Login</span>
+            <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
+              Đăng ký
+            </span>
+            <span onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
+              Đăng nhập
+            </span>
           </div>
 
           <button className="login-btn social google">
