@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import './Header.css'; // import file CSS riêng
+import './Headerdangnhap.css'; // import file CSS riêng
 
-export default function Header_HocVien() {
+export default function Header_DangNhap() {
   return (
     <header className="header-container">
       <div className="header-wrapper">
