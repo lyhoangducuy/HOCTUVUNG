@@ -1,3 +1,11 @@
+import TrangChuHocVien from "./HocVien/TrangChuHocVien";
+
 export default function TrangChu() {
-  return <h2>Trang Chuuuuuuuuuuuuuuuuuủ</h2>;
+  return (
+    <div>
+      <div className="container-header">
+        <TrangChuHocVien />
+      </div>
+    </div>
+  );
 }
