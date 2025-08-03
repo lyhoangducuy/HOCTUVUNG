@@ -8,6 +8,7 @@ import TrangChuAdmin from './pages/Admin/TrangChu';
 import TrangChuHocVien from './pages/HocVien/TrangChu';
 import TrangChuGiangVien from './pages/GiangVien/TrangChu';
 import TrangChuLayout from './layouts/TrangChuLayout';
+import AdminLayout from './layouts/AdminLayout';
 
 export default function App() {
   return (
@@ -19,9 +20,11 @@ export default function App() {
       </Route>
       <Route element={<TrangChuLayout/>}>
         <Route path="/" element={<TrangChu />} />
-        <Route path="/admin" element={<TrangChuAdmin/>} />
         <Route path="/hocvien" element={<TrangChuHocVien/>} />
         <Route path="/giangvien" element={<TrangChuGiangVien/>} />
+      </Route>
+      <Route element={<AdminLayout/>}>
+        <Route path="/admin" element={<TrangChuAdmin />} />
       </Route>
     </Routes>
   );
