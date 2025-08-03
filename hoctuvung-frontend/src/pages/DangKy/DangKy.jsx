@@ -65,7 +65,7 @@ function DangKy() {
         </div>
         <div className="signup-right">
           <div className="signup-tabs">
-            <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
+            <span className="active" onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
               Đăng ký
             </span>
             <span onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
