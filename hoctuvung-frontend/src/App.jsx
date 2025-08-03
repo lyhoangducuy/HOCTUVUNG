@@ -7,6 +7,7 @@ import TraPhi from './pages/TraPhi';
 import TrangChuAdmin from './pages/Admin/TrangChu';
 import TrangChuHocVien from './pages/HocVien/TrangChu';
 import TrangChuGiangVien from './pages/GiangVien/TrangChu';
+import TrangChuLayout from './layouts/TrangChuLayout/TrangChuLayout';
 
 export default function App() {
   return (
@@ -16,7 +17,7 @@ export default function App() {
         <Route path="/dang-ky" element={<DangKy />} />
         <Route path="/tra-phi" element={<TraPhi />} />
       </Route>
-      <Route element={<TrangChuLayout />}>
+      <Route element={<TrangChuLayout/>}>
         <Route path="/" element={<TrangChu />} />
         <Route path="/admin" element={<TrangChuAdmin/>} />
         <Route path="/hocvien" element={<TrangChuHocVien/>} />
