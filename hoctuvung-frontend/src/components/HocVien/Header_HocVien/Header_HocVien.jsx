@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import './DangKyHeader.css'; // import file CSS riêng
+import './Header.css'; // import file CSS riêng
 
-export default function DangKyHeader() {
+export default function Header_HocVien() {
   return (
     <header className="header-container">
       <div className="header-wrapper">
