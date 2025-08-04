@@ -23,8 +23,7 @@ export default function App() {
       <Route element={<TrangChuLayout />}>
         <Route path="/" element={<TrangChu />} />
         <Route path="/hocvien" element={<TrangChuHocVien />} />
-        <Route path="/giangvien" element={<TrangChuGiangVien/>}>
-      </Route>
+        <Route path="/giangvien" element={<TrangChuGiangVien/>}/>
       </Route>
       <Route element={<AdminLayout />}>
         <Route path="/admin" element={<TrangChuAdmin />} />

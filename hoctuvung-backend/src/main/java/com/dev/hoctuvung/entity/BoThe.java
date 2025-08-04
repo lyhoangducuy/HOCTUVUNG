@@ -3,6 +3,7 @@ package com.dev.hoctuvung.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -23,6 +24,10 @@ public class BoThe {
     private boolean matchgame;
     private boolean tracNghiem;
     private boolean baiKiemTra;
+    @Column(name = "luot_hoc")
+    private int luotHoc;
+    @Column(name = "ngay_tao")
+    private LocalDateTime ngayTao;
 
     @ManyToOne
     @JoinColumn(name = "idNguoiDung")
