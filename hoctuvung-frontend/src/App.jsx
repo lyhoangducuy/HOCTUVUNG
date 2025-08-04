@@ -3,7 +3,7 @@ import DangNhapLayout from "./layouts/DangNhapLayout";
 import DangNhap from "./pages/DangNhap";
 import DangKy from "./pages/DangKy";
 import TrangChu from "./pages/TrangChu";
-import TraPhi from "./pages/TraPhi";
+import TraPhi from "./pages/HocVien/TraPhi";
 import TrangChuAdmin from "./pages/Admin/TrangChu";
 import TrangChuHocVien from "./pages/HocVien/TrangChu";
 import TrangChuGiangVien from "./pages/GiangVien/TrangChu";
