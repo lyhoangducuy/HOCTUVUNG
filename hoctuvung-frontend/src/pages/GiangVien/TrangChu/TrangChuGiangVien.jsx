@@ -1,72 +1,100 @@
+import { Routes, Route, Outlet } from "react-router-dom";
+import Giangvien_Header from "../../../components/GiangVien/Header/Giangvien_Header";
+import Giangvien_Sidebar from "../../../components/GiangVien/Sidebar/Giangvien_Sidebar";
 import { useEffect, useState } from "react";
-import { FaRegListAlt } from "react-icons/fa";
-import axios from "axios";
-import "./TrangChuGiangVien.css";
 
 export default function TrangChuGiangVien() {
-  const [recentSets, setRecentSets] = useState([]);
-  const [popularSets, setPopularSets] = useState([]);
-
-  // Giả sử id giảng viên là 1, bạn có thể lấy từ session hoặc context
-  const giangVienId = 1;
-
+  const [cards, setCards] = useState([
+  {
+    id: 1,
+    word: "apple",
+    meaning: "quả táo",
+    type: "noun",
+    example: "I eat an apple every day.",
+    topic: "Fruits",
+  },
+  {
+    id: 2,
+    word: "run",
+    meaning: "chạy",
+    type: "verb",
+    example: "She runs every morning.",
+    topic: "Actions",
+  },
+  {
+    id: 3,
+    word: "beautiful",
+    meaning: "đẹp",
+    type: "adjective",
+    example: "The view is beautiful.",
+    topic: "Adjectives",
+  },
+  {
+    id: 4,
+    word: "book",
+    meaning: "quyển sách",
+    type: "noun",
+    example: "I’m reading a new book.",
+    topic: "Objects",
+  },
+  {
+    id: 5,
+    word: "study",
+    meaning: "học tập",
+    type: "verb",
+    example: "He studies hard for exams.",
+    topic: "Education",
+  },
+  {
+    id: 6,
+    word: "happy",
+    meaning: "vui vẻ",
+    type: "adjective",
+    example: "She is happy today.",
+    topic: "Feelings",
+  },
+  {
+    id: 7,
+    word: "dog",
+    meaning: "con chó",
+    type: "noun",
+    example: "My dog is very friendly.",
+    topic: "Animals",
+  },
+  {
+    id: 8,
+    word: "write",
+    meaning: "viết",
+    type: "verb",
+    example: "I write emails every day.",
+    topic: "Actions",
+  },
+  {
+    id: 9,
+    word: "quickly",
+    meaning: "một cách nhanh chóng",
+    type: "adverb",
+    example: "She runs quickly.",
+    topic: "Adverbs",
+  },
+  {
+    id: 10,
+    word: "chair",
+    meaning: "cái ghế",
+    type: "noun",
+    example: "The chair is broken.",
+    topic: "Furniture",
+  }
+]);
   useEffect(() => {
-    // Lấy bộ thẻ gần đây
-    axios
-      .get(`http://localhost:8080/api/giangvien/trangchu/gan-day/${giangVienId}`)
-      .then((res) => setRecentSets(res.data || []))
-      .catch(() => setRecentSets([]));
-
-    // Lấy bộ thẻ phổ biến
-    axios
-      .get("http://localhost:8080/api/giangvien/trangchu/bo-the-pho-bien")
-      .then((res) => setPopularSets(res.data || []))
-      .catch(() => setPopularSets([]));
-  }, []);
-
+    localStorage.setItem("cards", JSON.stringify(cards));
+  },[])
   return (
-    <div className="gv-home-container">
-      {/* Gần đây */}
-      {recentSets.length > 0 && (
-        <>
-          <h2 className="gv-section-title">Gần đây</h2>
-          <div className="gv-recent-list">
-            <div className="gv-recent-grid">
-              {recentSets.slice(0, 6).map((item, idx) => (
-                <div className="gv-recent-item" key={item.idBoThe || idx}>
-                  <FaRegListAlt size={32} style={{ marginRight: 8 }} />
-                  <span>{item.tenBoThe || "Tên bộ thẻ"}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Bộ thẻ phổ biến */}
-      {popularSets.length > 0 && (
-        <>
-          <h2 className="gv-section-title">Bộ thẻ phổ biến</h2>
-          <div className="gv-popular-list">
-            <div className="gv-popular-grid">
-              {popularSets.slice(0, 6).map((item, idx) => (
-                <div className="gv-popular-card" key={item.idBoThe || idx}>
-                  <div className="gv-popular-title">{item.tenBoThe || "Tên bộ thẻ"}</div>
-                  <div className="gv-popular-terms">{item.soTu || 0} terms</div>
-                  <div className="gv-popular-user">
-                    <img
-                      src={item.nguoiDung?.anhDaiDien || "/default-avatar.png"}
-                      alt="avatar"
-                      className="gv-popular-avatar"
-                    />
-                    <span>{item.nguoiDung?.tenNguoiDung || "Tên người dùng"}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+   <div className="container">
+      <div className="section section-word">
+        
+      </div>
+      <div className="section section-card"></div>
+   </div>
   );
 }

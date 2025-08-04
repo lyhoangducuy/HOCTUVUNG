@@ -18,7 +18,7 @@ public class BoThe {
 
     private String tenBoThe;
     private String moTa;
-    private String nguoiTao;
+
     private String cheDoHienThi;
     private boolean flashcard;
     private boolean matchgame;
