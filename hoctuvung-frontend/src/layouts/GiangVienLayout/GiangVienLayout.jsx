@@ -1,10 +1,10 @@
-import React from 'react'
-import { Outlet } from 'react-router-dom';
-import Giangvien_Header from '../../components/GiangVien/Header/Giangvien_Header';
-import Giangvien_Sidebar from '../../components/GiangVien/Sidebar/Giangvien_Sidebar';
-import './TrangChuLayout.css';
+import React from "react";
+import { Outlet } from "react-router-dom";
+import Giangvien_Header from "../../components/GiangVien/Header/Giangvien_Header";
+import Giangvien_Sidebar from "../../components/GiangVien/Sidebar/Giangvien_Sidebar";
+import "./TrangChuLayout.css";
 
-export default function TrangChuLayout() {
+export default function GiangVienLayout() {
   return (
     <div className="trangchu-layout-container">
       <Giangvien_Header />
@@ -17,5 +17,5 @@ export default function TrangChuLayout() {
         </div>
       </div>
     </div>
-  )
+  );
 }

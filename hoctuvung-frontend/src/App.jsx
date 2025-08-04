@@ -7,9 +7,9 @@ import TraPhi from "./pages/TraPhi";
 import TrangChuAdmin from "./pages/Admin/TrangChu";
 import TrangChuHocVien from "./pages/HocVien/TrangChu";
 import TrangChuGiangVien from "./pages/GiangVien/TrangChu";
-import TrangChuLayout from "./layouts/TrangChuLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import Giangvien_Header from "./components/GiangVien/Header/Giangvien_Header";
+import GiangVienLayout from "./layouts/GiangVienLayout";
 
 export default function App() {
   return (
@@ -17,12 +17,8 @@ export default function App() {
       <Route element={<DangNhapLayout />}>
         <Route path="/dang-nhap" element={<DangNhap />} />
         <Route path="/dang-ky" element={<DangKy />} />
-        <Route path="/tra-phi" element={<TraPhi />} />
-        <Route path="/giangvienheader" element={<Giangvien_Header />} />
       </Route>
-      <Route element={<TrangChuLayout />}>
-        <Route path="/" element={<TrangChu />} />
-        <Route path="/hocvien" element={<TrangChuHocVien />} />
+      <Route element={<GiangVienLayout/>}>
         <Route path="/giangvien" element={<TrangChuGiangVien/>}/>
       </Route>
       <Route element={<AdminLayout />}>

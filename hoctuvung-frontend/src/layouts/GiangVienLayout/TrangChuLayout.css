@@ -10,10 +10,7 @@
   min-height: 0;
 }
 
-.trangchu-layout-sidebar {
-  /* Có thể đặt width cố định nếu muốn */
-  /* width: 240px; */
-}
+
 
 .trangchu-layout-content {
   flex: 1;
