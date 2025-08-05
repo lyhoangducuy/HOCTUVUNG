@@ -40,7 +40,7 @@ function MatchGame() {
           <FontAwesomeIcon icon={faListCheck} />
           <span>Trắc nghiệm</span>
         </div>
-        <div className="studyBtn">
+        <div className="studyBtn" onClick={()=>nagative(`/test/${id}`)}>
           <FontAwesomeIcon icon={faFilePen} />
           <span>Test</span>
         </div>
