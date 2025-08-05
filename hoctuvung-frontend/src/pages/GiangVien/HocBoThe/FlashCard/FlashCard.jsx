@@ -26,7 +26,6 @@ function FlashCard() {
   }, []);
 
   const currentCard = cards[0]?.danhSachThe?.[currentCardIndex];
-  console.log(currentCard);
 
   const handleNext = () => {
     if (currentCardIndex < cards[0]?.danhSachThe?.length - 1) {
