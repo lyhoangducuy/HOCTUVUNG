@@ -10,9 +10,9 @@ import {
   faArrowLeft,
   faArrowRight,
 } from "@fortawesome/free-solid-svg-icons";
-import "./HocBoThe.css";
+import "./FlashCard.css";
 
-function HocBoThe() {
+function FlashCard() {
   const { id } = useParams();
   const [cards, setCards] = useState([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -103,4 +103,4 @@ function HocBoThe() {
   );
 }
 
-export default HocBoThe;
+export default FlashCard;

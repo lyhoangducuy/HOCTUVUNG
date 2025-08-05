@@ -10,7 +10,8 @@ import TrangChuGiangVien from "./pages/GiangVien/TrangChu";
 import AdminLayout from "./layouts/AdminLayout";
 import Giangvien_Header from "./components/GiangVien/Header/Giangvien_Header";
 import GiangVienLayout from "./layouts/GiangVienLayout";
-import HocBoThe from "./pages/GiangVien/HocBoThe";
+
+import FlashCard from "./pages/GiangVien/HocBoThe/FlashCard/FlashCard";
 
 export default function App() {
   return (
@@ -22,7 +23,7 @@ export default function App() {
       <Route element={<GiangVienLayout/>}>
         <Route path="/giangvien" element={<TrangChuGiangVien />}>
         </Route>
-         <Route path="/hoc-bo-the/:id" element={<HocBoThe/>} />
+         <Route path="/flashcard/:id" element={<FlashCard/>} />
        
       </Route>
       <Route element={<AdminLayout />}>

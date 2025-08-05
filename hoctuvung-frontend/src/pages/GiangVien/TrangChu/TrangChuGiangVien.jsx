@@ -206,7 +206,7 @@ export default function TrangChuGiangVien() {
    
     localStorage.setItem("selected", JSON.stringify(ketQua));
     
-    navigate(`/hoc-bo-the/${id}`);
+    navigate(`/flashcard/${id}`);
   }
   return (
    <div className="container">
