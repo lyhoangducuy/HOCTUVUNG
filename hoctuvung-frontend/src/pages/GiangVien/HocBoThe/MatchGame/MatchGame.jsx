@@ -10,37 +10,19 @@ import {
   faArrowLeft,
   faArrowRight,
 } from "@fortawesome/free-solid-svg-icons";
-import "./FlashCard.css";
+import "./MatchGame.css";
 
-function FlashCard() {
+function MatchGame() {
   const { id } = useParams();
-  const [cards, setCards] = useState([]);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const [flip, setFlip] = useState(false);
   const nagative = useNavigate();
   useEffect(() => {
     const selected = JSON.parse(localStorage.getItem("selected"));
     if (selected) {
-      setCards([selected]);
+     
     }
   }, []);
 
-  const currentCard = cards[0]?.danhSachThe?.[currentCardIndex];
-  console.log(currentCard);
 
-  const handleNext = () => {
-    if (currentCardIndex < cards[0]?.danhSachThe?.length - 1) {
-      setCurrentCardIndex((prev) => prev + 1);
-      setFlip(false);
-    }
-  };
-
-  const handlePrev = () => {
-    if (currentCardIndex > 0) {
-      setCurrentCardIndex((prev) => prev - 1);
-      setFlip(false);
-    }
-  };
 
   return (
     <div className="container">
@@ -50,19 +32,19 @@ function FlashCard() {
       </div>
       
       <div className="studyChange">
-        <div className="studyBtn active">
+        <div className="studyBtn " onClick={()=>nagative(`/flashcard/${id}`)}>
           <FontAwesomeIcon icon={faClone} />
           <span>Flashcards</span>
         </div>
-        <div className="studyBtn " onClick={()=>nagative(`/tracnghiem/${id}`)}>
+        <div className="studyBtn " onClick={()=>nagative(`/tracnghiem/${id}`)} >
           <FontAwesomeIcon icon={faListCheck} />
           <span>Trắc nghiệm</span>
         </div>
-        <div className="studyBtn" onClick={()=>nagative(`/test/${id}`)}>
+        <div className="studyBtn">
           <FontAwesomeIcon icon={faFilePen} />
           <span>Test</span>
         </div>
-        <div className="studyBtn" onClick={()=>nagative(`/game/${id}`)}>
+        <div className="studyBtn  active" onClick={()=>nagative(`/game/${id}`)}>
           <FontAwesomeIcon icon={faLayerGroup} />
           <span>Match game</span>
         </div>
@@ -73,27 +55,21 @@ function FlashCard() {
       </div>
 
       <div className="main">
-        <div className="header">
-          <h2 className="nameCard">{cards[0]?.tenBoThe}</h2>
-        </div>
+       <div className="header">
+         
+        </div> 
 
         <div className="study">
-          {currentCard && (
-            <div className="card" onClick={() => setFlip(!flip)}>
-              <h3 className="word">
-                {flip ? currentCard.nghia : currentCard.tu}
-              </h3>
-            </div>
-          )}
+         
 
           <div className="btn-group">
-            <div className="left" onClick={handlePrev}>
+            <div className="left" >
               <FontAwesomeIcon icon={faArrowLeft} />
             </div>
             <span>
-              {currentCardIndex + 1}/{cards[0]?.danhSachThe?.length}
+            
             </span>
-            <div className="right" onClick={handleNext}>
+            <div className="right">
               <FontAwesomeIcon icon={faArrowRight} />
             </div>
           </div>
@@ -103,4 +79,4 @@ function FlashCard() {
   );
 }
 
-export default FlashCard;
+export default MatchGame;
