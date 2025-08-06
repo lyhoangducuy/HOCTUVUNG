@@ -1,11 +1,11 @@
 import { Outlet } from 'react-router-dom';
-import DangKyHeader from '../../components/DangKyHeader';
-import Footer from '../../components/Footer';
+import Footer from '../../components/NguoiDung/Footer';
+import Header_DangNhap from '../../components/NguoiDung/Header_HocVien';
 
 export default function DangNhapLayout() {
   return (
     <div>
-      <DangKyHeader />
+      <Header_DangNhap />
       <Outlet />
       <Footer />
     </div>

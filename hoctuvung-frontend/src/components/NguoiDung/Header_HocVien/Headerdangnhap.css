@@ -11,11 +11,7 @@
   align-items: center;
   font-size :25px;
 }
-.title {  
-  grid-template-areas: title;
-  align-items: center;
-  padding-top: 18px;
-}
+
 .header-container {
   background-color: #f8f9fa;
 }

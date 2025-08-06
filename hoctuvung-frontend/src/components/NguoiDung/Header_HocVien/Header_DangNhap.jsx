@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import './DangKyHeader.css'; // import file CSS riêng
+import './Headerdangnhap.css'; // import file CSS riêng
 
-export default function DangKyHeader() {
+export default function Header_DangNhap() {
   return (
     <header className="header-container">
       <div className="header-wrapper">
@@ -14,7 +14,6 @@ export default function DangKyHeader() {
               </text>
             </svg>
           </Link>
-          <div className='title'>Đăng ký</div>
         </nav>
       </div>
     </header>

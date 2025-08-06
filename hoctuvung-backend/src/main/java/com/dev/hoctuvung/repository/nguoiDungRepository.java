@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface nguoiDungRepository extends JpaRepository<NguoiDung, Long> {
     Optional<NguoiDung> findByEmailAndMatkhau(String email, String matkhau);
+    Optional<NguoiDung> findByEmail(String email);
+    Optional<NguoiDung> findByTenNguoiDung(String tenNguoiDung);
 }
