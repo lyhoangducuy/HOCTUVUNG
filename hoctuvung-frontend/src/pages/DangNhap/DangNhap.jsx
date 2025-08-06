@@ -62,7 +62,7 @@ function DangNhap() {
             <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
               Đăng ký
             </span>
-            <span className="active" onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
+            <span className="active" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
               Đăng nhập
             </span>
           </div>

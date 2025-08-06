@@ -21,7 +21,7 @@ export default function App() {
   return (
     <Routes>
       <Route element={<DangNhapLayout />}>
-        <Route path="/dang-nhap" element={<DangNhap />} />
+        <Route path="/" element={<DangNhap />} />
         <Route path="/dang-ky" element={<DangKy />} />
       </Route>
       <Route element={<GiangVienLayout/>}>
