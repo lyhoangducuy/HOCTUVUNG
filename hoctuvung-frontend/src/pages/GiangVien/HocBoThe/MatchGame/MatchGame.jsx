@@ -24,7 +24,6 @@ function MatchGame() {
   const [match, setMatch] = useState([]);
   const [choice, setChoice] = useState([]);
   const [correct, setCorrect] = useState(false);
-  const [step, setStep] = useState(1);
   useEffect(() => {
     const selected = JSON.parse(localStorage.getItem("selected"));
     if (selected) {
@@ -39,7 +38,7 @@ function MatchGame() {
     // const newQuestions = shuffled.slice(0, 3);
 
     setQuestion(shuffled);
-  }, [danhsachthe, step]);
+  }, [danhsachthe]);
   useEffect(() => {
     if (!question || question.length === 0) return;
 
@@ -79,9 +78,7 @@ function MatchGame() {
         const remove1 = match.filter((item) => item.text !== first.text);
         const remove2 = remove1.filter((item) => item.text !== second.text);
         setMatch(remove2);
-        if (match.length === 0) {
-          setStep((pre) => pre + 1);
-        }
+        
       }
       setTimeout(() => {
         setChoice([]);
