@@ -1,115 +1,64 @@
-/* Tổng thể container */
-.container {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: 'Segoe UI', sans-serif;
-  color: #1a1a1a;
+.answer-input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 8px;
+  font-size: 16px;
+  border: 2px solid #ccc;
+  border-radius: 5px;
+  transition: 0.3s;
+  outline: none;
 }
 
-/* Thanh lựa chọn chế độ học */
-.studyChange {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 0;
-  overflow-x: auto;
- 
-  -ms-overflow-style: none;
+.answer-input.correct {
+  border-color: #28a745;
+  background-color: #e6ffe6;
 }
 
-.studyChange::-webkit-scrollbar {
-  display: none;
+.answer-input.incorrect {
+  border-color: #dc3545;
+  background-color: #ffe6e6;
 }
 
-.studyBtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border: 1.5px solid #dcdcdc;
-  border-radius: 999px;
-  background-color: #fff;
-  font-weight: 500;
+.feedback {
   font-size: 14px;
-  color: #1a1a1a;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.studyBtn:hover {
-  background-color: #f0f0f0;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.studyBtn svg {
-  font-size: 16px;
-  color: #1a1a1a;
-}
-
-.studyBtn.active {
-  background-color: #000;
-  color: #fff;
-  border-color: #000;
-}
-
-.studyBtn.active svg {
-  color: #fff;
-}
-
-/* Nút điều hướng */
-.btn-group {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.btn-group .left,
-.btn-group .right {
-  background-color: #f2f2f2;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.btn-group .left:hover,
-.btn-group .right:hover {
-  background-color: #dcdcdc;
-}
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 700;
   color: #333;
-  background-color: #f6f6f6;
-  padding: 10px 16px;
-  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.question-item {
+  margin-bottom: 25px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 15px;
+}
+
+.submit-btn {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #0d6efd;
+  color: white;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.25s ease-in-out;
-  border: 1px solid #dcdcdc;
-  margin-bottom: 16px;
-  width: fit-content;
+  transition: background-color 0.2s ease;
 }
 
-.back:hover {
-  background-color: #e2e2e2;
-  transform: translateX(-2px);
-  color: #111;
+.submit-btn:hover {
+  background-color: #084cd3;
 }
 
-.iconback {
-  font-size: 18px;
+.result {
+  margin-top: 30px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #198754;
+}
+.correct {
+  color: green;
+  font-weight: bold;
+}
+
+.incorrect {
+  color: red;
+  font-weight: bold;
 }

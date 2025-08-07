@@ -11,6 +11,7 @@ import {
   faArrowRight,
 } from "@fortawesome/free-solid-svg-icons";
 import "./TracNghiem.css";
+import HocBoThe_Header from "../../../../components/HocBoThe/HocBoThe_Header";
 
 function TracNghiem() {
   const { id } = useParams();
@@ -96,34 +97,7 @@ function TracNghiem() {
   }, [danhsachthe, step]);
   return (
     <div className="container">
-      <div className="back" onClick={() => nagative("/giangvien")}>
-        <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
-        {"Quay lại"}
-      </div>
-
-      <div className="studyChange">
-        <div className="studyBtn " onClick={() => nagative(`/flashcard/${id}`)}>
-          <FontAwesomeIcon icon={faClone} />
-          <span>Flashcards</span>
-        </div>
-        <div className="studyBtn active ">
-          <FontAwesomeIcon icon={faListCheck} />
-          <span>Trắc nghiệm</span>
-        </div>
-        <div className="studyBtn" onClick={() => nagative(`/test/${id}`)}>
-          <FontAwesomeIcon icon={faFilePen} />
-          <span>Test</span>
-        </div>
-        <div className="studyBtn" onClick={() => nagative(`/game/${id}`)}>
-          <FontAwesomeIcon icon={faLayerGroup} />
-          <span>Match game</span>
-        </div>
-        <div className="studyBtn" onClick={() => nagative(`/video/${id}`)}>
-          <FontAwesomeIcon icon={faPlay} />
-          <span>Học bằng video</span>
-        </div>
-      </div>
-
+      <HocBoThe_Header url="giangvien" activeMode="tracnghiem" />
       <div className="main">
         <div className="header">{cards.tenBoThe}</div>
 
