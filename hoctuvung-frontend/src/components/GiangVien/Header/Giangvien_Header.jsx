@@ -11,11 +11,13 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import "./header.css";
 import { useRef, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Giangvien_Header() {
   const [show, setShow] = useState(false);
   const [showplus, setShowplus] = useState(false);
   const menuRef = useRef();
+  const navigate = useNavigate();
   console.log(show);
   useEffect(() => {
     function handleClickOutside(e) {
@@ -53,7 +55,7 @@ function Giangvien_Header() {
                 <FontAwesomeIcon icon={faClone} />
                 <span>FlashCard</span>
               </div>
-              <div className="plus-item">
+              <div className="plus-item" onClick={()=>navigate("/newfolder")}>
                 <FontAwesomeIcon icon={faFolderOpen} />
                 <span>Thư mục mới</span>
               </div>
