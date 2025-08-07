@@ -88,57 +88,139 @@
 .iconback {
   font-size: 18px;
 }
-/* ===== Vùng chứa toàn bộ thẻ ===== */
+/* === Container chính === */
+.container {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+  background-color: #f9fafb;
+  min-height: 100vh;
+}
+
+/* === Nút quay lại === */
+.back {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 18px;
+  margin-bottom: 20px;
+  transition: color 0.3s ease;
+}
+.back:hover {
+  color: #1e40af;
+}
+.iconback {
+  margin-right: 8px;
+}
+
+/* === Thanh điều hướng chế độ học === */
+.studyChange {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.studyBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: #e5e7eb;
+  color: #374151;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.studyBtn:hover {
+  background-color: #d1d5db;
+  color: #1f2937;
+}
+.studyBtn.active {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+/* === Tiêu đề bộ thẻ === */
+.header {
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 30px;
+  color: #111827;
+}
+
+/* === Khu vực thẻ từ vựng === */
+.study {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* === Lưới câu hỏi/thẻ từ === */
 .question {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* Chính xác 3 cột */
-  grid-template-rows: repeat(2, auto);   /* 2 hàng */
+  grid-template-columns: repeat(4, 1fr); /* Luôn có 4 cột */
   gap: 16px;
-  justify-items: center;
-  margin-top: 24px;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* ===== Thẻ từ hoặc nghĩa ===== */
-.question-item
- {
   width: 100%;
-  background-color: #f1f5f9; /* bg-slate-100 */
+  margin-bottom: 24px;
+}
+
+.question-item {
   padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  font-size: 20px;
-  font-weight: 600;
+  background-color: #fff;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
   text-align: center;
+  font-size: 18px;
+  font-weight: 500;
   cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+ 
 }
 
-.question-item:hover
-{
-  background-color: #e2e8f0; /* bg-slate-200 */
-  transform: scale(1.05);
+.question-item:hover {
+  background-color: #f3f4f6;
+  border-color: #3b82f6;
 }
 
-/* ===== Vùng chứa nút điều hướng ===== */
-.btn-group {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 32px;
-  gap: 20px;
+/* Khi được chọn */
+.question-item.selected {
+  background-color: #dbeafe;
+  border-color: #3b82f6;
 }
 
-.left, .right {
-  font-size: 24px;
-  color: #1e40af; /* blue-800 */
-  cursor: pointer;
-  transition: transform 0.2s ease;
+/* === Hiển thị kết quả === */
+.display {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 16px;
 }
 
-.left:hover, .right:hover {
-  transform: scale(1.2);
+.display p {
+  padding: 10px 20px;
+  border-radius: 8px;
+  background-color: #fef3c7;
+  color: #92400e;
+}
+.display p:empty {
+  display: none;
+}
+
+/* Nếu đúng */
+.display p:contains("ĐÚNG") {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+/* Nếu sai */
+.display p:contains("SAI") {
+  background-color: #fee2e2;
+  color: #991b1b;
 }
 

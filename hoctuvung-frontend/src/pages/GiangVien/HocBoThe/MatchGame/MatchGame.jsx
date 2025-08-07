@@ -36,10 +36,10 @@ function MatchGame() {
     if (!danhsachthe || danhsachthe.length === 0) return;
 
     const shuffled = danhsachthe.sort(() => 0.5 - Math.random());
-    const newQuestions = shuffled.slice(0, 3);
+    // const newQuestions = shuffled.slice(0, 3);
 
-    setQuestion(newQuestions);
-  }, [danhsachthe,step]);
+    setQuestion(shuffled);
+  }, [danhsachthe, step]);
   useEffect(() => {
     if (!question || question.length === 0) return;
 
@@ -76,25 +76,20 @@ function MatchGame() {
           question.find((q) => q.nghia === first.text && q.tu === second.text))
       ) {
         setCorrect(true);
+        const remove1 = match.filter((item) => item.text !== first.text);
+        const remove2 = remove1.filter((item) => item.text !== second.text);
+        setMatch(remove2);
+        if (match.length === 0) {
+          setStep((pre) => pre + 1);
+        }
       }
       setTimeout(() => {
         setChoice([]);
         setCorrect(false);
-        
-       }, 1000);
+      }, 500);
     }
   };
-  const handleLeft = () => {
-    if (step > 1) {
-      setStep((pre)=>pre-1)
-    }
-  }
-  const handleRight = () => {
-     if (step <danhsachthe.length ) {
-      setStep((pre)=>pre+1)
-    }
-  
-}
+
   return (
     <div className="container">
       <div className="back" onClick={() => nagative("/giangvien")}>
@@ -138,7 +133,9 @@ function MatchGame() {
           <div className="question">
             {match.map((item, index) => (
               <div
-                className="question-item"
+                className={`question-item ${
+                  choice.includes(index) ? "selected" : ""
+                }`}
                 key={index}
                 onClick={() => handleClick(index)}
               >
@@ -148,15 +145,6 @@ function MatchGame() {
           </div>
           <div className="display">
             {choice.length === 2 && (correct ? <p>ĐÚNG</p> : <p>SAI</p>)}
-          </div>
-          <div className="btn-group">
-            <div className="left" onClick={()=>handleLeft()}>
-              <FontAwesomeIcon icon={faArrowLeft} />
-            </div>
-            <span>{step}/{danhsachthe.length }</span>
-            <div className="right"  onClick={()=>handleRight()}>
-              <FontAwesomeIcon icon={faArrowRight} />
-            </div>
           </div>
         </div>
       </div>
