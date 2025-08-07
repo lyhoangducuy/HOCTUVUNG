@@ -25,8 +25,7 @@ export default function App() {
         <Route path="/dang-ky" element={<DangKy />} />
       </Route>
       <Route element={<GiangVienLayout/>}>
-        <Route path="/giangvien" element={<TrangChuGiangVien />}>
-        </Route>
+        <Route path="/giangvien" element={<TrangChuGiangVien />}/>
          <Route path="/flashcard/:id" element={<FlashCard/>} />
         <Route path="/tracnghiem/:id" element={<TracNghiem />} />
         <Route path="/test/:id" element={<Test />} />

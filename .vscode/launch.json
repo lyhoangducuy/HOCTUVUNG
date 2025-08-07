@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-HoctuvungApplication<hoctuvung>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.dev.hoctuvung.HoctuvungApplication",
+            "projectName": "hoctuvung",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
