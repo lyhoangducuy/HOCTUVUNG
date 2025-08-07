@@ -38,7 +38,7 @@
 }
 
 .search-section {
-  flex:1;
+  flex: 1;
   position: relative;
   display: flex;
   align-items: center;
@@ -51,12 +51,12 @@
   left: 100px;
   color: #777;
   font-size: 16px;
-  pointer-events: none; 
+  pointer-events: none;
 }
 
 .search-input {
   width: 100%;
-  padding: 8px 12px 8px 36px; 
+  padding: 8px 12px 8px 36px;
   border: 1px solid #ccc;
   border-radius: 20px;
   font-size: 16px;
@@ -65,7 +65,7 @@
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-.search-input:focus{
+.search-input:focus {
   border-color: #007bff;
   box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
 }
@@ -73,9 +73,60 @@
 .search-input:focus + .search-icon,
 .search-section:focus-within .search-icon {
   color: #007bff;
-   border-color: #007bff;
+  border-color: #007bff;
   box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
 }
+/* Container chứa icon + và dropdown */
+.plus-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Icon + */
+.plus-icon {
+  font-size: 24px;
+  color: #111827; /* gray-900 */
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.plus-icon:hover {
+  color: #2563eb; /* xanh dương */
+}
+
+/* Dropdown hiển thị sau khi click */
+.plus {
+  position: absolute;
+  top: 40px; /* khoảng cách dưới icon */
+  left: 0;
+  background-color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 8px 0;
+  z-index: 999;
+  width: 200px;
+}
+
+/* Mỗi item trong dropdown */
+.plus-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  font-size: 15px;
+  color: #111827;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.plus-item:hover {
+  background-color: #f3f4f6;
+}
+
+.plus-item svg {
+  font-size: 18px;
+}
+
 
 .btn-upgrade {
   background-color: orange;

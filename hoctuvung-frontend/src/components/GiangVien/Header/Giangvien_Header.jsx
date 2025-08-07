@@ -6,12 +6,15 @@ import {
   faCirclePlus,
   faGear,
   faMoon,
+  faFolderOpen,
+  faClone,
 } from "@fortawesome/free-solid-svg-icons";
 import "./header.css";
-import { useRef, useState ,useEffect} from "react";
+import { useRef, useState, useEffect } from "react";
 
 function Giangvien_Header() {
   const [show, setShow] = useState(false);
+  const [showplus, setShowplus] = useState(false);
   const menuRef = useRef();
   console.log(show);
   useEffect(() => {
@@ -38,10 +41,38 @@ function Giangvien_Header() {
       </div>
 
       <div className="right-section">
-        <FontAwesomeIcon icon={faCirclePlus} className="icon plus-icon" />
+        <div className="plus-container">
+          <FontAwesomeIcon
+            icon={faCirclePlus}
+            className="icon plus-icon"
+            onClick={() => setShowplus(!showplus)}
+          />
+          {showplus && (
+            <div className="plus">
+              <div className="plus-item">
+                <FontAwesomeIcon icon={faClone} />
+                <span>FlashCard</span>
+              </div>
+              <div className="plus-item">
+                <FontAwesomeIcon icon={faFolderOpen} />
+                <span>Thư mục mới</span>
+              </div>
+              <div className="plus-item">
+                <FontAwesomeIcon icon={faBookOpen} />
+                <span>Lớp Học Mới</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         <button className="btn-upgrade">Nâng cấp tài khoản</button>
         <div className="inforContainer" ref={menuRef}>
-          <img src="/src/image/formimg.png" alt="avatar" className="avatar"  onClick={() => setShow(!show)} />
+          <img
+            src="/src/image/formimg.png"
+            alt="avatar"
+            className="avatar"
+            onClick={() => setShow(!show)}
+          />
           {show && (
             <div className="setting">
               <div className="infor">
