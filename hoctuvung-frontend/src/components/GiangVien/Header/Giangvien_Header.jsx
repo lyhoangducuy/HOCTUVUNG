@@ -55,7 +55,11 @@ function Giangvien_Header() {
                 <FontAwesomeIcon icon={faClone} />
                 <span>FlashCard</span>
               </div>
-              <div className="plus-item" onClick={()=>navigate("/newfolder")}>
+              <div className="plus-item" onClick={() => {
+                navigate("/newfolder");
+                setShowplus(!showplus);
+              }
+              }>
                 <FontAwesomeIcon icon={faFolderOpen} />
                 <span>Thư mục mới</span>
               </div>

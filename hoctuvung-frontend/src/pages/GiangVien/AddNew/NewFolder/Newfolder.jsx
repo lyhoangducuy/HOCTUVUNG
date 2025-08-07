@@ -12,8 +12,8 @@ function Newfolder() {
       anhDaiDien: "",
     },
     danhSachThe: [],
-    };
-    const navigate = useNavigate();
+  };
+  const navigate = useNavigate();
   const [newBoThe, setNewBoThe] = useState(emptyBoThe);
   const getId = () => {
     const current = JSON.parse(localStorage.getItem("cards"));
@@ -32,10 +32,10 @@ function Newfolder() {
     const existing = JSON.parse(localStorage.getItem("cards")) || [];
     const updatedList = [...existing, updatedBoThe];
     localStorage.setItem("cards", JSON.stringify(updatedList));
-      setNewBoThe(emptyBoThe);
-      setTimeout(() => {
-          navigate("/giangvien")
-      },1000)
+    setNewBoThe(emptyBoThe);
+    setTimeout(() => {
+      navigate("/giangvien");
+    }, 1000);
   };
 
   return (
@@ -43,6 +43,7 @@ function Newfolder() {
       <h2 className="title">Tạo Thư Mục Mới</h2>
       <form onSubmit={(e) => handleSubmit(e)} className="form-bo-the">
         <input
+          required
           type="text"
           placeholder="Tên bộ thẻ"
           value={newBoThe.tenBoThe}
@@ -52,6 +53,7 @@ function Newfolder() {
         />
 
         <input
+          required
           type="text"
           placeholder="Tên người dùng"
           value={newBoThe.nguoiDung.tenNguoiDung}
@@ -99,6 +101,7 @@ function Newfolder() {
         {newBoThe.danhSachThe.map((item, index) => (
           <div key={index} className="card-input">
             <input
+              required
               type="text"
               placeholder="Từ"
               value={item.tu}
@@ -109,6 +112,7 @@ function Newfolder() {
               }}
             />
             <input
+              required
               type="text"
               placeholder="Nghĩa"
               value={item.nghia}
