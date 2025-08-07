@@ -7,8 +7,10 @@ div {
     border: 1px solid black;
 }
 .Sidebar-Container {
+  position: absolute;
+  
   width: 300px;
-  height:  87vh;
+  height: calc(100vh - 60px);
   background-color: #f5f5f5;
   border-right: 1px solid #e0e0e0;
   display: flex;

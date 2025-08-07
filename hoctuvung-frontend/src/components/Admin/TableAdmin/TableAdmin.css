@@ -1,0 +1,101 @@
+/* Bọc bảng để xử lý overflow, tránh thanh kéo và border bị cố định */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+/* Ẩn scrollbar cho bảng và vùng phân trang */
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+  
+}
+.user-table th, .user-table td {
+  border:none;
+  padding: 8px 12px;
+  text-align: left;
+}
+.user-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+.user-table tr:nth-child(even) {
+  background: #fafafa;
+}
+.btn {
+  background: transparent;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-right: 8px;
+  
+}
+
+.search-input {
+  border: 1px solid #888787;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 1rem;
+  outline: none;
+  margin-left: auto;
+  width: 250px;
+}
+.user-pagination {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+.pagination-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 20%;
+}
+.pagination-input  input{
+  border: 1px solid #a0a0a0;
+  color: black;
+  margin-left: 20px;
+  border-radius: 20px;
+  padding: 8px 12px;
+  font-size: 1rem;
+  outline: none;
+  width: 80px;
+}
+.pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  gap: 10px;
+  font-family: Arial, sans-serif;
+}
+
+.pagination-button {
+  padding: 6px 12px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  background-color: #f2f2f2;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-weight: bold;
+  font-size: 16px;
+}
+

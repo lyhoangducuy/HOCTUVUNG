@@ -1,0 +1,28 @@
+/* TrangChuHocVien.css */
+.trangchu-hocvien-root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.trangchu-hocvien-header {
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.trangchu-hocvien-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.trangchu-hocvien-sidebar {
+  width: 300px;
+  flex-shrink: 0;
+}
+
+.trangchu-hocvien-content {
+  flex: 1;
+  min-width: 0;
+}

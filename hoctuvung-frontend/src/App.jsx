@@ -10,7 +10,8 @@ import TrangChuGiangVien from "./pages/GiangVien/TrangChu";
 import TrangChuLayout from "./layouts/TrangChuLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import Giangvien_Header from "./components/GiangVien/Header/Giangvien_Header";
-
+import QuanLyUser from "./pages/Admin/QuanLyUser/QuanLyUser";
+import ThongKeAdmin from "./pages/Admin/ThongKeAdmin/ThongKeAdmin";
 export default function App() {
   return (
     <Routes>
@@ -23,12 +24,12 @@ export default function App() {
       <Route element={<TrangChuLayout />}>
         <Route path="/" element={<TrangChu />} />
         <Route path="/hocvien" element={<TrangChuHocVien />} />
-        <Route path="/giangvien" element={<TrangChuGiangVien/>}>
-          
-        </Route>
+        <Route path="/giangvien" element={<TrangChuGiangVien />}></Route>
       </Route>
       <Route element={<AdminLayout />}>
         <Route path="/admin" element={<TrangChuAdmin />} />
+        <Route path="/admin/quan-ly-user" element={<QuanLyUser />} />
+        <Route path="/admin/thong-ke" element={<ThongKeAdmin />} />
       </Route>
     </Routes>
   );
