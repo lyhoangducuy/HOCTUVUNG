@@ -4,9 +4,10 @@ const QuanLyUser = () => {
   return (
     <div>
       <AdminLayout>
-        <h1>
+        <div>
           <MainContentAdminQuanUser />
-        </h1>
+        </div>
+
       </AdminLayout>
     </div>
   );

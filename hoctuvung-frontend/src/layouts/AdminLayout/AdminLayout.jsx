@@ -18,7 +18,9 @@ export default function AdminLayout({ children }) {
         <div className="admin-layout-sidebar">
           <SidebarAdmin />
         </div>
-        <div className="admin-layout-content">{children || <Outlet />}</div>
+        <div className="admin-layout-content">
+          {children || <Outlet />}
+        </div>
       </div>
     </div>
   );

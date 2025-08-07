@@ -16,6 +16,8 @@ import TracNghiem from "./pages/GiangVien/HocBoThe/TracNghiem";
 import Test from "./pages/GiangVien/HocBoThe/Test";
 import MatchGame from "./pages/GiangVien/HocBoThe/MatchGame";
 import Video from "./pages/GiangVien/HocBoThe/Video";
+import QuanLyUser from "./pages/Admin/QuanLyUser/QuanLyUser";
+import ThongKeAdmin from "./pages/Admin/ThongKeAdmin/ThongKeAdmin";
 
 export default function App() {
   return (
@@ -24,16 +26,18 @@ export default function App() {
         <Route path="/" element={<DangNhap />} />
         <Route path="/dang-ky" element={<DangKy />} />
       </Route>
-      <Route element={<GiangVienLayout/>}>
-        <Route path="/giangvien" element={<TrangChuGiangVien />}/>
-         <Route path="/flashcard/:id" element={<FlashCard/>} />
+      <Route element={<GiangVienLayout />}>
+        <Route path="/giangvien" element={<TrangChuGiangVien />} />
+        <Route path="/flashcard/:id" element={<FlashCard />} />
         <Route path="/tracnghiem/:id" element={<TracNghiem />} />
         <Route path="/test/:id" element={<Test />} />
-        <Route path="/game/:id" element={<MatchGame/>} />
-         <Route path="/video/:id" element={<Video/> } />
+        <Route path="/game/:id" element={<MatchGame />} />
+        <Route path="/video/:id" element={<Video />} />
       </Route>
       <Route element={<AdminLayout />}>
         <Route path="/admin" element={<TrangChuAdmin />} />
+        <Route path="/admin/quan-ly-user" element={<QuanLyUser />} />
+        <Route path="/admin/thong-ke" element={<ThongKeAdmin />} />
       </Route>
     </Routes>
   );
