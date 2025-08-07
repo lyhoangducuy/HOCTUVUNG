@@ -9,6 +9,7 @@ import {
   faPlay,
   faArrowLeft,
   faArrowRight,
+  faL,
 } from "@fortawesome/free-solid-svg-icons";
 import "./MatchGame.css";
 import { useRef } from "react";
@@ -76,7 +77,11 @@ function MatchGame() {
       ) {
         setCorrect(true);
       }
-      setTimeout(() => setChoice([]), 1000);
+      setTimeout(() => {
+        setChoice([]);
+        setCorrect(false);
+        
+       }, 1000);
     }
   };
   const handleLeft = () => {

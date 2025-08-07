@@ -61,55 +61,6 @@
   color: #fff;
 }
 
-/* Tên bộ thẻ */
-.header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.nameCard {
-  font-size: 28px;
-  font-weight: 600;
-  color: #333;
-}
-
-/* Phần học */
-.study {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-}
-
-/* Thẻ từ vựng */
-.card {
-  width: 420px;
-  height: 260px;
-  border-radius: 16px;
-  background-color: #fdfdfd;
-  border: 2px solid #e0e0e0;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  perspective: 1000px;
-  transition: transform 0.4s ease;
-  padding: 20px;
-  text-align: center;
-}
-
-.card:hover {
-  transform: scale(1.02);
-}
-
-.word {
-  font-size: 24px;
-  font-weight: 600;
-  color: #111;
-  transition: color 0.3s ease;
-}
-
 /* Nút điều hướng */
 .btn-group {
   display: flex;
