@@ -33,7 +33,7 @@ function Giangvien_Header() {
       </div>
 
       <div className="search-section">
-        <FontAwesomeIcon icon={faSearch} className=" icon search-icon" />
+        <FontAwesomeIcon icon={faSearch} className="icon search-icon" />
         <input type="search" placeholder="Tìm kiếm" className="search-input" />
       </div>
 
