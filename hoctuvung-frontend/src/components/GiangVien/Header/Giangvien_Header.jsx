@@ -17,8 +17,20 @@ function Giangvien_Header() {
   const [show, setShow] = useState(false);
   const [showplus, setShowplus] = useState(false);
   const menuRef = useRef();
+  const plusRef = useRef();
   const navigate = useNavigate();
   console.log(show);
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (!plusRef.current.contains(e.target)) {
+        setShowplus(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showplus]);
   useEffect(() => {
     function handleClickOutside(e) {
       if (!menuRef.current.contains(e.target)) {
@@ -43,7 +55,7 @@ function Giangvien_Header() {
       </div>
 
       <div className="right-section">
-        <div className="plus-container">
+        <div className="plus-container" ref={plusRef}>
           <FontAwesomeIcon
             icon={faCirclePlus}
             className="icon plus-icon"
