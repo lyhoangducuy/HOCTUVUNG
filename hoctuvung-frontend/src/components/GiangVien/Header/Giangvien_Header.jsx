@@ -46,7 +46,11 @@ function Giangvien_Header() {
     <div className="header-container">
       <div className="left-section">
         <FontAwesomeIcon icon={faBars} className="icon menu-icon" />
-        <FontAwesomeIcon icon={faBookOpen} className="icon book-icon" onClick={()=>navigate("/giangvien")} />
+        <FontAwesomeIcon
+          icon={faBookOpen}
+          className="icon book-icon"
+          onClick={() => navigate("/giangvien")}
+        />
       </div>
 
       <div className="search-section">
@@ -67,15 +71,23 @@ function Giangvien_Header() {
                 <FontAwesomeIcon icon={faClone} />
                 <span>FlashCard</span>
               </div>
-              <div className="plus-item" onClick={() => {
-                navigate("/newfolder");
-                setShowplus(!showplus);
-              }
-              }>
+              <div
+                className="plus-item"
+                onClick={() => {
+                  navigate("/newfolder");
+                  setShowplus(!showplus);
+                }}
+              >
                 <FontAwesomeIcon icon={faFolderOpen} />
                 <span>Thư mục mới</span>
               </div>
-              <div className="plus-item">
+              <div
+                className="plus-item"
+                onClick={() => {
+                  navigate("/newclass");
+                  setShowplus(!showplus);
+                }}
+              >
                 <FontAwesomeIcon icon={faBookOpen} />
                 <span>Lớp Học Mới</span>
               </div>

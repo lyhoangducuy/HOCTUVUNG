@@ -13,7 +13,7 @@ function DangNhap() {
     formState: { errors },
   } = useForm();
 
-  // Lấy thông tin user từ sessionStorage nếu có, nếu không thì là null
+  
   const [user, setUser] = useState(() => {
     const savedUser = sessionStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
@@ -41,7 +41,7 @@ function DangNhap() {
           sessionStorage.setItem('user', JSON.stringify(userData)); // Lưu vào sessionStorage
           setUser(userData); // Cập nhật state
         };
-        navigate("/"); // 👉 chuyển trang về trang chủ
+        navigate("/"); 
       } else {
         setLoginError("Sai email hoặc mật khẩu.");
       }

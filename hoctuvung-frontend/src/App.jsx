@@ -19,6 +19,7 @@ import Video from "./pages/GiangVien/HocBoThe/Video";
 import QuanLyUser from "./pages/Admin/QuanLyUser/QuanLyUser";
 import ThongKeAdmin from "./pages/Admin/ThongKeAdmin/ThongKeAdmin";
 import Newfolder from "./pages/GiangVien/AddNew/NewFolder/Newfolder";
+import Newclass from "./pages/GiangVien/AddNew/NewClass/Newclass";
 
 export default function App() {
   return (
@@ -34,7 +35,8 @@ export default function App() {
         <Route path="/test/:id" element={<Test />} />
         <Route path="/game/:id" element={<MatchGame />} />
         <Route path="/video/:id" element={<Video />} />
-        <Route path="/newfolder" element={<Newfolder/>} />
+        <Route path="/newfolder" element={<Newfolder />} />
+         <Route path="/newclass" element={<Newclass/>} />
 
       </Route>
       <Route element={<AdminLayout />}>

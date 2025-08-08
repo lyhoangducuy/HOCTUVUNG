@@ -32,7 +32,9 @@ function Newfolder() {
     const existing = JSON.parse(localStorage.getItem("cards")) || [];
     const updatedList = [...existing, updatedBoThe];
     localStorage.setItem("cards", JSON.stringify(updatedList));
-    localStorage.setItem("myFolder", JSON.stringify(updatedBoThe));
+    const folder = localStorage.getItem("myFolder");
+    const updateFolder = [folder, updatedBoThe];
+    localStorage.setItem("myFolder", JSON.stringify(updateFolder));
     setNewBoThe(emptyBoThe);
     setTimeout(() => {
       navigate("/giangvien");

@@ -16,7 +16,9 @@ function Giangvien_Sidebar() {
   const [myfolder, setMyfolder] = useState([]);
   useEffect(() => {
     const folder = JSON.parse(localStorage.getItem("myFolder")) || [];
-    setMyfolder([...myfolder, folder]);
+    if (folder && folder.lenght > 0) {
+      setMyfolder([...myfolder, folder]);
+    }
   }, []);
 
   const handleStudy = (id) => {
