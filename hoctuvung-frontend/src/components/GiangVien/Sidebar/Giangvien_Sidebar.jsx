@@ -5,14 +5,32 @@ import {
   faBell,
   faPlus,
   faClone,
+  faBook,
 } from "@fortawesome/free-solid-svg-icons";
 import "./sidebar.css";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 function Giangvien_Sidebar() {
+  const navigate = useNavigate();
+  const [myfolder, setMyfolder] = useState([]);
+  useEffect(() => {
+    const folder = JSON.parse(localStorage.getItem("myFolder")) || [];
+    setMyfolder([...myfolder, folder]);
+  }, []);
+
+  const handleStudy = (id) => {
+    const card = JSON.parse(localStorage.getItem("cards"));
+    const ketQua = card.find((item) => item.idBoThe === id);
+
+    localStorage.setItem("selected", JSON.stringify(ketQua));
+
+    navigate(`/flashcard/${id}`);
+  };
   return (
     <div className="sidebar_container">
       <div className="sidebar_top">
-        <div>
+        <div onClick={() => navigate("/giangvien")}>
           <FontAwesomeIcon icon={faHouse} className="icon" />
           Trang chủ
         </div>
@@ -30,7 +48,20 @@ function Giangvien_Sidebar() {
 
       <div className="sidebar_center">
         <h3>Thư mục của tôi</h3>
-        <div className="create_folder">
+        <ul>
+          {myfolder.map((item, index) => (
+            <li
+              key={index}
+              className="folder-item"
+              onClick={() => handleStudy(item.idBoThe)}
+            >
+              {" "}
+              <FontAwesomeIcon icon={faBook} className="icon icon-book" />
+              {item.tenBoThe}
+            </li>
+          ))}
+        </ul>
+        <div className="create_folder" onClick={() => navigate("/newfolder")}>
           <FontAwesomeIcon icon={faPlus} className="icon" />
           Thư mục mới
         </div>

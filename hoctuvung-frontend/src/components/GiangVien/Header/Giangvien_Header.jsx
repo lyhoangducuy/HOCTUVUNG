@@ -34,7 +34,7 @@ function Giangvien_Header() {
     <div className="header-container">
       <div className="left-section">
         <FontAwesomeIcon icon={faBars} className="icon menu-icon" />
-        <FontAwesomeIcon icon={faBookOpen} className="icon book-icon" />
+        <FontAwesomeIcon icon={faBookOpen} className="icon book-icon" onClick={()=>navigate("/giangvien")} />
       </div>
 
       <div className="search-section">
