@@ -69,24 +69,7 @@ function Newfolder() {
           }
         />
 
-        <input
-          type="file"
-          placeholder="Ảnh đại diện"
-          onChange={(e) => {
-            const file = e.target.files[0];
-            if (file) {
-              const imageUrl = URL.createObjectURL(file);
-              setNewBoThe({
-                ...newBoThe,
-                nguoiDung: {
-                  ...newBoThe.nguoiDung,
-                  anhDaiDien: imageUrl,
-                },
-              });
-            }
-          }}
-        />
-
+        
         <button
           type="button"
           onClick={() =>
