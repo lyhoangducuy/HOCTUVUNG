@@ -79,7 +79,7 @@ function Giangvien_Header() {
                 }}
               >
                 <FontAwesomeIcon icon={faFolderOpen} />
-                <span>Thư mục mới</span>
+                <span>Bộ Thẻ Mới</span>
               </div>
               <div
                 className="plus-item"

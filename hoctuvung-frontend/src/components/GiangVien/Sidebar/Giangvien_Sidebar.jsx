@@ -19,6 +19,9 @@ function Giangvien_Sidebar() {
     if (folder && folder.lenght > 0) {
       setMyfolder([...myfolder, folder]);
     }
+    else {
+      setMyfolder(folder);
+    }
   }, []);
 
   const handleStudy = (id) => {

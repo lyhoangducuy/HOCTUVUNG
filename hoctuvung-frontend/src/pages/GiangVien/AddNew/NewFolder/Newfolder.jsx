@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Newfolder.css";
-import { Form, useNavigate } from "react-router-dom";
+
 function Newfolder() {
   const emptyBoThe = {
     idBoThe: null,
@@ -13,12 +14,15 @@ function Newfolder() {
     },
     danhSachThe: [],
   };
+
   const navigate = useNavigate();
   const [newBoThe, setNewBoThe] = useState(emptyBoThe);
+
   const getId = () => {
-    const current = JSON.parse(localStorage.getItem("cards"));
+    const current = JSON.parse(localStorage.getItem("cards")) || [];
     return current.length + 1;
   };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -30,11 +34,16 @@ function Newfolder() {
     };
 
     const existing = JSON.parse(localStorage.getItem("cards")) || [];
-    const updatedList = [...existing, updatedBoThe];
-    localStorage.setItem("cards", JSON.stringify(updatedList));
-    const folder = localStorage.getItem("myFolder");
-    const updateFolder = [folder, updatedBoThe];
-    localStorage.setItem("myFolder", JSON.stringify(updateFolder));
+    localStorage.setItem("cards", JSON.stringify([...existing, updatedBoThe]));
+
+    const folder = JSON.parse(localStorage.getItem("myFolder")) || [];
+    if (folder.length === 0) {
+      localStorage.setItem("myFolder", JSON.stringify([updatedBoThe])); 
+    } else {
+      const updatedFolder = [...folder, updatedBoThe];
+      localStorage.setItem("myFolder", JSON.stringify(updatedFolder));
+    }
+
     setNewBoThe(emptyBoThe);
     setTimeout(() => {
       navigate("/giangvien");
@@ -43,8 +52,8 @@ function Newfolder() {
 
   return (
     <div className="container">
-      <h2 className="title">Tạo Thư Mục Mới</h2>
-      <form onSubmit={(e) => handleSubmit(e)} className="form-bo-the">
+      <h2 className="title">Tạo Bộ Thẻ Mới</h2>
+      <form onSubmit={handleSubmit} className="form-bo-the">
         <input
           required
           type="text"
@@ -71,7 +80,6 @@ function Newfolder() {
           }
         />
 
-        
         <button
           type="button"
           onClick={() =>
@@ -116,4 +124,5 @@ function Newfolder() {
     </div>
   );
 }
+
 export default Newfolder;
