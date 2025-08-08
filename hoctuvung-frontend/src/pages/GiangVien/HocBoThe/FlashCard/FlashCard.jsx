@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams,useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faClone,
@@ -9,8 +9,10 @@ import {
   faPlay,
   faArrowLeft,
   faArrowRight,
+  faStar,
 } from "@fortawesome/free-solid-svg-icons";
 import "./FlashCard.css";
+import HocBoThe_Header from "../../../../components/HocBoThe/HocBoThe_Header";
 
 function FlashCard() {
   const { id } = useParams();
@@ -40,36 +42,12 @@ function FlashCard() {
       setFlip(false);
     }
   };
-
+  const handleLib = () => {
+    
+  }
   return (
     <div className="container">
-      <div className="back" onClick={()=>nagative("/giangvien")}>
-        <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
-        {"Quay lại"}
-      </div>
-      
-      <div className="studyChange">
-        <div className="studyBtn active">
-          <FontAwesomeIcon icon={faClone} />
-          <span>Flashcards</span>
-        </div>
-        <div className="studyBtn " onClick={()=>nagative(`/tracnghiem/${id}`)}>
-          <FontAwesomeIcon icon={faListCheck} />
-          <span>Trắc nghiệm</span>
-        </div>
-        <div className="studyBtn" onClick={()=>nagative(`/test/${id}`)}>
-          <FontAwesomeIcon icon={faFilePen} />
-          <span>Test</span>
-        </div>
-        <div className="studyBtn" onClick={()=>nagative(`/game/${id}`)}>
-          <FontAwesomeIcon icon={faLayerGroup} />
-          <span>Match game</span>
-        </div>
-        <div className="studyBtn" onClick={()=>nagative(`/video/${id}`)}>
-          <FontAwesomeIcon icon={faPlay} />
-          <span>Học bằng video</span>
-        </div>
-      </div>
+       <HocBoThe_Header activeMode={"flashcard"}/>
 
       <div className="main">
         <div className="header">

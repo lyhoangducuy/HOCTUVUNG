@@ -70,7 +70,7 @@ function Test() {
 
   return (
     <div className="container">
-      <HocBoThe_Header url="giangvien" activeMode="test" />
+      <HocBoThe_Header  activeMode="test" />
 
       <div className="main">
         <h2 className="title">Bộ thẻ: {boThe.tenBoThe}</h2>
