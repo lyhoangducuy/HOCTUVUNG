@@ -23,7 +23,7 @@ function Newfolder() {
   }
   return (
     <div className="container">
-      <h1>Tọa thư mục mới</h1>
+      <h1>Tạo thư mục mới</h1>
       <form onSubmit={handleOnSubmit}>
 
         <div className="textInput">
