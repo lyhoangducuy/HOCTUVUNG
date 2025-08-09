@@ -5,7 +5,9 @@ function Library() {
   const [cardLib, setCardLib] = useState([]);
   const navigate = useNavigate();
   useEffect(() => {
-    const myCardLib = JSON.parse(localStorage.getItem("myLib")) || [];
+    const myLib = JSON.parse(localStorage.getItem("myLib")) || [];
+    const myCard = JSON.parse(localStorage.getItem("myCard")) || [];
+    const myCardLib = [...myCard, ...myLib];
     setCardLib(myCardLib);
   }, []);
   const handleStudy = (id) => {
@@ -14,6 +16,8 @@ function Library() {
     localStorage.setItem("selected", JSON.stringify(ketQua));
     navigate(`/flashcard/${id}`);
   };
+  
+  
   return (
     <div className="myLib-container">
       <h2 className="tittle-lib">Thư viện của tôi</h2>
