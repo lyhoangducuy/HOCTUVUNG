@@ -40,10 +40,6 @@ export default function Lop() {
     alert("Đã sao chép liên kết!");
   };
 
-  const handleGoogleInvite = () => {
-    alert("Mời qua Google");
-  };
-
   return (
     <>
       <div className="thong-tin-lop">

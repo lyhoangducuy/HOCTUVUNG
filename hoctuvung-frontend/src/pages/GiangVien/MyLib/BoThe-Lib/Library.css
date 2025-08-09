@@ -1,113 +1,99 @@
 .myLib-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 28px 24px 0;
-  font-family: 'Inter', sans-serif;
+  padding: 24px;
+  background-color: #f8f9fb; /* màu nền nhạt */
+  min-height: 100vh;
 }
 
 .tittle-lib {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
-  color: #0f172a; 
-  letter-spacing: -0.3px;
-  margin-bottom: 20px;
+  color: #1f1f1f;
+  margin-bottom: 16px;
 }
 
+/* Thanh tab */
 .header-lib {
   display: flex;
-  gap: 36px;
-  border-bottom: 1.5px solid #e5e7eb; 
-  padding-bottom: 8px;
-  margin-bottom: 24px;
-  position: relative;
+  gap: 24px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .lib-item {
   font-size: 16px;
-  font-weight: 600;
-  color: #6b7280; 
+  font-weight: 500;
+  color: #374151;
   cursor: pointer;
-  position: relative;
   padding-bottom: 8px;
-  transition: color 0.25s ease;
+  position: relative;
 }
+
+.lib-item:hover {
+  color: #2563eb; /* xanh nhạt khi hover */
+}
+
 .lib-item.active {
   color: #2563eb;
+  font-weight: 600;
 }
 
-
-
-.lib-item::after {
+.lib-item.active::after {
   content: "";
   position: absolute;
-  bottom: -2px;
+  bottom: 0;
   left: 0;
+  height: 2px;
   width: 100%;
-  height: 3px;
   background-color: #2563eb;
   border-radius: 2px;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.25s ease;
 }
 
-.lib-item:hover::after {
-  transform: scaleX(1);
-}
-li{
-    list-style: none;
-}
-.myLibCard {
+/* Card bộ thẻ */
+.myLibCard, .myLop {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-  padding: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
 }
 
-.CardLib {
-  background: #ffffff;
-  border-radius: 12px;
+.CardLib, .lop {
+  background: #fff;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.CardLib:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+.CardLib:hover, .lop:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
 }
 
 .lib-tittle {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937; 
-  margin-bottom: 8px;
+  margin: 0 0 8px 0;
+  color: #111827;
 }
 
 .quantity {
-  display: inline-block;
-  background: #f3f4f6;
-  color: #374151; 
+  display: block;
   font-size: 14px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 8px;
-  margin-bottom: 10px;
+  color: #6b7280;
 }
 
 .nameUser {
+  display: block;
   font-size: 14px;
-  color: #6b7280; 
-  font-style: italic;
+  color: #4b5563;
 }
 
 .emty {
-  text-align: center;
-  color: #9ca3af; 
   font-size: 16px;
+  color: #6b7280;
+  text-align: center;
   grid-column: 1 / -1;
+  margin-top: 24px;
 }
