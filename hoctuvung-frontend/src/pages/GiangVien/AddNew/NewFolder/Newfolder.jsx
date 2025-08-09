@@ -6,8 +6,8 @@ import TextInput from "../../../../components/inputs/TextInput";
 
 function Newfolder() {
   const folderMoi = {
-    idBoThe: "",
-    tenBoThe: "",
+    idThuMuc: "",
+    tenThuMuc: "",
   }
   const [newFolder, setNewFolder] = useState(folderMoi);
   const navigate = useNavigate();
@@ -15,9 +15,9 @@ function Newfolder() {
     e.preventDefault();
     const folders = JSON.parse(localStorage.getItem("folders")||"[]");
     const newId = folders ? folders.length + 1 : 1;
-    newFolder.idBoThe = newId;
+    newFolder.idThuMuc = newId;
     localStorage.setItem("folders", JSON.stringify([...folders, newFolder]));
-    setNewFolder({ idBoThe: "", tenBoThe: "" });
+    setNewFolder({ idThuMuc: "", tenThuMuc: "" });
     navigate("/giangvien");
 
   }
@@ -30,8 +30,8 @@ function Newfolder() {
           <TextInput
             type="text"
             placeholder="Nhập tên thư mục mới"
-            value={newFolder.tenBoThe}
-            onChange={(e) => setNewFolder({ ...newFolder, tenBoThe: e.target.value })}
+            value={newFolder.tenThuMuc}
+            onChange={(e) => setNewFolder({ ...newFolder, tenThuMuc: e.target.value })}
           />
         </div>
         <div className="button-submit">

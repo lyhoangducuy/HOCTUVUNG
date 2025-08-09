@@ -5,6 +5,7 @@ export default function TextInput({ type = "text", value, onChange, placeholder 
   return (
     <div className="ti">
       <input
+        required
         className="ti-input"
         type={type}
         value={value}

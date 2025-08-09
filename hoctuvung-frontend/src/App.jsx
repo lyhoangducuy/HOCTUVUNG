@@ -22,6 +22,7 @@ import Newfolder from "./pages/GiangVien/AddNew/NewFolder/Newfolder";
 import Newclass from "./pages/GiangVien/AddNew/NewClass/Newclass";
 import Lop from "./pages/GiangVien/Lop/Lop";
 import Library from "./pages/GiangVien/MyLib/BoThe-Lib/Library";
+import NewBoThe from "./pages/GiangVien/AddNew/NewBoThe/NewBoThe";
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/test/:id" element={<Test />} />
         <Route path="/game/:id" element={<MatchGame />} />
         <Route path="/video/:id" element={<Video />} />
+        <Route path="/newcard" element={<NewBoThe/>} />
         <Route path="/newfolder" element={<Newfolder />} />
         <Route path="/lop/:id" element={<Lop />} />
         <Route path="/newclass" element={<Newclass />} />

@@ -67,7 +67,12 @@ function Giangvien_Header() {
           />
           {showplus && (
             <div className="plus">
-              <div className="plus-item">
+              <div className="plus-item"
+                 onClick={() => {
+                  navigate("/newcard");
+                  setShowplus(!showplus);
+                }}
+              >
                 <FontAwesomeIcon icon={faClone} />
                 <span>Bộ thẻ mới</span>
               </div>
@@ -79,7 +84,7 @@ function Giangvien_Header() {
                 }}
               >
                 <FontAwesomeIcon icon={faFolderOpen} />
-                <span>Bộ Thẻ Mới</span>
+                <span>Thư Mục Mới</span>
               </div>
               <div
                 className="plus-item"

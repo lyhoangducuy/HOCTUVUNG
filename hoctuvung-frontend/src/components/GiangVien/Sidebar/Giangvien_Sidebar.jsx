@@ -14,9 +14,8 @@ import { useEffect, useState } from "react";
 function Giangvien_Sidebar() {
   const navigate = useNavigate();
   const [myfolder, setMyfolder] = useState([]);
-  const [folder, setFolder] = useState([]);
   useEffect(() => {
-    const folder = JSON.parse(localStorage.getItem("myFolder")) || [];
+    const folder = JSON.parse(localStorage.getItem("folders")) || [];
     if (folder && folder.lenght > 0) {
       setMyfolder([...myfolder, folder]);
     }
@@ -25,14 +24,6 @@ function Giangvien_Sidebar() {
     }
   }, []);
 
-  const handleStudy = (id) => {
-    const card = JSON.parse(localStorage.getItem("cards"));
-    const ketQua = card.find((item) => item.idBoThe === id);
-
-    localStorage.setItem("selected", JSON.stringify(ketQua));
-
-    navigate(`/flashcard/${id}`);
-  };
   return (
     <div className="sidebar_container">
       <div className="sidebar_top">
@@ -59,11 +50,11 @@ function Giangvien_Sidebar() {
             <li
               key={index}
               className="folder-item"
-              onClick={() => handleStudy(item.idBoThe)}
+             
             >
               {" "}
               <FontAwesomeIcon icon={faBook} className="icon icon-book" />
-              {item.tenBoThe}
+              {item.tenThuMuc}
             </li>
           ))}
         </ul>
