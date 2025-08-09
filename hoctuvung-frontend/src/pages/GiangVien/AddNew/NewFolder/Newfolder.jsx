@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Newfolder.css";
-import { Form, useNavigate } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
 import TextInput from "../../../../components/inputs/TextInput";
 
 function Newfolder() {
