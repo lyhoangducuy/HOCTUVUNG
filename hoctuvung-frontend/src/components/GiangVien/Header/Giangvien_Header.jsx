@@ -69,7 +69,7 @@ function Giangvien_Header() {
             <div className="plus">
               <div className="plus-item">
                 <FontAwesomeIcon icon={faClone} />
-                <span>FlashCard</span>
+                <span>Bộ thẻ mới</span>
               </div>
               <div
                 className="plus-item"

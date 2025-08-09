@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 function Giangvien_Sidebar() {
   const navigate = useNavigate();
   const [myfolder, setMyfolder] = useState([]);
+  const [folder, setFolder] = useState([]);
   useEffect(() => {
     const folder = JSON.parse(localStorage.getItem("myFolder")) || [];
     if (folder && folder.lenght > 0) {

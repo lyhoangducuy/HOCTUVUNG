@@ -13,7 +13,7 @@ function DangNhap() {
     formState: { errors },
   } = useForm();
 
-  
+
   const [user, setUser] = useState(() => {
     const savedUser = sessionStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
@@ -34,14 +34,22 @@ function DangNhap() {
       if (response.data) {
         alert("Đăng nhập thành công!");
         // Lưu thông tin người dùng nếu cần
-        // localStorage.setItem("nguoiDung", JSON.stringify(response.data));
+        localStorage.setItem("nguoiDung", JSON.stringify(response.data));
 
         // Hàm để xử lý đăng nhập
-        const login = (userData) => {
-          sessionStorage.setItem('user', JSON.stringify(userData)); // Lưu vào sessionStorage
-          setUser(userData); // Cập nhật state
-        };
-        navigate("/"); 
+        // const login = (userData) => {
+        //   sessionStorage.setItem('user', JSON.stringify(userData)); // Lưu vào sessionStorage
+        //   setUser(userData); // Cập nhật state
+        // };
+        if (response.vaiTro === "GIANG_VIEN") {
+          navigate("/giangvien");
+        }
+        if (response.vaiTro === "HOC_VIEN") {
+          navigate("/hocvien");
+        } 
+        if (response.vaiTro === "ADMIN") {
+          navigate("/admin");
+        }
       } else {
         setLoginError("Sai email hoặc mật khẩu.");
       }

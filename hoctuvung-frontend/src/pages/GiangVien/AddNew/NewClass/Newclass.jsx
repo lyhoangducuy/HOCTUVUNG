@@ -9,14 +9,21 @@ function Newclass() {
     formState: { errors },
   } = useForm();
   const onSubmit = (data) => {
-     localStorage.setItem("class",JSON.stringify(data))
+    const dataLocal = JSON.parse(localStorage.getItem("class")) || [];
+    const list = Array.isArray(dataLocal) ? dataLocal : [dataLocal];
+    const idLop = Math.floor(Math.random() * 1000000);
+    const newClass={idLop, ...data};
+    list.push(newClass);
+    localStorage.setItem("class",JSON.stringify(list))
+    navigate("/lop/"+idLop);
   };
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <h2 className="tittle">Nhập thông tin lớp học</h2>
       <label>Tên lớp học</label>
+      
       <input
-        {...register("className", { required: "vui long nhap ten lop" })}
+        {...register("tenLop", { required: "vui long nhap ten lop" })}
       />
       {errors.className && (
         <p style={{ color: "red" }}>{errors.className.message}</p>

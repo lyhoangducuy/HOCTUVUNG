@@ -1,9 +1,16 @@
-import React from 'react'
+import React from "react";
+import "./TextInput.css";
 
-export default function  TextInput({type, value,onChange}) {
+export default function TextInput({ type = "text", value, onChange, placeholder }) {
   return (
-    <div>
-        <input type={type} value={value} onChange={onChange} />
+    <div className="ti">
+      <input
+        className="ti-input"
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+      />
     </div>
-  )
+  );
 }

@@ -18,7 +18,6 @@ function Test() {
   const [userAnswers, setUserAnswers] = useState([]);
   const [ketQua, setKetQua] = useState(null);
   const [answerStatuses, setAnswerStatuses] = useState([]);
-  const [lamLai,setLamLai] = useState(false);
 
   useEffect(() => {
     const selected = JSON.parse(localStorage.getItem("selected"));
