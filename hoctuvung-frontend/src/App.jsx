@@ -21,6 +21,7 @@ import ThongKeAdmin from "./pages/Admin/ThongKeAdmin/ThongKeAdmin";
 import Newfolder from "./pages/GiangVien/AddNew/NewFolder/Newfolder";
 import Newclass from "./pages/GiangVien/AddNew/NewClass/Newclass";
 import Lop from "./pages/GiangVien/Lop/Lop";
+import Library from "./pages/GiangVien/MyLib/BoThe-Lib/Library";
 
 export default function App() {
   return (
@@ -37,8 +38,9 @@ export default function App() {
         <Route path="/game/:id" element={<MatchGame />} />
         <Route path="/video/:id" element={<Video />} />
         <Route path="/newfolder" element={<Newfolder />} />
-         <Route path="/newclass" element={<Newclass/>} />
         <Route path="/lop/:id" element={<Lop />} />
+        <Route path="/newclass" element={<Newclass />} />
+        <Route path="/mylibrary" element={<Library/>} />
 
       </Route>
       <Route element={<AdminLayout />}>

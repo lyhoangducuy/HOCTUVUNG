@@ -10,10 +10,12 @@ import {
   faArrowLeft,
   faArrowRight,
   faL,
+  faStar,
 } from "@fortawesome/free-solid-svg-icons";
 import "./MatchGame.css";
 import { useRef } from "react";
 import { ref } from "yup";
+import HocBoThe_Header from "../../../../components/HocBoThe/HocBoThe_Header";
 
 function MatchGame() {
   const { id } = useParams();
@@ -78,7 +80,6 @@ function MatchGame() {
         const remove1 = match.filter((item) => item.text !== first.text);
         const remove2 = remove1.filter((item) => item.text !== second.text);
         setMatch(remove2);
-        
       }
       setTimeout(() => {
         setChoice([]);
@@ -89,39 +90,7 @@ function MatchGame() {
 
   return (
     <div className="container">
-      <div className="back" onClick={() => nagative("/giangvien")}>
-        <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
-        {"Quay lại"}
-      </div>
-
-      <div className="studyChange">
-        <div className="studyBtn " onClick={() => nagative(`/flashcard/${id}`)}>
-          <FontAwesomeIcon icon={faClone} />
-          <span>Flashcards</span>
-        </div>
-        <div
-          className="studyBtn "
-          onClick={() => nagative(`/tracnghiem/${id}`)}
-        >
-          <FontAwesomeIcon icon={faListCheck} />
-          <span>Trắc nghiệm</span>
-        </div>
-        <div className="studyBtn" onClick={() => nagative(`/test/${id}`)}>
-          <FontAwesomeIcon icon={faFilePen} />
-          <span>Test</span>
-        </div>
-        <div
-          className="studyBtn  active"
-          onClick={() => nagative(`/game/${id}`)}
-        >
-          <FontAwesomeIcon icon={faLayerGroup} />
-          <span>Match game</span>
-        </div>
-        <div className="studyBtn" onClick={() => nagative(`/video/${id}`)}>
-          <FontAwesomeIcon icon={faPlay} />
-          <span>Học bằng video</span>
-        </div>
-      </div>
+       <HocBoThe_Header activeMode={"game"}/>
 
       <div className="main">
         <div className="header">{cards.tenBoThe}</div>

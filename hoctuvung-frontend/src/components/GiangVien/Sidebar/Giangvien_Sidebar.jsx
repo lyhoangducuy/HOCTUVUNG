@@ -20,6 +20,9 @@ function Giangvien_Sidebar() {
     if (folder && folder.lenght > 0) {
       setMyfolder([...myfolder, folder]);
     }
+    else {
+      setMyfolder(folder);
+    }
   }, []);
 
   const handleStudy = (id) => {
@@ -37,7 +40,7 @@ function Giangvien_Sidebar() {
           <FontAwesomeIcon icon={faHouse} className="icon" />
           Trang chủ
         </div>
-        <div>
+        <div onClick={()=>navigate("/mylibrary")}>
           <FontAwesomeIcon icon={faFolderOpen} className="icon" />
           Thư viện của tôi
         </div>

@@ -9,6 +9,7 @@ import {
   faPlay,
   faArrowLeft,
   faArrowRight,
+  faStar
 } from "@fortawesome/free-solid-svg-icons";
 import "./TracNghiem.css";
 import HocBoThe_Header from "../../../../components/HocBoThe/HocBoThe_Header";
@@ -97,7 +98,7 @@ function TracNghiem() {
   }, [danhsachthe, step]);
   return (
     <div className="container">
-      <HocBoThe_Header url="giangvien" activeMode="tracnghiem" />
+      <HocBoThe_Header  activeMode="tracnghiem" />
       <div className="main">
         <div className="header">{cards.tenBoThe}</div>
 

@@ -7,18 +7,51 @@ import {
   faFilePen,
   faLayerGroup,
   faPlay,
+  faStar,
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
+import "./HocBoThe_Header.css";
 
-function HocBoThe_Header({url, activeMode }) {
+function HocBoThe_Header({ activeMode }) {
   const navigate = useNavigate();
-  const { id } = useParams(); // lấy id từ URL
-
+  const { id } = useParams();
+  const [addLib, setAddlib] = useState(false);
+  const handleAddlib = () => {
+    const card = JSON.parse(localStorage.getItem("selected"));
+    const lib = JSON.parse(localStorage.getItem("myLib")) || [];
+    if (lib.length === 0) {
+      localStorage.setItem("myLib", JSON.stringify([card]));
+     
+    } else {
+      const exist = lib.some((item) => item.idBoThe === card.idBoThe);
+      if (!exist) {
+        const newLib = [...lib, card];
+        localStorage.setItem("myLib", JSON.stringify(newLib));
+       
+      }
+    }
+     setAddlib(true);
+    
+  };
   return (
     <>
-      <div className="back" onClick={() => navigate(`/${url}`)}>
-        <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
-        {"Quay lại"}
+      <div className="top-bar">
+        <div className="back" onClick={() => navigate("/giangvien")}>
+          <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
+          Quay lại
+        </div>
+        {
+          addLib && (
+            <div className="notiAddLib">
+              <h2 className="notiTittle">Đã Thêm Vào Thư Viện</h2>
+            </div>
+          )
+        }
+        <div className="addLib" onClick={() => handleAddlib()}>
+          <FontAwesomeIcon icon={faStar} />
+          Thêm vào Thư Viện
+        </div>
       </div>
 
       <div className="studyChange">
@@ -65,4 +98,4 @@ function HocBoThe_Header({url, activeMode }) {
     </>
   );
 }
-export default HocBoThe_Header; 
+export default HocBoThe_Header;
