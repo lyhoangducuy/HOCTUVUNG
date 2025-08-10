@@ -23,6 +23,7 @@ import Newclass from "./pages/GiangVien/AddNew/NewClass/Newclass";
 import Lop from "./pages/GiangVien/Lop/Lop";
 import Library from "./pages/GiangVien/MyLib/BoThe-Lib/Library";
 import NewBoThe from "./pages/GiangVien/AddNew/NewBoThe/NewBoThe";
+import MyFolder from "./pages/GiangVien/MyFolder/MyFolder";
 
 export default function App() {
   return (
@@ -42,7 +43,8 @@ export default function App() {
         <Route path="/newfolder" element={<Newfolder />} />
         <Route path="/lop/:id" element={<Lop />} />
         <Route path="/newclass" element={<Newclass />} />
-        <Route path="/mylibrary" element={<Library/>} />
+        <Route path="/mylibrary" element={<Library />} />
+        <Route path="/folder/:id" element={<MyFolder/>} />
 
       </Route>
       <Route element={<AdminLayout />}>

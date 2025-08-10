@@ -1,0 +1,244 @@
+/* ======= Container chính ======= */
+.addCard-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafc;
+  border-radius: 24px;
+  padding: clamp(48px, 6vw, 64px) 24px;
+  margin-top: 48px;
+  gap: 28px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, box-shadow;
+}
+
+.addCard-container:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.06), 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* ======= Icon group ======= */
+.icon-group {
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 4vw, 32px);
+  font-size: clamp(36px, 5vw, 48px);
+}
+
+.icon-group svg {
+  transition: transform 0.4s ease, filter 0.3s ease;
+  cursor: default;
+}
+
+.icon-group svg:nth-child(1) {
+  color: #1a73e8; /* Google Blue */
+}
+.icon-group svg:nth-child(2) {
+  color: #9333ea; /* Deep Purple */
+}
+.icon-group svg:nth-child(3) {
+  color: #f57c00; /* Google Orange */
+}
+
+.icon-group svg:hover {
+  transform: scale(1.2) rotate(2deg);
+  filter: brightness(1.2);
+}
+
+/* ======= Tiêu đề ======= */
+.paragram p {
+  font-size: 18px;
+  font-weight: 600;
+  color: #202124;
+  text-align: center;
+  margin: 0;
+  padding: 6px 14px;
+  background: rgba(26, 115, 232, 0.08);
+  border-radius: 8px;
+}
+
+/* ======= Nút chính ======= */
+.btn-add {
+  padding: 14px 36px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(90deg, #1a73e8, #1557b0);
+  color: #fff;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 3px 6px rgba(26, 115, 232, 0.3);
+}
+
+.btn-add:hover {
+  background: linear-gradient(90deg, #1557b0, #0d47a1);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(26, 115, 232, 0.4);
+}
+
+.btn-add:active {
+  transform: scale(0.97);
+}
+
+/* Nền mờ phủ toàn màn hình */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5); /* nền mờ */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999; /* nằm trên cùng */
+}
+
+/* Form popup */
+.create-card-form {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  animation: fadeInUp 0.3s ease;
+}
+
+/* Tiêu đề */
+.create-card-form h2 {
+  margin-bottom: 16px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #2e3856; /* màu kiểu Quizlet */
+}
+
+/* Input & textarea */
+.create-card-form input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+  transition: border 0.2s ease;
+}
+
+.create-card-form input:focus {
+  border-color: #4255ff; /* xanh Quizlet */
+}
+
+/* Hiệu ứng xuất hiện */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.btn-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Nút chung */
+.btn-group button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.25s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  background-color: #f8fafc;
+  color: #334155;
+}
+
+/* Hover nhẹ nhàng */
+.btn-group button:hover {
+  background-color: #f1f5f9;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* Nút chính (Primary) */
+.btn-group .btn-primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn-group .btn-primary:hover {
+  background-color: #2563eb;
+}
+
+/* Nút phụ (Secondary) */
+.btn-group .btn-secondary {
+  background-color: #e2e8f0;
+  color: #334155;
+}
+
+.btn-group .btn-secondary:hover {
+  background-color: #cbd5e1;
+}
+
+/* Hiệu ứng khi click */
+.btn-group button:active {
+  transform: scale(0.97);
+}
+/* Container của danh sách bộ thẻ */
+.CardFolder {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 15px;
+}
+
+/* Từng item của bộ thẻ */
+.Card-item {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 15px 20px;
+  box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Hiệu ứng hover */
+.Card-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Tên bộ thẻ */
+.nameCard {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+/* Số lượng từ trong bộ thẻ */
+.quantity {
+  background: #007bff;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}

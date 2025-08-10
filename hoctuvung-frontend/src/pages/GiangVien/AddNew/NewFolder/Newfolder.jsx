@@ -8,6 +8,7 @@ function Newfolder() {
   const folderMoi = {
     idThuMuc: "",
     tenThuMuc: "",
+    boThe: []
   }
   const [newFolder, setNewFolder] = useState(folderMoi);
   const navigate = useNavigate();
