@@ -8,7 +8,7 @@ import {
   faMoon,
 } from "@fortawesome/free-solid-svg-icons";
 import "./header.css";
-import { useRef, useState ,useEffect} from "react";
+import { useRef, useState, useEffect } from "react";
 
 function Giangvien_Header() {
   const [show, setShow] = useState(false);
@@ -41,7 +41,12 @@ function Giangvien_Header() {
         <FontAwesomeIcon icon={faCirclePlus} className="icon plus-icon" />
         <button className="btn-upgrade">Nâng cấp tài khoản</button>
         <div className="inforContainer" ref={menuRef}>
-          <img src="/src/image/formimg.png" alt="avatar" className="avatar"  onClick={() => setShow(!show)} />
+          <img
+            src="/src/image/formimg.png"
+            alt="avatar"
+            className="avatar"
+            onClick={() => setShow(!show)}
+          />
           {show && (
             <div className="setting">
               <div className="infor">

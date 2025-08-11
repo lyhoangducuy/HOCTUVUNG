@@ -27,9 +27,7 @@ export default function TrangChuGiangVien() {
         { tu: "け", nghia: "ke" },
         { tu: "こ", nghia: "ko" },
       ],
-     video: { src: "/assets/video.mp4", answer: [ "こんにちは", "さようなら"]}
-
-
+      video: { src: "/assets/video.mp4", answer: ["こんにちは", "さようなら"] },
     },
     {
       idBoThe: 2,
@@ -50,9 +48,7 @@ export default function TrangChuGiangVien() {
         { tu: "コンピュータ", nghia: "Máy tính" },
         { tu: "タクシー", nghia: "Taxi" },
       ],
-  video: { src: "/assets/video.mp4", answer: [ "こんにちは", "さようなら"]}
-
-
+      video: { src: "/assets/video.mp4", answer: ["こんにちは", "さようなら"] },
     },
     {
       idBoThe: 3,
@@ -73,8 +69,7 @@ export default function TrangChuGiangVien() {
         { tu: "いいえ", nghia: "Không" },
         { tu: "おねがいします", nghia: "Làm ơn" },
       ],
-     video: { src: "/assets/video.mp4", answer: [ "こんにちは", "さようなら"]}
-
+      video: { src: "/assets/video.mp4", answer: ["こんにちは", "さようなら"] },
     },
     {
       idBoThe: 4,
@@ -95,9 +90,7 @@ export default function TrangChuGiangVien() {
         { tu: "さかな", nghia: "Cá" },
         { tu: "にく", nghia: "Thịt" },
       ],
-     video: { src: "/assets/video.mp4", answer: [ "こんにちは", "さようなら"]}
-
-
+      video: { src: "/assets/video.mp4", answer: ["こんにちは", "さようなら"] },
     },
     {
       idBoThe: 5,
@@ -118,9 +111,7 @@ export default function TrangChuGiangVien() {
         { tu: "そふ", nghia: "Ông" },
         { tu: "そぼ", nghia: "Bà" },
       ],
-    video: { src: "/assets/video.mp4", answer: [ "こんにちは", "さようなら"]}
-
-
+      video: { src: "/assets/video.mp4", answer: ["こんにちは", "さようなら"] },
     },
     {
       idBoThe: 6,
@@ -141,9 +132,7 @@ export default function TrangChuGiangVien() {
         { tu: "話す", nghia: "Nói" },
         { tu: "書く", nghia: "Viết" },
       ],
-    video: { src: "/assets/video.mp4", answer: [ "こんにちは", "さようなら"]}
-
-
+      video: { src: "/assets/video.mp4", answer: ["こんにちは", "さようなら"] },
     },
     {
       idBoThe: 7,
@@ -164,9 +153,7 @@ export default function TrangChuGiangVien() {
         { tu: "いい", nghia: "Tốt" },
         { tu: "悪い", nghia: "Xấu" },
       ],
-     video: { src: "/assets/video.mp4", answer: [ "こんにちは", "さようなら"]}
-
-
+      video: { src: "/assets/video.mp4", answer: ["こんにちは", "さようなら"] },
     },
     {
       idBoThe: 8,
@@ -187,9 +174,7 @@ export default function TrangChuGiangVien() {
         { tu: "週末", nghia: "Cuối tuần" },
         { tu: "毎日", nghia: "Mỗi ngày" },
       ],
-     video: { src: "/assets/video.mp4", answer: [ "こんにちは", "さようなら"]}
-
-
+      video: { src: "/assets/video.mp4", answer: ["こんにちは", "さようなら"] },
     },
     {
       idBoThe: 9,
@@ -210,8 +195,7 @@ export default function TrangChuGiangVien() {
         { tu: "家", nghia: "Nhà" },
         { tu: "会社", nghia: "Công ty" },
       ],
-      video: { src: "/assets/video.mp4", answer: [ "こんにちは", "さようなら"]}
-
+      video: { src: "/assets/video.mp4", answer: ["こんにちは", "さようなら"] },
     },
   ];
   const navigate = useNavigate();

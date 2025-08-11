@@ -15,7 +15,7 @@ function DangNhap() {
 
   // Lấy thông tin user từ sessionStorage nếu có, nếu không thì là null
   const [user, setUser] = useState(() => {
-    const savedUser = sessionStorage.getItem('user');
+    const savedUser = sessionStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
@@ -26,10 +26,13 @@ function DangNhap() {
     setLoginError("");
 
     try {
-      const response = await axios.post("http://localhost:8080/api/nguoidung/dangnhap", {
-        email: data.email,
-        matkhau: data.password, // tùy theo tên field trên server
-      });
+      const response = await axios.post(
+        "http://localhost:8080/api/nguoidung/dangnhap",
+        {
+          email: data.email,
+          matkhau: data.password, // tùy theo tên field trên server
+        }
+      );
 
       if (response.data) {
         alert("Đăng nhập thành công!");
@@ -38,7 +41,7 @@ function DangNhap() {
 
         // Hàm để xử lý đăng nhập
         const login = (userData) => {
-          sessionStorage.setItem('user', JSON.stringify(userData)); // Lưu vào sessionStorage
+          sessionStorage.setItem("user", JSON.stringify(userData)); // Lưu vào sessionStorage
           setUser(userData); // Cập nhật state
         };
         navigate("/"); // 👉 chuyển trang về trang chủ
@@ -59,25 +62,41 @@ function DangNhap() {
         </div>
         <div className="login-right">
           <div className="login-tabs">
-            <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
+            <span
+              onClick={() => navigate("/dang-ky")}
+              style={{ cursor: "pointer" }}
+            >
               Đăng ký
             </span>
-            <span className="active" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
+            <span
+              className="active"
+              onClick={() => navigate("/")}
+              style={{ cursor: "pointer" }}
+            >
               Đăng nhập
             </span>
           </div>
 
           <button className="login-btn social google">
-            <FontAwesomeIcon icon={faGoogle} style={{ color: "rgb(234, 67, 53)" }} />
+            <FontAwesomeIcon
+              icon={faGoogle}
+              style={{ color: "rgb(234, 67, 53)" }}
+            />
             Login with Google
           </button>
 
           <button className="login-btn social facebook">
-            <FontAwesomeIcon icon={faFacebook} size={20} style={{ color: "#6e65f1ff" }} />
+            <FontAwesomeIcon
+              icon={faFacebook}
+              size={20}
+              style={{ color: "#6e65f1ff" }}
+            />
             Login with Facebook
           </button>
 
-          <div className="divider"><span>Or Email</span></div>
+          <div className="divider">
+            <span>Or Email</span>
+          </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="login-form">
             <label>Email</label>
@@ -86,7 +105,9 @@ function DangNhap() {
               {...register("email", { required: "Vui lòng nhập email" })}
               className={errors.email ? "error" : ""}
             />
-            {errors.email && <span className="error">{errors.email.message}</span>}
+            {errors.email && (
+              <span className="error">{errors.email.message}</span>
+            )}
 
             <label>Password</label>
             <input
@@ -97,7 +118,9 @@ function DangNhap() {
               })}
               className={errors.password ? "error" : ""}
             />
-            {errors.password && <span className="error">{errors.password.message}</span>}
+            {errors.password && (
+              <span className="error">{errors.password.message}</span>
+            )}
 
             {loginError && <span className="error">{loginError}</span>}
 
@@ -105,7 +128,9 @@ function DangNhap() {
               <a href="#">Quên mật khẩu</a>
             </div>
 
-            <button type="submit" className="login-btn submit">Đăng Nhập</button>
+            <button type="submit" className="login-btn submit">
+              Đăng Nhập
+            </button>
           </form>
         </div>
       </div>

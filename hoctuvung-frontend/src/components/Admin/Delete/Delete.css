@@ -1,0 +1,70 @@
+/* Overlay background */
+.delete-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.15);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-dialog {
+  background: #fff;
+  border-radius: 10px;
+  min-width: 350px;
+  padding: 32px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.15);
+}
+
+.delete-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.delete-dialog-title {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.delete-dialog-close {
+  font-size: 22px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #838080;
+  margin-left: 20px;
+  margin-bottom: 20px;
+}
+
+.delete-dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 32px;
+}
+
+.delete-dialog-btn-cancel {
+  background: #cceaff;
+  color: #222;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 32px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.delete-dialog-btn-confirm {
+  background: #e53935;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 32px;
+  font-weight: 600;
+  cursor: pointer;
+}
+

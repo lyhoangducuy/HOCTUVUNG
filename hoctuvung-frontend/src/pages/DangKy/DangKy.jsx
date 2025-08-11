@@ -7,10 +7,19 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const schema = yup.object().shape({
-  email: yup.string().email("Email không hợp lệ").required("Vui lòng nhập email"),
+  email: yup
+    .string()
+    .email("Email không hợp lệ")
+    .required("Vui lòng nhập email"),
   username: yup.string().required("Vui lòng nhập tên người dùng"),
-  role: yup.string().oneOf(["hocvien", "giangvien"], "Vui lòng chọn vai trò").required("Vui lòng chọn vai trò"),
-  password: yup.string().min(6, "Mật khẩu tối thiểu 6 ký tự").required("Vui lòng nhập mật khẩu"),
+  role: yup
+    .string()
+    .oneOf(["hocvien", "giangvien"], "Vui lòng chọn vai trò")
+    .required("Vui lòng chọn vai trò"),
+  password: yup
+    .string()
+    .min(6, "Mật khẩu tối thiểu 6 ký tự")
+    .required("Vui lòng nhập mật khẩu"),
   passwordConfirm: yup
     .string()
     .oneOf([yup.ref("password")], "Mật khẩu không khớp")
@@ -48,7 +57,11 @@ function DangKy() {
       navigate("/dang-nhap");
     } catch (error) {
       if (error.response && error.response.data) {
-        alert(error.response.data.message || error.response.data || "Đăng ký thất bại!");
+        alert(
+          error.response.data.message ||
+            error.response.data ||
+            "Đăng ký thất bại!"
+        );
       } else {
         alert("Đăng ký thất bại!");
       }
@@ -65,7 +78,11 @@ function DangKy() {
         </div>
         <div className="signup-right">
           <div className="signup-tabs">
-            <span className="active" onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
+            <span
+              className="active"
+              onClick={() => navigate("/dang-ky")}
+              style={{ cursor: "pointer" }}
+            >
               Đăng ký
             </span>
             <span onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
@@ -75,53 +92,67 @@ function DangKy() {
           <form onSubmit={handleSubmit(onSubmit)} className="signup-form">
             {/* Email */}
             <label>Email</label>
-            <input 
-              type="email" 
-              {...register("email")} 
+            <input
+              type="email"
+              {...register("email")}
               className={errors.email ? "error" : ""}
             />
-            {errors.email && <span className="error">{errors.email.message}</span>}
+            {errors.email && (
+              <span className="error">{errors.email.message}</span>
+            )}
 
             {/* Tên người dùng */}
             <label>Tên người dùng</label>
-            <input 
-              type="text" 
-              {...register("username")} 
+            <input
+              type="text"
+              {...register("username")}
               className={errors.username ? "error" : ""}
             />
-            {errors.username && <span className="error">{errors.username.message}</span>}
+            {errors.username && (
+              <span className="error">{errors.username.message}</span>
+            )}
 
             {/* Vai trò */}
             <label>Vai trò</label>
-            <select 
-              {...register("role")} 
+            <select
+              {...register("role")}
               className={errors.role ? "error" : ""}
             >
               <option value="">-- Chọn vai trò --</option>
               <option value="giangvien">Giảng viên</option>
               <option value="hocvien">Học viên</option>
             </select>
-            {errors.role && <span className="error">{errors.role.message}</span>}
+            {errors.role && (
+              <span className="error">{errors.role.message}</span>
+            )}
 
             {/* Mật khẩu */}
             <label>Mật khẩu</label>
-            <input 
-              type="password" 
-              {...register("password")} 
+            <input
+              type="password"
+              {...register("password")}
               className={errors.password ? "error" : ""}
             />
-            {errors.password && <span className="error">{errors.password.message}</span>}
+            {errors.password && (
+              <span className="error">{errors.password.message}</span>
+            )}
 
             {/* Nhập lại mật khẩu */}
             <label>Nhập lại mật khẩu</label>
-            <input 
-              type="password" 
-              {...register("passwordConfirm")} 
+            <input
+              type="password"
+              {...register("passwordConfirm")}
               className={errors.passwordConfirm ? "error" : ""}
             />
-            {errors.passwordConfirm && <span className="error">{errors.passwordConfirm.message}</span>}
+            {errors.passwordConfirm && (
+              <span className="error">{errors.passwordConfirm.message}</span>
+            )}
 
-            <button type="submit" className="signup-btn submit" disabled={loading}>
+            <button
+              type="submit"
+              className="signup-btn submit"
+              disabled={loading}
+            >
               {loading ? "Đang đăng ký..." : "Đăng Ký"}
             </button>
           </form>
