@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import "./Myfolder.css";
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -8,7 +8,7 @@ function MyFolder() {
   const { id } = useParams();
   const [folder, setFolder] = useState([]);
   const [add, setAdd] = useState(false);
-
+  const navigate = useNavigate();
   const emptyBoThe = {
     idThuMuc: null,
     idBoThe: null,
@@ -67,12 +67,28 @@ function MyFolder() {
     }
   };
 
+  const handleStudy = (index) => {
+    const selectedBoThe = folder.boThe[index];
+    const boThe = {
+      idBoThe: selectedBoThe.idBoThe,
+      tenBoThe: selectedBoThe.tenBoThe,
+      soTu: selectedBoThe.soTu,
+      danhSachThe: selectedBoThe.danhSachThe,
+      video: { src: "/assets/video.mp4", answer: ["こんにちは", "さようなら"] },
+    };
+    localStorage.setItem("selected", JSON.stringify(boThe));
+    navigate(`/flashcard/${id}`);
+  };
   return (
     <div className="folder-container">
       {
         <ul className="CardFolder">
           {folder?.boThe?.map((item, index) => (
-            <li className="Card-item" key={index}>
+            <li
+              className="Card-item"
+              key={index}
+              onClick={() => handleStudy(index)}
+            >
               {
                 <>
                   <span className="nameCard">{item.tenBoThe}</span>
