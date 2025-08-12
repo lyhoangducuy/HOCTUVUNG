@@ -35,7 +35,7 @@ function DangNhap() {
         alert("Đăng nhập thành công!");
         // Lưu thông tin người dùng nếu cần
         localStorage.setItem("nguoiDung", JSON.stringify(response.data));
-
+        console.log(response.data);
         // Hàm để xử lý đăng nhập
         // const login = (userData) => {
         //   sessionStorage.setItem('user', JSON.stringify(userData)); // Lưu vào sessionStorage

@@ -24,6 +24,7 @@ import Lop from "./pages/GiangVien/Lop/Lop";
 import Library from "./pages/GiangVien/MyLib/BoThe-Lib/Library";
 import NewBoThe from "./pages/GiangVien/AddNew/NewBoThe/NewBoThe";
 import MyFolder from "./pages/GiangVien/MyFolder/MyFolder";
+import Setting from "./pages/GiangVien/Setting/Setting";
 
 export default function App() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/newclass" element={<Newclass />} />
         <Route path="/mylibrary" element={<Library />} />
         <Route path="/folder/:id" element={<MyFolder/>} />
+        <Route path="/setting" element={<Setting/>} />
 
       </Route>
       <Route element={<AdminLayout />}>
