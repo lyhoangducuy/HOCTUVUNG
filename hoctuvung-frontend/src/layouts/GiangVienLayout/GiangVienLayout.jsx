@@ -1,16 +1,16 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import Giangvien_Header from "../../components/GiangVien/Header/Giangvien_Header";
-import Giangvien_Sidebar from "../../components/GiangVien/Sidebar/Giangvien_Sidebar";
 import "./TrangChuLayout.css";
+import Header from "../../components/TrangChu/Header/Header";
+import Sidebar from "../../components/TrangChu/Sidebar/Sidebar";
 
 export default function GiangVienLayout() {
   return (
     <div className="trangchu-layout-container">
-      <Giangvien_Header />
+      <Header />
       <div className="trangchu-layout-main">
         <div className="trangchu-layout-sidebar">
-          <Giangvien_Sidebar />
+          <Sidebar />
         </div>
         <div className="trangchu-layout-content">
           <Outlet />

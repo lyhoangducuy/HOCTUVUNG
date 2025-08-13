@@ -39,7 +39,7 @@ function Newclass() {
       <label>Tên Trường Học</label>
       <input {...register("school", { required: "vui long nhap truong" })} />
       {errors.school && <p style={{ color: "red" }}>{errors.school.message}</p>}
-      <label>Tên lớp học</label>
+      <label>Mô tả</label>
       <input {...register("description")} />
       <div className="button-group">
         <button className="btn-close" onClick={() => navigate("/giangvien")}>

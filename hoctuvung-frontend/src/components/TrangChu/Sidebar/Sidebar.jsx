@@ -11,7 +11,8 @@ import "./sidebar.css";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-function Giangvien_Sidebar() {
+
+function Sidebar() {
   const navigate = useNavigate();
   const [myfolder, setMyfolder] = useState([]);
   const loaddata = () => {
@@ -91,4 +92,4 @@ function Giangvien_Sidebar() {
   );
 }
 
-export default Giangvien_Sidebar;
+export default Sidebar;

@@ -51,11 +51,9 @@ const QuanLyTraPhi = () => {
   ];
 
   return (
-    <div>
-      <AdminLayout>
+    <>
         <MainContentQLTP Data={DataGoiHoc} />
-      </AdminLayout>
-    </div>
+    </>
   );
 };
 export default QuanLyTraPhi;

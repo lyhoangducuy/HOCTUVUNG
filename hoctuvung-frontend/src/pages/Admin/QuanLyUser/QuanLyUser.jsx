@@ -126,11 +126,9 @@ const QuanLyUser = () => {
   ];
   return (
     <div>
-      <AdminLayout>
         <h1>
           <MainContentAdminQuanUser Data={Data} />
         </h1>
-      </AdminLayout>
     </div>
   );
 };
