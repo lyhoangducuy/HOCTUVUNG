@@ -1,57 +1,66 @@
 import { useForm } from "react-hook-form";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFacebook, faGoogle } from "@fortawesome/free-brands-svg-icons";
-import axios from "axios";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import { useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
 import "./DangNhap.css";
-import { useState } from "react";
+// import axios from "axios"; // Chưa dùng thì có thể xoá
 
-function DangNhap() {
+const schema = yup.object({
+  email: yup
+    .string()
+    .email("Nhập đúng định dạng email")
+    .required("Vui lòng nhập email"),
+  matkhau: yup
+    .string()
+    .min(6, "Mật khẩu tối thiểu 6 ký tự")
+    .required("Vui lòng nhập mật khẩu"),
+});
+
+export default function DangNhap() {
+  const navigate = useNavigate();
+  const [loginError, setLoginError] = useState("");
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm();
+  } = useForm({ resolver: yupResolver(schema) });
 
-
-  const [user, setUser] = useState(() => {
-    const savedUser = sessionStorage.getItem("user");
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-
-  const navigate = useNavigate();
-  const [loginError, setLoginError] = useState("");
-
-  const onSubmit = async (data) => {
-    setLoginError("");
-
+  // Lấy danh sách người dùng đã "đăng ký" (demo)
+  const danhSachNguoiDung = useMemo(() => {
     try {
-      const response = await axios.post(
-        "http://localhost:8080/api/nguoidung/dangnhap",
-        {
-          email: data.email,
-          matkhau: data.password, // tùy theo tên field trên server
-        }
-      );
-
-      if (response.data) {
-        alert("Đăng nhập thành công!");
-        // Lưu thông tin người dùng nếu cần
-        localStorage.setItem("nguoiDung", JSON.stringify(response.data));
-
-        // Hàm để xử lý đăng nhập
-        const login = (userData) => {
-          sessionStorage.setItem("user", JSON.stringify(userData)); // Lưu vào sessionStorage
-          setUser(userData); // Cập nhật state
-        };
-        navigate("/"); // 👉 chuyển trang về trang chủ
-      } else {
-        setLoginError("Sai email hoặc mật khẩu.");
-      }
-    } catch (error) {
-      console.error(error);
-      setLoginError("Đã xảy ra lỗi khi đăng nhập.");
+      return JSON.parse(localStorage.getItem("nguoiDung") || "[]");
+    } catch {
+      return [];
     }
+  }, []);
+
+  const onSubmit = (form) => {
+    setLoginError("");
+    const email = form.email.trim().toLowerCase();
+    const pwd = form.matkhau;
+
+    const found = danhSachNguoiDung.find(
+      (u) => u.email?.toLowerCase() === email && u.matkhau === pwd
+    );
+
+    if (!found) {
+      setLoginError("Email hoặc mật khẩu không đúng.");
+      return;
+    }
+
+    // Lưu phiên đăng nhập (demo)
+    const sessionUser = {
+      email: found.email,
+      name: found.tenNguoiDung,
+      role: found.vaiTro, // "GIANG_VIEN" | "HOC_VIEN"
+    };
+    sessionStorage.setItem("user", JSON.stringify(sessionUser));
+
+    // Điều hướng theo vai trò
+    const next = found.vaiTro === "GIANG_VIEN" ? "/giangvien" : "/hcovien";
+    navigate(next);
   };
 
   return (
@@ -60,67 +69,33 @@ function DangNhap() {
         <div className="login-left">
           <img src="/src/image/formimg.png" alt="imgloginform" />
         </div>
+
         <div className="login-right">
           <div className="login-tabs">
-            <span
-              onClick={() => navigate("/dang-ky")}
-              style={{ cursor: "pointer" }}
-            >
+            <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
               Đăng ký
             </span>
-            <span
-              className="active"
-              onClick={() => navigate("/")}
-              style={{ cursor: "pointer" }}
-            >
+            <span className="active" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
               Đăng nhập
             </span>
-          </div>
-
-          <button className="login-btn social google">
-            <FontAwesomeIcon
-              icon={faGoogle}
-              style={{ color: "rgb(234, 67, 53)" }}
-            />
-            Login with Google
-          </button>
-
-          <button className="login-btn social facebook">
-            <FontAwesomeIcon
-              icon={faFacebook}
-              size={20}
-              style={{ color: "#6e65f1ff" }}
-            />
-            Login with Facebook
-          </button>
-
-          <div className="divider">
-            <span>Or Email</span>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="login-form">
             <label>Email</label>
             <input
               type="email"
-              {...register("email", { required: "Vui lòng nhập email" })}
+              {...register("email")}
               className={errors.email ? "error" : ""}
             />
-            {errors.email && (
-              <span className="error">{errors.email.message}</span>
-            )}
+            {errors.email && <span className="error">{errors.email.message}</span>}
 
-            <label>Password</label>
+            <label>Mật khẩu</label>
             <input
               type="password"
-              {...register("password", {
-                required: "Vui lòng nhập mật khẩu",
-                minLength: { value: 6, message: "Mật khẩu tối thiểu 6 ký tự" },
-              })}
-              className={errors.password ? "error" : ""}
+              {...register("matkhau")}
+              className={errors.matkhau ? "error" : ""}
             />
-            {errors.password && (
-              <span className="error">{errors.password.message}</span>
-            )}
+            {errors.matkhau && <span className="error">{errors.matkhau.message}</span>}
 
             {loginError && <span className="error">{loginError}</span>}
 
@@ -137,5 +112,3 @@ function DangNhap() {
     </div>
   );
 }
-
-export default DangNhap;
