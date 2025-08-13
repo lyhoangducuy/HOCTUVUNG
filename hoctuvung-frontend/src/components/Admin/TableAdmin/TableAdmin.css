@@ -1,28 +1,48 @@
-/* Bọc bảng để xử lý overflow, tránh thanh kéo và border bị cố định */
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
   box-sizing: border-box;
+  min-height: 500px;
+  scrollbar-width: none; 
+  -ms-overflow-style: none; 
 }
-/* Ẩn scrollbar cho bảng và vùng phân trang */
+
+.table-wrapper::-webkit-scrollbar {
+  display: none;
+  
+}
+
 .user-table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 16px;
-  
+  font-size: 14px;
+  min-height: 400px;
 }
+
 .user-table th, .user-table td {
-  border:none;
-  padding: 8px 12px;
+  border: none;
+  padding: 16px 20px;
   text-align: left;
+  border-bottom: 1px solid #e2e8f0;
 }
+
 .user-table th {
-  background: #f5f5f5;
+  background: #f8fafc;
   font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+  padding: 20px;
 }
+
 .user-table tr:nth-child(even) {
   background: #fafafa;
 }
+
+.user-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
 .btn {
   background: transparent;
   border: none;
@@ -43,13 +63,16 @@
   margin-left: auto;
   width: 250px;
 }
+
 .user-pagination {
-  margin-top: 16px;
+  margin-top: 20px;
   display: flex;
   align-items: center;
   gap: 8px;
   justify-content: space-between;
+  padding: 16px 0;
 }
+
 .pagination-input {
   display: flex;
   align-items: center;
@@ -97,5 +120,22 @@
 .pagination-info {
   font-weight: bold;
   font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .user-table th, .user-table td {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  
+  .pagination-input {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .user-pagination {
+    flex-direction: column;
+    gap: 15px;
+  }
 }
 

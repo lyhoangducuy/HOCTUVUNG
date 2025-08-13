@@ -11,7 +11,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import "./header.css";
 import { useRef, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
 function Giangvien_Header() {
   const [show, setShow] = useState(false);

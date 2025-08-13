@@ -1,7 +1,14 @@
 import "./MainContentAdminQuanUser.css";
 import TableAdmin from "../../../../components/Admin/TableAdmin/TableAdmin";
-const MainContentAdminQuanUser = () => {
-  const Colums = [
+import { useEffect, useState } from "react";
+import Search from "../../../../components/Admin/Search/Search";
+import Delete from "../../../../components/Admin/Delete/Delete";
+import Edit from "../../../../components/Admin/Edit/Edit";
+import Add from "../../../../components/Admin/Add/Add";
+import ExportModal from "../../../../components/ExportModal/ExportModal";
+const MainContentAdminQuanUser = ({ Data }) => {
+  const [data, setData] = useState(Data);
+  const ColumsTable = [
     { name: "ID", key: "id" },
     { name: "UserName", key: "username" },
     { name: "FullName", key: "fullname" },
@@ -9,108 +16,128 @@ const MainContentAdminQuanUser = () => {
     { name: "Vai trò", key: "role" },
     { name: "Ngày Tạo", key: "created" },
   ];
-  const Data = [
-    {
-      id: 1,
-      username: "tuantran123k",
-      fullname: "Văn A",
-      email: "rmail@gmail.com",
-      role: "Teacher",
-      created: "01/08/2025",
-    },
-    {
-      id: 2,
-      username: "tuantran123p",
-      fullname: "Văn B",
-      email: "rmail@gmail.com",
-      role: "Student",
-      created: "15/07/2025",
-    },
-    {
-      id: 3,
-      username: "tuantran123q",
-      fullname: "Văn C",
-      email: "rmail@gmail.com",
-      role: "Student",
-      created: "15/08/2025",
-    },
-    {
-      id: 4,
-      username: "tuantran123j",
-      fullname: "Văn J",
-      email: "rmail@gmail.com",
-      role: "Teacher",
-      created: "01/07/2025",
-    },
-    {
-      id: 5,
-      username: "tuantran123g",
-      fullname: "Văn K",
-      email: "rmail@gmail.com",
-      role: "Admin",
-      created: "05/08/2025",
-    },
-    {
-      id: 6,
-      username: "tuantran123h",
-      fullname: "Văn L",
-      email: "rmail@gmail.com",
-      role: "Teacher",
-      created: "01/07/2025",
-    },
-    {
-      id: 7,
-      username: "tuantran123m",
-      fullname: "Văn M",
-      email: "rmail@gmail.com",
-      role: "Student",
-      created: "15/08/2025",
-    },
-    {
-      id: 8,
-      username: "tuantran123n",
-      fullname: "Văn N",
-      email: "rmail@gmail.com",
-      role: "Student",
-      created: "15/08/2025",
-    },
-    {
-      id: 9,
-      username: "tuantran123o",
-      fullname: "Văn O",
-      email: "rmail@gmail.com",
-      role: "Student",
-      created: "15/08/2025",
-    },
-    {
-      id: 10,
-      username: "tuantran123p",
-      fullname: "Văn P",
-      email: "rmail@gmail.com",
-      role: "Student",
-      created: "15/08/2025",
-    },
-    {
-      id: 11,
-      username: "tuantran123q",
-      fullname: "Văn Q",
-      email: "rmail@gmail.com",
-      role: "Student",
-      created: "15/08/2025",
-    },
+  const ColumsEdit = [
+    { name: "ID", key: "id" },
+    { name: "UserName", key: "username" },
+    { name: "FullName", key: "fullname" },
+    { name: "Password", key: "password" },
+    { name: "Email", key: "email" },
+    { name: "Vai trò", key: "role" },
+    { name: "Ngày Tạo", key: "created" },
   ];
+
+  const ColumsAdd = [
+    { name: "ID", key: "id" },
+    { name: "UserName", key: "username" },
+    { name: "FullName", key: "fullname" },
+    { name: "Password", key: "password" },
+    { name: "Email", key: "email" },
+    { name: "Vai trò", key: "role" },
+    { name: "Image", key: "image" },
+  ];
+  const ColumsXuat = [
+    { name: "ID", key: "id" },
+    { name: "UserName", key: "username" },
+    { name: "FullName", key: "fullname" },
+    { name: "Email", key: "email" },
+    { name: "Vai trò", key: "role" },
+    { name: "Ngày Tạo", key: "created" },
+  ];
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+
+  const [filteredData, setFilteredData] = useState(data);
+  useEffect(() => {
+    setFilteredData(data);
+  }, [data]);
+
+  const [showAddDialog, setShowAddDialog] = useState(false);
+
+  const [showEdit, setShowEdit] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  // delete
+  const handleDelete = (id) => {
+    setDeleteId(id);
+    setShowDeleteDialog(true);
+  };
+  const onConfirmDelete = (id) => {
+    const updatedData = data.filter((item) => item.id !== id);
+    setData(updatedData);
+    onClose();
+  };
+  // Export
+  const [exportModal, setExportModal] = useState(false);
+  const onClose = () => {
+    setShowDeleteDialog(false);
+    setDeleteId(null);
+  };
+
+  //Edit
+
+  const handleEdit = (id) => {
+    const user = data.find((item) => item.id === id);
+    setSelectedUser(user);
+    setShowEdit(true);
+    setIsEditMode(false);
+  };
+
+  const handleUserDetailClose = () => {
+    setShowEdit(false);
+    setSelectedUser(null);
+    setIsEditMode(false);
+  };
+
+  const handleUserDetailSave = (updatedUser, isEditMode = false) => {
+    if (isEditMode) {
+      setIsEditMode(true);
+      return;
+    }
+    // Cập nhật dữ liệu
+    const updatedData = data.map((item) =>
+      item.id === updatedUser.id ? updatedUser : item
+    );
+    setData(updatedData);
+    handleUserDetailClose();
+  };
+
+  // Add functions
+  const handleAddUser = () => {
+    setShowAddDialog(true);
+  };
+
+  const handleAddClose = () => {
+    setShowAddDialog(false);
+  };
+
+  const handleAddSave = (newUser) => {
+   
+
+    // Tạo ID mới
+    const maxId = Math.max(...data.map((item) => item.id));
+    const userWithId = {
+      ...newUser,
+      id: maxId + 1,
+    };
+
+    // Thêm user mới vào danh sách
+   
+    setData((prev) => [...prev, userWithId]);
+    handleAddClose();
+  };
   const Action = [
     {
-      name: "✏️",
+      name: "👀",
       class: "edit-button",
       style: { cursor: "pointer", marginRight: 8, fontSize: "1.2rem" },
-      onClick: (id) => () => console.log(`Edit user with id ${id}`),
+      onClick: (id) => () => handleEdit(id),
     },
     {
       name: "🗑️",
       class: "delete-button",
       style: { cursor: "pointer", fontSize: "1.2rem" },
-      onClick: (id) => () => console.log(`Delete user with id ${id}`),
+      onClick: (id) => () => handleDelete(id),
     },
   ];
 
@@ -119,72 +146,61 @@ const MainContentAdminQuanUser = () => {
       <h1>Quản Lý Người Dùng</h1>
       <div className="user-actions">
         <div className="user-actions-buttons">
-          <button className="btn btn-primary">Thêm người dùng</button>
-          <button className="btn btn-secondary">Xuất</button>{" "}
+          <button className="btn btn-primary" onClick={handleAddUser}>
+            Thêm 
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              setExportModal(true);
+            }}
+          >
+            Xuất
+          </button>
         </div>
-
-        <input className="search-input" placeholder="Tìm kiếm" />
+        <Search Data={data} onResult={setFilteredData} />
       </div>
-      {/* <table className="user-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Tên người dùng</th>
-            <th>Họ Và Tên</th>
-            <th>Email</th>
-            <th>Vai trò</th>
-            <th>Ngày Tạo</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.slice(0, pageSize).map((u) => (
-            <tr key={u.id}>
-              <td>{u.id}</td>
-              <td>{u.username}</td>
-              <td>{u.fullname}</td>
-              <td>{u.email}</td>
-              <td>{u.role}</td>
-              <td>{u.created}</td>
-              <td>
-                <button
-                  role="img"
-                  aria-label="edit"
-                  style={{ cursor: "pointer", marginRight: 8 }}
-                >
-                  ✏️
-                </button>
-                <button
-                  role="img"
-                  aria-label="delete"
-                  style={{ cursor: "pointer" }}
-                >
-                  🗑️
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table> */}
-      <TableAdmin Colums={Colums} Data={Data} Action={Action} />
-      {/* <div className="user-pagination">
-        <div className="pagination-input">
-          <span>Hiển thị</span>
-          <input
-            type="number"
-            value={pageSize}
-            min={1}
-            onChange={handleInputChange}
-          />
-        </div>
-        <div className="pagination-info">
-          <span>Phần tử</span>
-          <button>{"<"}</button>
-          <span style={{ margin: "0 8px" }}>1/1</span>
-          <button>{">"}</button>
-        </div>
-      </div> */}
-      <div></div>
+
+      <TableAdmin Colums={ColumsTable} Data={filteredData} Action={Action} />
+
+      {showDeleteDialog && (
+        <Delete
+          id={deleteId}
+          onClose={onClose}
+          onConfirm={onConfirmDelete}
+          message="Bạn có muốn xóa người dùng này không?"
+        />
+      )}
+      {showEdit && selectedUser && (
+        <Edit
+          user={selectedUser}
+          onClose={handleUserDetailClose}
+          onSave={handleUserDetailSave}
+          isEditMode={isEditMode}
+          Colums={ColumsEdit}
+          showAvatar={true}
+        />
+      )}
+      {showAddDialog && (
+        <Add
+          onClose={handleAddClose}
+          onSave={handleAddSave}
+          Colums={ColumsAdd}
+          showAvatar={true}
+        />
+      )}
+      {exportModal && (
+        <ExportModal
+          isOpen={exportModal}
+          onClose={() => setExportModal(false)}
+          onExport={(data) => {
+            console.log("Dữ liệu xuất:", data);
+          }}
+          filteredData={Search ? filteredData : data}
+          title="Xuất thông tin người dùng"
+          columns={ColumsXuat}
+        />
+      )}
     </div>
   );
 };

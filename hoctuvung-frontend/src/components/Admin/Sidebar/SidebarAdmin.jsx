@@ -34,7 +34,7 @@ const SidebarAdmin = () => {
             </a>
           </li>
           <li>
-            <a href="#">
+            <a href="/admin/quan-ly-bo-the">
               <span className="sidebar-icon">
                 <FaLayerGroup />
               </span>
@@ -42,7 +42,7 @@ const SidebarAdmin = () => {
             </a>
           </li>
           <li>
-            <a href="#">
+            <a href="/admin/quan-ly-lop">
               <span className="sidebar-icon">
                 <FaChalkboardTeacher />
               </span>
@@ -50,7 +50,7 @@ const SidebarAdmin = () => {
             </a>
           </li>
           <li>
-            <a href="#">
+            <a href="/admin/quan-ly-tra-phi">
               <span className="sidebar-icon">
                 <FaMoneyCheckAlt />
               </span>

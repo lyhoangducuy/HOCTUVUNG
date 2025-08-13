@@ -25,12 +25,35 @@ import Library from "./pages/GiangVien/MyLib/BoThe-Lib/Library";
 import NewBoThe from "./pages/GiangVien/AddNew/NewBoThe/NewBoThe";
 import MyFolder from "./pages/GiangVien/MyFolder/MyFolder";
 
+import TrangChuLayout from "./layouts/TrangChuLayout/TrangChuLayout";
+import QuanLyUser from "./pages/Admin/QuanLyUser/QuanLyUser";
+import ThongKeAdmin from "./pages/Admin/ThongKeAdmin/ThongKeAdmin";
+import Edit from "./components/Admin/Edit/Edit";
+import QuanLyBoThe from "./pages/Admin/QuanLyBoThe/QuanLyBoThe";
+import QuanLyLop from "./pages/Admin/QuanLyLop/QuanLyLop";
+import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTRaPhi";
 export default function App() {
   return (
     <Routes>
       <Route element={<DangNhapLayout />}>
         <Route path="/" element={<DangNhap />} />
         <Route path="/dang-ky" element={<DangKy />} />
+        <Route path="/tra-phi" element={<TraPhi />} />
+        <Route path="/giangvienheader" element={<Giangvien_Header />} />
+      </Route>
+      <Route element={<TrangChuLayout />}>
+        <Route path="/" element={<TrangChu />} />
+        <Route path="/hocvien" element={<TrangChuHocVien />} />
+        <Route path="/giangvien" element={<TrangChuGiangVien />}></Route>
+      </Route>
+      <Route element={<AdminLayout />}>
+        <Route path="/admin" element={<TrangChuAdmin />} />
+        <Route path="/admin/quan-ly-user" element={<QuanLyUser />} />
+        <Route path="/admin/thong-ke" element={<ThongKeAdmin />} />
+        <Route path="/edit" element={<Edit />} />
+        <Route path="/admin/quan-ly-bo-the" element={<QuanLyBoThe />} />
+        <Route path="/admin/quan-ly-lop" element={<QuanLyLop />} />
+        <Route path="/admin/quan-ly-tra-phi" element={<QuanLyTraPhi />} />
       </Route>
       <Route element={<GiangVienLayout />}>
         <Route path="/giangvien" element={<TrangChuGiangVien />} />
