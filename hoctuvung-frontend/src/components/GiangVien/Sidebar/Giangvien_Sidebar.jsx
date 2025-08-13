@@ -14,13 +14,23 @@ import { useEffect, useState } from "react";
 function Giangvien_Sidebar() {
   const navigate = useNavigate();
   const [myfolder, setMyfolder] = useState([]);
-  useEffect(() => {
-    const folder = JSON.parse(localStorage.getItem("folders")) || [];
+  const loaddata = () => {
+     const folder = JSON.parse(localStorage.getItem("folders")) || [];
     if (folder && folder.lenght > 0) {
       setMyfolder([...myfolder, folder]);
     } else {
       setMyfolder(folder);
     }
+  }
+  useEffect(() => {
+    loaddata();
+     window.addEventListener('foldersUpdated', loaddata);
+
+   
+    return () => {
+      window.removeEventListener('foldersUpdated', loaddata);
+    };
+   
   }, []);
   const handleFolder = (id) => {
     const folder = JSON.parse(localStorage.getItem("folders")) || [];
