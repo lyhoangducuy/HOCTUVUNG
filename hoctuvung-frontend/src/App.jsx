@@ -30,6 +30,7 @@ import QuanLyUser from "./pages/Admin/QuanLyUser/QuanLyUser";
 import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTraPhi";
 import QuanLyBoThe from "./pages/Admin/QuanLyBoThe/QuanLyBoThe";
 import QuanLyLop from "./pages/Admin/QuanLyLop/QuanLyLop";
+import Setting from "./pages/GiangVien/Setting/Setting";
 
 export default function App() {
   return (
@@ -53,7 +54,9 @@ export default function App() {
         <Route path="/lop/:id" element={<Lop />} />
         <Route path="/newclass" element={<Newclass />} />
         <Route path="/mylibrary" element={<Library />} />
-        <Route path="/folder/:id" element={<MyFolder />} />
+        <Route path="/folder/:id" element={<MyFolder/>} />
+        <Route path="/setting" element={<Setting/>} />
+
       </Route>
 
       {/* Admin */}

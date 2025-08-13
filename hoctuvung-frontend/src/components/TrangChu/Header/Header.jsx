@@ -120,7 +120,7 @@ function Header() {
               </div>
               <div className="divide"></div>
               <div className="confirg">
-                <FontAwesomeIcon icon={faGear} className="icon icon-setting" />
+                <FontAwesomeIcon icon={faGear} className="icon icon-setting" onClick={() => navigate("/setting")}/>
                 {"Cài Đặt"}
                 <FontAwesomeIcon icon={faMoon} className="icon icon-moon" />
                 {"Chế Độ Màn Hình Tối"}
