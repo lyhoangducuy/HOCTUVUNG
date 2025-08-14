@@ -65,7 +65,7 @@ function DangKy() {
     <div className="signup-container">
       <div className="signup-card">
         <div className="signup-left">
-          <img src="/src/image/formimg.png" alt="imgsignupform" />
+          <img src="/src/assets/image/formimg.png" alt="imgsignupform" />
         </div>
         <div className="signup-right">
           <div className="signup-tabs">

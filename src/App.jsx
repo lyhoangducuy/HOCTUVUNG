@@ -47,8 +47,8 @@ export default function App() {
         <Route path="/dang-ky" element={<DangKy />} />
         <Route path="/tra-phi" element={<Traphi />} />
       </Route>
-      <Route element={<YeuCauDangNhap/>}>
-        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN","HOC_VIEN"]}/>}>
+      <Route element={<YeuCauDangNhap />}>
+        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN", "HOC_VIEN"]} />}>
           {/* Giảng viên */}
           <Route element={<NguoiDungLayout />}>
             <Route path="/giangvien" element={<TrangChu />} />
@@ -67,7 +67,10 @@ export default function App() {
           </Route>
         </Route>
         <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN"]} />}>
-          <Route path="/newclass" element={<Newclass />} />
+          <Route element={<NguoiDungLayout />}>
+            <Route path="/newclass" element={<Newclass />} />
+          </Route>
+
         </Route>
 
         {/* Admin */}

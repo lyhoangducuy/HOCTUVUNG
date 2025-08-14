@@ -60,15 +60,22 @@ export default function DangNhap() {
     sessionStorage.setItem("user", JSON.stringify(sessionUser));
 
     // Điều hướng theo vai trò
-    const next = found.vaiTro === "GIANG_VIEN" ? "/giangvien" : "/hocvien";
+    const next =
+      found.vaiTro === "GIANG_VIEN"
+        ? "/giangvien"
+        : found.vaiTro === "ADMIN"
+          ? "/admin"
+          : "/hocvien";
+
     navigate(next);
+
   };
 
   return (
     <div className="login-container">
       <div className="login-card">
         <div className="login-left">
-          <img src="/src/image/formimg.png" alt="imgloginform" />
+          <img src="/src/assets/image/formimg.png" alt="imgloginform" />
         </div>
 
         <div className="login-right">
