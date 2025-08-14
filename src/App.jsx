@@ -1,74 +1,87 @@
 import { Routes, Route } from "react-router-dom";
+//router
+import { YeuCauDangNhap, DangNhapTheoRole } from "./router/phanQuyen";
+
 
 // Layouts
-import DangNhapLayout from "./layouts/DangNhapLayout";
+import AuthLayout from "./layouts/AuthLayout/AuthLayout";
 import AdminLayout from "./layouts/AdminLayout";
-import GiangVienLayout from "./layouts/GiangVienLayout";
+import NguoiDungLayout from "./layouts/NguoiDungLayout/NguoiDungLayout";
 
 // Auth
-import DangNhap from "./pages/DangNhap";
-import DangKy from "./pages/DangKy";
+import DangNhap from "./pages/Auth/DangNhap";
+import DangKy from "./pages/Auth/DangKy";
 
 // Admin
 import TrangChuAdmin from "./pages/Admin/TrangChu";
 import ThongKeAdmin from "./pages/Admin/ThongKeAdmin/ThongKeAdmin";
 
 // Giảng viên
-import TrangChuGiangVien from "./pages/GiangVien/TrangChu";
-import FlashCard from "./pages/GiangVien/HocBoThe/FlashCard/FlashCard";
-import TracNghiem from "./pages/GiangVien/HocBoThe/TracNghiem";
-import Test from "./pages/GiangVien/HocBoThe/Test";
-import MatchGame from "./pages/GiangVien/HocBoThe/MatchGame";
-import Video from "./pages/GiangVien/HocBoThe/Video";
-import Newfolder from "./pages/GiangVien/AddNew/NewFolder/Newfolder";
-import Newclass from "./pages/GiangVien/AddNew/NewClass/Newclass";
-import NewBoThe from "./pages/GiangVien/AddNew/NewBoThe/NewBoThe";
-import Lop from "./pages/GiangVien/Lop/Lop";
-import Library from "./pages/GiangVien/MyLib/BoThe-Lib/Library";
-import MyFolder from "./pages/GiangVien/MyFolder/MyFolder";
+import TrangChu from "./pages/NguoiDung/TrangChu";
+import FlashCard from "./pages/NguoiDung/HocBoThe/FlashCard/FlashCard";
+import TracNghiem from "./pages/NguoiDung/HocBoThe/TracNghiem";
+import Test from "./pages/NguoiDung/HocBoThe/Test";
+import MatchGame from "./pages/NguoiDung/HocBoThe/MatchGame";
+import Video from "./pages/NguoiDung/HocBoThe/Video";
+import Newfolder from "./pages/NguoiDung/AddNew/NewFolder/Newfolder";
+import Newclass from "./pages/NguoiDung/AddNew/NewClass/Newclass";
+import NewBoThe from "./pages/NguoiDung/AddNew/NewBoThe/NewBoThe";
+import Lop from "./pages/NguoiDung/Lop/Lop";
+import Library from "./pages/NguoiDung/MyLib/BoThe-Lib/Library";
+import MyFolder from "./pages/NguoiDung/MyFolder/MyFolder";
 import QuanLyUser from "./pages/Admin/QuanLyUser/QuanLyUser";
 import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTraPhi";
 import QuanLyBoThe from "./pages/Admin/QuanLyBoThe/QuanLyBoThe";
 import QuanLyLop from "./pages/Admin/QuanLyLop/QuanLyLop";
-import Setting from "./pages/GiangVien/Setting/Setting";
+import Setting from "./pages/NguoiDung/Setting/Setting";
+import Traphi from "./components/TraPhi/Traphi";
+
+
 
 export default function App() {
   return (
     <Routes>
       {/* Đăng nhập */}
-      <Route element={<DangNhapLayout />}>
+      <Route element={<AuthLayout />}>
         <Route path="/" element={<DangNhap />} />
         <Route path="/dang-ky" element={<DangKy />} />
+        <Route path="/tra-phi" element={<Traphi />} />
       </Route>
+      <Route element={<YeuCauDangNhap/>}>
+        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN","HOC_VIEN"]}/>}>
+          {/* Giảng viên */}
+          <Route element={<NguoiDungLayout />}>
+            <Route path="/giangvien" element={<TrangChu />} />
+            <Route path="/hocvien" element={<TrangChu />} />
+            <Route path="/flashcard/:id" element={<FlashCard />} />
+            <Route path="/tracnghiem/:id" element={<TracNghiem />} />
+            <Route path="/test/:id" element={<Test />} />
+            <Route path="/game/:id" element={<MatchGame />} />
+            <Route path="/video/:id" element={<Video />} />
+            <Route path="/newcard" element={<NewBoThe />} />
+            <Route path="/newfolder" element={<Newfolder />} />
+            <Route path="/lop/:id" element={<Lop />} />
+            <Route path="/mylibrary" element={<Library />} />
+            <Route path="/folder/:id" element={<MyFolder />} />
+            <Route path="/setting" element={<Setting />} />
+          </Route>
+        </Route>
+        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN"]} />}>
+          <Route path="/newclass" element={<Newclass />} />
+        </Route>
 
-      {/* Giảng viên */}
-      <Route element={<GiangVienLayout />}>
-        <Route path="/giangvien" element={<TrangChuGiangVien />} />
-        <Route path="/flashcard/:id" element={<FlashCard />} />
-        <Route path="/tracnghiem/:id" element={<TracNghiem />} />
-        <Route path="/test/:id" element={<Test />} />
-        <Route path="/game/:id" element={<MatchGame />} />
-        <Route path="/video/:id" element={<Video />} />
-        <Route path="/newcard" element={<NewBoThe />} />
-        <Route path="/newfolder" element={<Newfolder />} />
-        <Route path="/lop/:id" element={<Lop />} />
-        <Route path="/newclass" element={<Newclass />} />
-        <Route path="/mylibrary" element={<Library />} />
-        <Route path="/folder/:id" element={<MyFolder/>} />
-        <Route path="/setting" element={<Setting/>} />
-
+        {/* Admin */}
+        <Route element={<DangNhapTheoRole allowed={["ADMIN"]} />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<TrangChuAdmin />} />
+            <Route path="/admin/quan-ly-user" element={<QuanLyUser />} />
+            <Route path="/admin/thong-ke" element={<ThongKeAdmin />} />
+            <Route path="/admin/quan-ly-tra-phi" element={<QuanLyTraPhi />} />
+            <Route path="/admin/quan-ly-bo-the" element={<QuanLyBoThe />} />
+            <Route path="/admin/quan-ly-lop" element={<QuanLyLop />} />
+          </Route>
+        </Route>
       </Route>
-
-      {/* Admin */}
-      <Route element={<AdminLayout />}>
-        <Route path="/admin" element={<TrangChuAdmin />} />
-        <Route path="/admin/quan-ly-user" element={<QuanLyUser />} />
-        <Route path="/admin/thong-ke" element={<ThongKeAdmin />} />
-        <Route path="/admin/quan-ly-tra-phi" element={<QuanLyTraPhi/>}/>
-        <Route path="/admin/quan-ly-bo-the" element={<QuanLyBoThe/>}/>
-        <Route path="/admin/quan-ly-lop" element={<QuanLyLop/>} />
-      </Route>
-
       {/* 404 */}
       <Route path="*" element={<div>404 Not Found</div>} />
     </Routes>
