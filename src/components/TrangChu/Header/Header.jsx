@@ -42,6 +42,10 @@ function Header() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [show]);
+  const logout=()=>{
+      sessionStorage.clear();
+      navigate("/",{ replace: true });
+  }
   return (
     <div className="header-container">
       <div className="left-section">
@@ -122,11 +126,9 @@ function Header() {
               <div className="confirg">
                 <FontAwesomeIcon icon={faGear} className="icon icon-setting" onClick={() => navigate("/setting")}/>
                 {"Cài Đặt"}
-                <FontAwesomeIcon icon={faMoon} className="icon icon-moon" />
-                {"Chế Độ Màn Hình Tối"}
               </div>
               <div className="divide"></div>
-              <div className="loggout">Đăng Xuất</div>
+              <div className="loggout" onClick={logout}>Đăng Xuất</div>
             </div>
           )}
         </div>
