@@ -116,3 +116,146 @@
 .sidebar_bottom > div:hover {
   background-color: #f2f2f2;
 }
+/* ===== Notification (Thông báo) ===== */
+.noti-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 4px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.noti-wrapper:hover {
+  background-color: #f2f2f2;
+}
+
+.noti-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+  position: relative;
+}
+
+/* Badge số thông báo (nếu dùng) */
+.noti-badge {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* Dropdown */
+.noti-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 280px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.04);
+  padding: 10px;
+  z-index: 20;
+  animation: noti-fade-in 120ms ease-out;
+}
+
+/* Mũi tên nhỏ */
+.noti-dropdown::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 16px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-left: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
+  transform: rotate(45deg);
+}
+
+/* Item */
+.noti-item {
+  display: grid;
+  grid-template-rows: auto auto;
+  row-gap: 4px;
+  padding: 10px;
+  border-radius: 8px;
+  transition: background-color 0.18s ease;
+}
+
+.noti-item + .noti-item {
+  margin-top: 6px;
+}
+
+.noti-item:hover {
+  background: #f6f7fb;
+}
+
+.noti-title {
+  font-size: 14px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.noti-time {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Scrollbar tinh gọn (WebKit) */
+.noti-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+.noti-dropdown::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 8px;
+}
+.noti-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+}
+
+/* Hiệu ứng */
+@keyframes noti-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Dark mode (nếu dùng class .dark cho body/app) */
+.dark .noti-dropdown {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.dark .noti-dropdown::before {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+.dark .noti-item:hover {
+  background: #0b1222;
+}
+.dark .noti-title {
+  color: #e5e7eb;
+}
+.dark .noti-time {
+  color: #9ca3af;
+}

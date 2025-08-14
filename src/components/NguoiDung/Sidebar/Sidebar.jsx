@@ -10,13 +10,13 @@ import {
 import "./sidebar.css";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-
+import { useRef } from "react";
 
 function Sidebar() {
   const navigate = useNavigate();
   const [myfolder, setMyfolder] = useState([]);
   const loaddata = () => {
-     const folder = JSON.parse(localStorage.getItem("folders")) || [];
+    const folder = JSON.parse(localStorage.getItem("folders")) || [];
     if (folder && folder.lenght > 0) {
       setMyfolder([...myfolder, folder]);
     } else {
@@ -25,13 +25,13 @@ function Sidebar() {
   }
   useEffect(() => {
     loaddata();
-     window.addEventListener('foldersUpdated', loaddata);
+    window.addEventListener('foldersUpdated', loaddata);
 
-   
+
     return () => {
       window.removeEventListener('foldersUpdated', loaddata);
     };
-   
+
   }, []);
   const handleFolder = (id) => {
     const folder = JSON.parse(localStorage.getItem("folders")) || [];
@@ -39,6 +39,18 @@ function Sidebar() {
     localStorage.setItem("currentFolder", JSON.stringify(folder_click));
     navigate(`/folder/${id}`);
   };
+  const notiRef = useRef()
+  const [showNoti, setShowNoti] = useState(false)
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (!(notiRef.current.contains(e.target)))
+        setShowNoti(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showNoti])
   return (
     <div className="sidebar_container">
       <div className="sidebar_top">
@@ -50,10 +62,26 @@ function Sidebar() {
           <FontAwesomeIcon icon={faFolderOpen} className="icon" />
           Thư viện của tôi
         </div>
-        <div>
-          <FontAwesomeIcon icon={faBell} className="icon" />
-          Thông báo
+        <div ref={notiRef} className="noti-wrapper" onClick={() => setShowNoti(!showNoti)}>
+          <span className="noti-trigger" >
+            <FontAwesomeIcon icon={faBell} className="icon" />
+            Thông báo
+            {/* <span className="noti-badge">3</span>  // nếu muốn hiển thị số */}
+          </span>
+
+          {showNoti && (
+            <div className="noti-dropdown">
+              {/* Ví dụ item */}
+              <div className="noti-item" onClick={()=> setShowNoti(!showNoti)}>
+                <div className="noti-title">Dday la option</div>
+                <div className="noti-time">Vừa xong</div>
+              </div>
+              {/* … thêm item khác */}
+            </div>
+            
+          )}
         </div>
+
       </div>
 
       <div className="divider" />
@@ -65,7 +93,7 @@ function Sidebar() {
             <li
               key={index}
               className="folder-item"
-              onClick={() => handleFolder(index+1)}
+              onClick={() => handleFolder(index + 1)}
             >
               {" "}
               <FontAwesomeIcon icon={faBook} className="icon icon-book" />
