@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 function getCurrentNguoiDung() {
   try {
-    const raw = sessionStorage.getItem("user");
+    const raw = sessionStorage.getItem("session");
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -36,7 +36,7 @@ export function DangNhapTheoRole({ allowed = [] }) {
   if (!user) {
     return <Navigate to="/" replace state={{ from: location }} />;
   }
-  if (allowed.length && !allowed.includes(user.role)) {
+  if (allowed.length && !allowed.includes(user.vaiTro)) {
     // Có thể điều hướng tới trang 403/404 riêng nếu bạn có
     return <Navigate to="/giangvien" replace />;
   }

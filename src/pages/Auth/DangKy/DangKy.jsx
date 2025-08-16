@@ -39,11 +39,14 @@ function DangKy() {
     setLoading(true);
     try {
       const newUser = {
-        id: crypto.randomUUID(),
+        idNguoiDung: crypto.randomUUID(),
         email: data.email,
         tenNguoiDung: data.username,
+        hoten: "",
+        anhDaiDien: "",
         matkhau: data.password,
         vaiTro: roleMap[data.role],
+        ngayTaoTaiKhoan: new Date().toISOString()
       };
 
 

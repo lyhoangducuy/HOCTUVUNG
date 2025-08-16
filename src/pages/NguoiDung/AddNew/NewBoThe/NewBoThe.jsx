@@ -3,14 +3,15 @@ import { useNavigate } from "react-router-dom";
 import "./NewBoThe.css";
 
 function NewBoThe() {
+  const session = sessionStorage.getItem("session");
   const emptyBoThe = {
     idBoThe: null,
     tenBoThe: "",
     soTu: 0,
     nguoiDung: {
-      id: null,
-      tenNguoiDung: "",
-      anhDaiDien: "",
+      idNguoiDung: session.idNguoiDung,
+      anhDaiDien: session.anhDaiDien,
+      tenNguoiDung: session.tenNguoiDung
     },
     danhSachThe: [],
   };
@@ -19,7 +20,7 @@ function NewBoThe() {
   const [newBoThe, setNewBoThe] = useState(emptyBoThe);
 
   const getId = () => {
-    const current = JSON.parse(localStorage.getItem("cards")) || [];
+    const current = JSON.parse(localStorage.getItem("boThe")) || [];
     return current.length + 1;
   };
 
@@ -33,16 +34,9 @@ function NewBoThe() {
       soTu: newBoThe.danhSachThe.length,
     };
 
-    const existing = JSON.parse(localStorage.getItem("cards")) || [];
-    localStorage.setItem("cards", JSON.stringify([...existing, updatedBoThe]));
+    const existing = JSON.parse(localStorage.getItem("boThe")) || [];
+    localStorage.setItem("boThe", JSON.stringify([...existing, updatedBoThe]));
 
-    const card = JSON.parse(localStorage.getItem("myCard")) || [];
-    if (card.length === 0) {
-      localStorage.setItem("myCard", JSON.stringify([updatedBoThe])); 
-    } else {
-      const updatedFolder = [...card, updatedBoThe];
-      localStorage.setItem("myCard", JSON.stringify(updatedFolder));
-    }
 
     setNewBoThe(emptyBoThe);
     setTimeout(() => {

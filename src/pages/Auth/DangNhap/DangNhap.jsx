@@ -52,12 +52,12 @@ export default function DangNhap() {
 
     // Lưu phiên đăng nhập (demo)
     const sessionUser = {
-      id: found.id,
-      email: found.email,
-      name: found.tenNguoiDung,
-      role: found.vaiTro, // "GIANG_VIEN" | "HOC_VIEN"
+      idNguoiDung: found.idNguoiDung,
+      vaiTro: found.vaiTro,
+      anhDaiDien: found.anhDaiDien,
+      tenNguoiDung: found.tenNguoiDung
     };
-    sessionStorage.setItem("user", JSON.stringify(sessionUser));
+    sessionStorage.setItem("session", JSON.stringify(sessionUser));
 
     // Điều hướng theo vai trò
     const next =

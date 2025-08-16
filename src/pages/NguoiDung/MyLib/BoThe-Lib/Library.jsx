@@ -1,25 +1,22 @@
 import { useEffect, useState } from "react";
 import "./Library.css";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 function Library() {
   const [cardLib, setCardLib] = useState([]);
   const [actionTab, setActionTab] = useState("boThe");
   const [lopList, setLopList] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation();
   useEffect(() => {
-    const myLib = JSON.parse(localStorage.getItem("myLib")) || [];
-    const myCard = JSON.parse(localStorage.getItem("myCard")) || [];
+    const myCard = JSON.parse(localStorage.getItem("boThe")) || [];
     const myClass = JSON.parse(localStorage.getItem("class")) || [];
-    const myCardLib = [...myCard, ...myLib];
+    const myCardLib = [...myCard];
     setLopList(myClass);
     setCardLib(myCardLib);
   }, []);
 
   const handleStudy = (id) => {
-    const card = JSON.parse(localStorage.getItem("cards"));
-    const ketQua = card.find((item) => item.idBoThe === id);
-    localStorage.setItem("selected", JSON.stringify(ketQua));
-    navigate(`/flashcard/${id}`);
+    navigate(`/flashcard/${id}`,);
   };
   const handleLop =(id) =>{
     const selectLop=lopList.find((item) => item.idLop === id);

@@ -11,9 +11,9 @@ export default function TrangChu() {
   const [cards, setCards] = useState(boThe);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("cards"));
+    const saved = JSON.parse(localStorage.getItem("boThe")) || [];
     if (!saved || saved.length === 0) {
-      localStorage.setItem("cards", JSON.stringify(boThe)); 
+      localStorage.setItem("boThe", JSON.stringify(boThe)); 
       setCards(boThe);
     } else {
       setCards(saved);
@@ -21,12 +21,6 @@ export default function TrangChu() {
   }, []);
 
   const handleStudy = (id) => {
-    const card = JSON.parse(localStorage.getItem("cards"));
-    const ketQua = card.find((item) => item.idBoThe === id);
-    console.log(ketQua);
-
-    localStorage.setItem("selected", JSON.stringify(ketQua));
-
     navigate(`/flashcard/${id}`);
   };
   return (
