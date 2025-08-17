@@ -36,3 +36,62 @@
     opacity: 0;
   }
 }
+/* ——— Nút dấu … và menu ——— */
+.more-wrapper {
+  position: relative;
+}
+
+.more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px; width: 40px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, transform .06s ease;
+}
+
+.more-btn:hover {
+  background: #f8fafc;
+  border-color: #cfd6dd;
+}
+
+.more-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0,0,0,.12);
+  padding: 6px;
+  z-index: 1000;
+}
+
+.more-item {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  transition: background .15s ease, transform .06s ease;
+}
+
+.more-item:hover {
+  background: #f3f4f6;
+}
+
+.more-item.danger {
+  color: #b91c1c;
+}
+
+.more-item.danger:hover {
+  background: #fef2f2;
+}

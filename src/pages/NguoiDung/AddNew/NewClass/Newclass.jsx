@@ -16,7 +16,7 @@ function Newclass() {
 
     const idLop = Math.floor(Math.random() * 1000000);
 
-    const session= JSON.parse(sessionStorage.getItem("session"));
+    const session= JSON.parse( sessionStorage.getItem("session"));
     const idNguoiDung = session.idNguoiDung;
 
     const newClass = {
@@ -24,7 +24,8 @@ function Newclass() {
       idNguoiDung,
       ...data,
       boTheIds: [],   // danh sách ID bộ thẻ
-      folderIds: []   // danh sách ID folder
+      folderIds: [],
+      thanhVienIds:[]   // danh sách ID folder
     };
 
     list.push(newClass);

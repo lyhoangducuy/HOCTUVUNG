@@ -35,6 +35,7 @@ import QuanLyBoThe from "./pages/Admin/QuanLyBoThe/QuanLyBoThe";
 import QuanLyLop from "./pages/Admin/QuanLyLop/QuanLyLop";
 import Setting from "./pages/NguoiDung/Setting/Setting";
 import Traphi from "./components/TraPhi/Traphi";
+import SuaBoThe from "./pages/NguoiDung/HocBoThe/SuaBoThe/SuaBoThe";
 
 
 
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/thuviencuatoi" element={<ThuVienCuaToi />} />
             <Route path="/folder/:id" element={<MyFolder />} />
             <Route path="/setting" element={<Setting />} />
+            <Route path="/suabothe/:id" element={<SuaBoThe />} />
           </Route>
         </Route>
         <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN"]} />}>
