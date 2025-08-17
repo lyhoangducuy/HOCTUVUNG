@@ -5,7 +5,6 @@ import {
   faSearch,
   faCirclePlus,
   faGear,
-  faMoon,
   faFolderOpen,
   faClone,
 } from "@fortawesome/free-solid-svg-icons";
@@ -16,36 +15,49 @@ import { useNavigate } from "react-router-dom";
 function Header() {
   const [show, setShow] = useState(false);
   const [showplus, setShowplus] = useState(false);
-  const menuRef = useRef();
-  const plusRef = useRef();
+  const [nguoiDungHienTai, setNguoiDungHienTai] = useState(null);
+
+  const menuRef = useRef(null);
+  const plusRef = useRef(null);
   const navigate = useNavigate();
-  console.log(show);
+
+  // ---- Nạp user từ session -> localStorage.nguoiDung
+  useEffect(() => {
+    try {
+      const session = JSON.parse(sessionStorage.getItem("session") || "null");
+      if (!session?.idNguoiDung) return;
+
+      const ds = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
+      const found = ds.find((u) => u.idNguoiDung === session.idNguoiDung) || null;
+      setNguoiDungHienTai(found);
+    } catch {
+      setNguoiDungHienTai(null);
+    }
+  }, []);
+
+  // ---- Đóng menu/nút plus khi click ra ngoài
   useEffect(() => {
     function handleClickOutside(e) {
-      if (!plusRef.current.contains(e.target)) {
+      if (plusRef.current && !plusRef.current.contains(e.target)) {
         setShowplus(false);
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showplus]);
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (!menuRef.current.contains(e.target)) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
         setShow(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [show]);
-  const logout=()=>{
-      sessionStorage.clear();
-      navigate("/",{ replace: true });
-  }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const logout = () => {
+    sessionStorage.clear();
+    navigate("/", { replace: true });
+  };
+
+  const avatarSrc =
+    nguoiDungHienTai?.anhDaiDien || "/src/assets/image/formimg.png"; // fallback ảnh sẵn có của bạn
+  const tenNguoiDung = nguoiDungHienTai?.tenNguoiDung || "Người dùng";
+
   return (
     <div className="header-container">
       <div className="left-section">
@@ -67,14 +79,15 @@ function Header() {
           <FontAwesomeIcon
             icon={faCirclePlus}
             className="icon plus-icon"
-            onClick={() => setShowplus(!showplus)}
+            onClick={() => setShowplus((v) => !v)}
           />
           {showplus && (
             <div className="plus">
-              <div className="plus-item"
-                 onClick={() => {
+              <div
+                className="plus-item"
+                onClick={() => {
                   navigate("/newcard");
-                  setShowplus(!showplus);
+                  setShowplus(false);
                 }}
               >
                 <FontAwesomeIcon icon={faClone} />
@@ -84,51 +97,64 @@ function Header() {
                 className="plus-item"
                 onClick={() => {
                   navigate("/newfolder");
-                  setShowplus(!showplus);
+                  setShowplus(false);
                 }}
               >
                 <FontAwesomeIcon icon={faFolderOpen} />
-                <span>Thư Mục Mới</span>
+                <span>Thư mục mới</span>
               </div>
               <div
                 className="plus-item"
                 onClick={() => {
                   navigate("/newclass");
-                  setShowplus(!showplus);
+                  setShowplus(false);
                 }}
               >
                 <FontAwesomeIcon icon={faBookOpen} />
-                <span>Lớp Học Mới</span>
+                <span>Lớp học mới</span>
               </div>
             </div>
           )}
         </div>
 
-        <button className="btn-upgrade" onClick={()=>navigate("/tra-phi")} >Nâng cấp tài khoản</button>
+        <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
+          Nâng cấp tài khoản
+        </button>
+
         <div className="inforContainer" ref={menuRef}>
           <img
-            src="/src/image/formimg.png"
+            src={avatarSrc}
             alt="avatar"
             className="avatar"
-            onClick={() => setShow(!show)}
+            onClick={() => setShow((v) => !v)}
           />
+
           {show && (
             <div className="setting">
               <div className="infor">
-                <img
-                  src="/src/image/formimg.png"
-                  alt="avatar"
-                  className="avatar"
-                />
-                <h2 className="tittle">{"Huynh"}</h2>
+                <img src={avatarSrc} alt="avatar" className="avatar" />
+                <h2 className="tittle">{tenNguoiDung}</h2>
               </div>
+
               <div className="divide"></div>
-              <div className="confirg">
-                <FontAwesomeIcon icon={faGear} className="icon icon-setting" onClick={() => navigate("/setting")}/>
-                {"Cài Đặt"}
+
+              <div
+                className="confirg"
+                onClick={() => {
+                  setShow(false);
+                  navigate("/setting");
+                }}
+              >
+                <FontAwesomeIcon icon={faGear} className="icon icon-setting" />
+                <span className="confirg-text">Cài đặt</span>
               </div>
+
+
               <div className="divide"></div>
-              <div className="loggout" onClick={logout}>Đăng Xuất</div>
+
+              <div className="loggout" onClick={logout}>
+                Đăng xuất
+              </div>
             </div>
           )}
         </div>

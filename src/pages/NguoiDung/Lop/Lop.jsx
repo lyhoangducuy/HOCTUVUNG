@@ -35,7 +35,6 @@ export default function Lop() {
 
   const toggleDropdown = () => setShowDropdown((prev) => !prev);
   const handleAddFlashcardSet = () => { setShowDropdown(false); setShowAddFolder(true); };
-  const handleCopyLink = () => { navigator.clipboard.writeText(window.location.href); alert("Đã sao chép liên kết!"); };
 
   // ———— HANDLERS MENU DẤU … ————
   const handleViewDetail = () => setOpenDetail(true);
@@ -137,13 +136,6 @@ export default function Lop() {
 
         {activeTab === "members" && (
           <div className="tab-content" style={{ display: "block" }}>
-            <div className="share-section">
-              <h3>Mời bằng cách chia sẻ liên kết</h3>
-              <button className="copy-link-btn" onClick={handleCopyLink}>
-                <FontAwesomeIcon icon={faLink} />
-                Sao chép liên kết
-              </button>
-            </div>
 
             {classDetail && (
               <MoiThanhVien

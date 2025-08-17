@@ -1,155 +1,125 @@
-import { useEffect, useState } from "react";
-import "./Setting.css";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "./Setting.css";
 
+import TruongChiDoc from "./chucNang/chiDoc";
+import TruongChinhSua from "./chucNang/chinhSua";
+import ChonAnhDaiDien from "./chucNang/chonAnhDaiDien";
 
-function Setting() {
-    const navigate = useNavigate();
-    const [nguoiDung, setNguoiDung] = useState({});
-    useEffect(() => {
-        if (localStorage.getItem("nguoiDung") === null) {
-            navigate("/");
-        }
-        setNguoiDung(JSON.parse(localStorage.getItem("nguoiDung")));
-    }, []);
+const TRUONG_KHONG_CHO_DOI = ["idNguoiDung", "tenNguoiDung", "ngayTaoTaiKhoan", "vaiTro"];
 
-    // State để bật/tắt chế độ sửa
-    const [isEditing, setIsEditing] = useState(false);
+export default function Setting() {
+  const dieuHuong = useNavigate();
 
-    // State để lưu giá trị trong ô input khi sửa
-    const [name, setName] = useState(nguoiDung.tenNguoiDung);
+  const [nguoiDung, setNguoiDung] = useState(null);
 
-    //   const handleSave = () => {
-    //     // 1. Ở đây bạn sẽ gọi API để lưu giá trị `name` mới vào database
-    //     console.log('Đang lưu tên mới:', name);
-    //     // 2. Sau khi lưu thành công, tắt chế độ sửa
-    //     setIsEditing(false);
-    //     // (Tùy chọn) Cập nhật lại thông tin user trong state toàn cục nếu có
-    //   };
+  // Nạp người dùng theo session
+  useEffect(() => {
+    try {
+      const phien = JSON.parse(sessionStorage.getItem("session") || "null");
+      if (!phien?.idNguoiDung) return dieuHuong("/");
 
-    // const handleCancel = () => {
-    //     // Hủy bỏ thay đổi, đặt lại giá trị input như ban đầu
-    //     setName(nguoiDung.tenNguoiDung);
-    //     setIsEditing(false);
-    // };
+      const danhSach = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
+      const timThay = danhSach.find(u => u.idNguoiDung === phien.idNguoiDung);
+      if (!timThay) return dieuHuong("/");
 
-    return (
+      setNguoiDung(timThay);
+    } catch {
+      dieuHuong("/");
+    }
+  }, [dieuHuong]);
 
-        <div class="settings-container">
-            <h1>Cài đặt</h1>
+  // Cập nhật người dùng vào localStorage (chặn field không cho đổi)
+  const capNhatNguoiDung = (banVa) => {
+    const banSao = { ...banVa };
+    TRUONG_KHONG_CHO_DOI.forEach(k => delete banSao[k]);
 
-            <section class="subscription-section">
-                <div class="card subscription-card">
-                    <button class="btn btn-upgrade1">Nâng cấp tài khoản</button>
-                </div>
-            </section>
+    setNguoiDung(prev => {
+      if (!prev) return prev;
+      const moi = { ...prev, ...banSao };
 
-            <section class="personal-info">
-                <h2>Thông tin cá nhân</h2>
-                <div class="card personal-info-card">
-                    <div class="profile-header">
-                        <div class="avatars"></div>
-                        <div class="change-avatars">&#x21bb;</div>
-                    </div>
-                    <div class="info-list">
-                        <div class="info-item">
-                            <div class="info-account">
-                                <div class="info-label">Tên người dùng :</div>
-                                <div class="info-value">{nguoiDung.tenNguoiDung ? nguoiDung.tenNguoiDung : "whoareyou"}</div>
+      const danhSach = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
+      const vt = danhSach.findIndex(u => u.idNguoiDung === prev.idNguoiDung);
+      if (vt !== -1) {
+        danhSach[vt] = moi;
+        localStorage.setItem("nguoiDung", JSON.stringify(danhSach));
+      }
+      return moi;
+    });
+  };
 
-                            </div>
-                            <div class="info-action" onClick={() => setIsEditing(true)}><a href="#" >Sửa</a></div>
-
-                        </div>
-                        {
-                            isEditing ? (
-                                <div>
-                                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-                                 
-                                </div>
-                            ) : null
-                        }
-                        <div class="info-item">
-                            <div class="info-account">
-                                <div class="info-label">Email :</div>
-                                <div class="info-value">{nguoiDung.email ? nguoiDung.email : "whoareyou@gmail.com"}</div>
-
-                            </div>
-                            <div class="info-action"><a href="#" onClick={() => setIsEditing(true)}>Sửa</a></div>
-
-                        </div>
-                        {
-                            isEditing ? (
-                                <div>
-                                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-                                   
-                                </div>
-                            ) : null
-                        }
-                        <div class="info-item">
-                            <div class="info-account">
-                                <div class="info-label">Mật khẩu :</div>
-                                <div class="info-value">******************</div>
-
-                            </div>
-                            <div class="info-action"onClick={() => setIsEditing(true)}><a href="#" >Sửa</a></div>
-
-                        </div>
-                        {
-                            isEditing ? (
-                                <div>
-                                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-                                    <button class="btn-fix" onClick={() => setIsEditing(false)}>Huy</button>
-                                    <button class="btn-fix" onClick={() => setIsEditing(false)}>Save</button>
-                                </div>
-                            ) : null
-                        }
-                    </div>
-                </div>
-            </section>
-
-            <section class="appearance-section">
-                <h2>Giao diện</h2>
-                <div class="card appearance-card">
-                    <div class="setting-item">
-                        <span>Hình nền</span>
-                        <select>
-                            <option>Sáng</option>
-                            <option>Tối</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <span>Ngôn ngữ</span>
-                        <select>
-                            <option>Tiếng Việt</option>
-                            <option>English</option>
-                        </select>
-                    </div>
-                </div>
-            </section>
-
-            <section class="notifications-section">
-                <h2>Thông báo</h2>
-                <div class="card notifications-card">
-                    <div class="setting-item">
-                        <span>Lời nhắc học</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" />
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <span>Chọn thời điểm nhận lời nhắc</span>
-                        <input type="time" value="08:00" />
-                    </div>
-                </div>
-            </section>
-            <div class="delete-account">
-                <button class="btn btn-danger">Xoá tài khoản</button>
-            </div>
-        </div>
-
+  // Kiểm tra email trùng
+  const kiemTraEmailTrung = (emailMoi) => {
+    const danhSach = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
+    const trung = danhSach.find(
+      u => u.email?.toLowerCase() === emailMoi.toLowerCase() &&
+           u.idNguoiDung !== nguoiDung.idNguoiDung
     );
-}
+    return !trung || "Email đã được sử dụng";
+  };
 
-export default Setting;
+  if (!nguoiDung) return null;
+
+  return (
+    <div className="settings-container">
+      <h1>Cài đặt</h1>
+
+      <section className="personal-info">
+        <h2>Thông tin cá nhân</h2>
+
+        <div className="card personal-info-card">
+          {/* Ảnh đại diện */}
+          <div className="profile-header">
+            <ChonAnhDaiDien
+              giaTri={nguoiDung.anhDaiDien || ""}
+              onLuu={(url) => capNhatNguoiDung({ anhDaiDien: url })}
+            />
+          </div>
+
+          <div className="info-list">
+            {/* Chỉ đọc */}
+            <TruongChiDoc nhan="Tên người dùng" giaTri={nguoiDung.tenNguoiDung} />
+            <TruongChiDoc
+              nhan="Ngày tạo"
+              giaTri={new Date(nguoiDung.ngayTaoTaiKhoan).toLocaleString()}
+            />
+            <TruongChiDoc nhan="Vai trò" giaTri={nguoiDung.vaiTro} />
+
+            {/* Cho phép chỉnh sửa */}
+            <TruongChinhSua
+              nhan="Họ tên"
+              giaTriBanDau={nguoiDung.hoten || ""}
+              goiY="Nhập họ tên"
+              onLuu={(v) => capNhatNguoiDung({ hoten: v })}
+              xacThuc={(v) => v.trim().length > 0 || "Họ tên không được trống"}
+            />
+
+            <TruongChinhSua
+              nhan="Email"
+              loai="email"
+              giaTriBanDau={nguoiDung.email || ""}
+              goiY="name@example.com"
+              onLuu={(v) => capNhatNguoiDung({ email: v })}
+              xacThuc={(v) => {
+                if (!/^\S+@\S+\.\S+$/.test(v)) return "Email không hợp lệ";
+                const duyNhat = kiemTraEmailTrung(v);
+                return duyNhat === true ? true : duyNhat;
+              }}
+            />
+
+            <TruongChinhSua
+              nhan="Mật khẩu"
+              loai="password"
+              giaTriBanDau=""               // không hiển thị mật khẩu thật
+              hienThiGiaTri="********"      // hiển thị dạng ẩn
+              laMatKhau
+              goiY="Nhập mật khẩu mới"
+              onLuu={(v) => capNhatNguoiDung({ matkhau: v })}
+              xacThuc={(v) => (v?.length ?? 0) >= 6 || "Mật khẩu tối thiểu 6 ký tự"}
+            />
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

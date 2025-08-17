@@ -97,3 +97,66 @@
   grid-column: 1 / -1;
   margin-top: 24px;
 }
+/* Card mini theo mẫu */
+.mini-card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:14px;
+  box-shadow:0 2px 8px rgba(0,0,0,.04);
+  cursor:pointer;
+}
+
+.mini-title{
+  font-weight:800;
+  font-size:18px;
+  color:#0f172a;
+  margin:0 0 4px 0;
+}
+
+.mini-sub{
+  font-size:14px;
+  color:#6b7280;
+  margin-bottom:10px;
+}
+
+.mini-meta{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.mini-avatar{
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  background:#e5e7eb;           /* xám nhạt khi không có ảnh */
+  background-size:cover;
+  background-position:center;
+  flex-shrink:0;
+  border:1px solid #e5e7eb;
+}
+
+.mini-name{
+  font-size:14px;
+  color:#111827;
+}
+
+.mini-actions{
+  display:flex;
+  justify-content:flex-start;
+  gap:10px;
+  margin-top:6px;
+}
+
+.btn{
+  border:1px solid #e5e7eb;
+  background:#fff;
+  color:#111827;
+  padding:6px 10px;
+  border-radius:10px;
+  font-size:14px;
+  cursor:pointer;
+}
+.btn.ghost:hover{ background:#f3f4f6; }
