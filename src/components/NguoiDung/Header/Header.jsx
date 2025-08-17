@@ -94,6 +94,16 @@ function Header() {
               <div
                 className="plus-item"
                 onClick={() => {
+                  navigate("/newfolder");
+                  setShowplus(false);
+                }}
+              >
+                <FontAwesomeIcon icon={faFolderOpen} />
+                <span>Thư mục mới</span>
+              </div>
+              <div
+                className="plus-item"
+                onClick={() => {
                   navigate("/newclass");
                   setShowplus(false);
                 }}
