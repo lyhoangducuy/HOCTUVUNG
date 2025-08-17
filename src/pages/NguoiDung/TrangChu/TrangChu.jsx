@@ -42,7 +42,7 @@ export default function TrangChu() {
       {/* GẦN ĐÂY */}
       <section className="block">
         <div className="block-head">
-          <h2 className="block-title">Gần đây</h2>
+          <h2 className="block-title">Học gần đây</h2>
         </div>
 
         {ganDay.length === 0 ? (
@@ -84,7 +84,7 @@ export default function TrangChu() {
               >
                 <div className="mini-title">{item.tenBoThe || "Không tên"}</div>
 
-                <div className="mini-sub">{item.soTu ?? 0} thuật ngữ</div>
+                <div className="mini-sub">{item.soTu ?? 0} thẻ</div>
 
                 <div className="mini-meta">
                   <AvatarNho

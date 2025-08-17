@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./ThuVienCuaToi.css";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -7,8 +7,14 @@ function ThuVienCuaToi() {
   const [actionTab, setActionTab] = useState("boThe");
   const [lopList, setLopList] = useState([]);
   const navigate = useNavigate();
-  const location = useLocation();
 
+  const dsNguoiDung = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("nguoiDung") || "[]");
+    } catch {
+      return [];
+    }
+  }, []);
   useEffect(() => {
     const myCard = JSON.parse(localStorage.getItem("boThe")) || [];
     const myClass = JSON.parse(localStorage.getItem("lop")) || [];
@@ -87,40 +93,49 @@ function ThuVienCuaToi() {
 
       {actionTab === "lop" && (
         <div className="myLop">
-          {lopList.map((item) => (
-            <div
-              key={item.idLop}
-              className="mini-card"
-              onClick={() => handleLop(item.idLop)}
-            >
-              <div className="mini-title">{item?.tenLop || "Lớp học"}</div>
-              <div className="mini-sub">{item?.school || ""}</div>
+          {lopList.map((item) => {
+            // 👉 Lấy người tạo lớp bằng cách so sánh id
+            const nguoiTao = dsNguoiDung.find(
+              (u) => String(u.idNguoiDung) === String(item.idNguoiDung)
+            );
+            const tenNguoiTao = nguoiTao?.tenNguoiDung ;
+            const anhNguoiTao = nguoiTao?.anhDaiDien || "";
 
-              <div className="mini-meta">
-                <div className="mini-avatar" />
-                <span className="mini-name">
-                  {item?.nguoiDung?.tenNguoiDung || "Giáo viên"}
-                </span>
-              </div>
+            return (
+              <div
+                key={item.idLop}
+                className="mini-card"
+                onClick={() => handleLop(item.idLop)}
+              >
+                <div className="mini-title">{item?.tenLop || "Lớp học"}</div>
+                <div className="mini-sub">{item?.tenTruong || ""}</div>
 
-              <div className="mini-actions">
-                <button
-                  className="btn ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLop(item.idLop);
-                  }}
-                >
-                  Vào lớp
-                </button>
+                <div className="mini-meta">
+                  <div
+                    className="mini-avatar"
+                    style={anhNguoiTao ? { backgroundImage: `url(${anhNguoiTao})` } : {}}
+                  />
+                  <span className="mini-name">{tenNguoiTao}</span>
+                </div>
+
+                <div className="mini-actions">
+                  <button
+                    className="btn ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLop(item.idLop);
+                    }}
+                  >
+                    Vào lớp
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-          {lopList.length === 0 && (
-            <p className="emty">Không có lớp nào cả</p>
-          )}
+            );
+          })}
+          {lopList.length === 0 && <p className="emty">Không có lớp nào cả</p>}
         </div>
       )}
+
     </div>
   );
 }

@@ -46,21 +46,21 @@ function Newclass() {
       )}
 
       <label>Quốc Gia</label>
-      <input {...register("country", { required: "vui long nhap quoc gia" })} />
-      {errors.country && (
-        <p style={{ color: "red" }}>{errors.country.message}</p>
+      <input {...register("tenQuocGia", { required: "vui long nhap quoc gia" })} />
+      {errors.tenQuocGia && (
+        <p style={{ color: "red" }}>{errors.tenQuocGia.message}</p>
       )}
 
       <label>Thành Phố</label>
-      <input {...register("city", { required: "vui long nhap thanh pho " })} />
-      {errors.city && <p style={{ color: "red" }}>{errors.city.message}</p>}
+      <input {...register("tenThanhPho", { required: "vui long nhap thanh pho " })} />
+      {errors.tenThanhPho && <p style={{ color: "red" }}>{errors.tenThanhPho.message}</p>}
 
       <label>Tên Trường Học</label>
-      <input {...register("school", { required: "vui long nhap truong" })} />
-      {errors.school && <p style={{ color: "red" }}>{errors.school.message}</p>}
+      <input {...register("tenTruong", { required: "vui long nhap truong" })} />
+      {errors.tenTruong && <p style={{ color: "red" }}>{errors.tenTruong.message}</p>}
 
       <label>Mô tả</label>
-      <input {...register("description")} />
+      <input {...register("moTa")} />
 
       <div className="button-group">
         <button

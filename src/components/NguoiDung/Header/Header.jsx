@@ -60,12 +60,14 @@ function Header() {
 
   return (
     <div className="header-container">
-      <FontAwesomeIcon
-        icon={faBars}
-        className="icon menu-icon"
-        onClick={() => window.dispatchEvent(new CustomEvent("sidebar:toggle"))}
-      />
-
+      <div className="left-section">
+        <FontAwesomeIcon icon={faBars} className="icon menu-icon" />
+        <FontAwesomeIcon
+          icon={faBookOpen}
+          className="icon book-icon"
+          onClick={() => navigate("/giangvien")}
+        />
+      </div>
 
       <div className="search-section">
         <FontAwesomeIcon icon={faSearch} className="icon search-icon" />
@@ -84,7 +86,7 @@ function Header() {
               <div
                 className="plus-item"
                 onClick={() => {
-                  navigate("/newcard");
+                  navigate("/newBoThe");
                   setShowplus(false);
                 }}
               >

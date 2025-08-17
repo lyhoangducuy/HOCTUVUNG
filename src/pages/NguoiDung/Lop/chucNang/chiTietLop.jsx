@@ -17,10 +17,10 @@ export default function ChiTietLopModal({ open, lop, onClose }) {
 
         <div className="modal-body">
           <div className="info-row"><span className="label">Tên lớp:</span> <span>{lop.tenLop || "-"}</span></div>
-          <div className="info-row"><span className="label">Trường:</span> <span>{lop.school || "-"}</span></div>
-          <div className="info-row"><span className="label">Quốc gia:</span> <span>{lop.country || "-"}</span></div>
-          <div className="info-row"><span className="label">Thành phố:</span> <span>{lop.city || "-"}</span></div>
-          <div className="info-row"><span className="label">Mô tả:</span> <span>{lop.description || "-"}</span></div>
+          <div className="info-row"><span className="label">Trường:</span> <span>{lop.tenTruong || "-"}</span></div>
+          <div className="info-row"><span className="label">Quốc gia:</span> <span>{lop.tenQuocGia || "-"}</span></div>
+          <div className="info-row"><span className="label">Thành phố:</span> <span>{lop.tenThanhPho || "-"}</span></div>
+          <div className="info-row"><span className="label">Mô tả:</span> <span>{lop.moTa || "-"}</span></div>
           <div className="split" />
           <div className="info-row"><span className="label">Bộ thẻ:</span> <span>{soBoThe}</span></div>
           <div className="info-row"><span className="label">Thư mục:</span> <span>{soFolder}</span></div>

@@ -58,7 +58,7 @@ export default function App() {
             <Route path="/test/:id" element={<Test />} />
             <Route path="/game/:id" element={<MatchGame />} />
             <Route path="/video/:id" element={<Video />} />
-            <Route path="/newcard" element={<NewBoThe />} />
+            <Route path="/newBoThe" element={<NewBoThe />} />
             <Route path="/lop/:id" element={<Lop />} />
             <Route path="/thuviencuatoi" element={<ThuVienCuaToi />} />
             <Route path="/newfolder" element={<Newfolder/>} />
@@ -67,7 +67,7 @@ export default function App() {
             <Route path="/suabothe/:id" element={<SuaBoThe />} />
           </Route>
         </Route>
-        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN"]} />}>
+        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN","ADMIN"]} />}>
           <Route element={<NguoiDungLayout />}>
             <Route path="/newclass" element={<Newclass />} />
           </Route>
