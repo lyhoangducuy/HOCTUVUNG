@@ -39,7 +39,7 @@ function DangKy() {
     setLoading(true);
     try {
       const newUser = {
-        idNguoiDung: crypto.randomUUID(),
+        idNguoiDung: Math.floor(Math.random() * 1000000),
         email: data.email,
         tenNguoiDung: data.username,
         hoten: "",

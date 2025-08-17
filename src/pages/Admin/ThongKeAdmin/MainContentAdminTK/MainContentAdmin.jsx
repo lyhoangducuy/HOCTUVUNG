@@ -1,38 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TopContent from "./TopContentAdmin";
 
 const MainContent = () => {
-  const [userStats, setUserStats] = useState([
-    {
-      id: 1,
-      name: "Người dùng trực tuyến",
-      value: 11,
-      title: " Tăng 25% so với tháng trước",
-    },
-    {
-      id: 2,
-      name: "Người dùng trả phí",
-      value: 5,
-      title: " Tăng 10% so với tháng trước",
-    },
-    {
-      id: 3,
-      name: "Số lượng lớp học",
-      value: 100,
-      title: " Tăng 5% so với tháng trước",
-    },
-    {
-      id: 4,
-      name: "Số lượng bộ thẻ",
-      value: 20,
-      title: " Tăng 15% so với tháng trước",
-    },
-    {
-      id: 5,
-      name: "Số lượng thẻ",
-      title: " Tăng 20% so với tháng trước",
-    },
-  ]);
+  const [userStats, setUserStats] = useState([]);
+
+  useEffect(() => {
+    // Đọc dữ liệu từ localStorage
+    const dsNguoiDung = JSON.parse(localStorage.getItem("nguoiDung")) || [];
+    const dsLop = JSON.parse(localStorage.getItem("class")) || [];
+    const dsBoThe = JSON.parse(localStorage.getItem("boThe")) || [];
+
+    const soNguoiDung = Array.isArray(dsNguoiDung) ? dsNguoiDung.length : 0;
+    const soLop = Array.isArray(dsLop) ? dsLop.length : 0;
+    const soBoThe = Array.isArray(dsBoThe) ? dsBoThe.length : 0;
+
+    setUserStats([
+      {
+        id: 1,
+        name: "Người dùng",
+        value: soNguoiDung,
+        title: "Tổng số người dùng trong hệ thống",
+      },
+      {
+        id: 2,
+        name: "Lớp học",
+        value: soLop,
+        title: "Tổng số lớp học đã tạo",
+      },
+      {
+        id: 3,
+        name: "Bộ thẻ",
+        value: soBoThe,
+        title: "Tổng số bộ thẻ hiện có",
+      },
+    ]);
+  }, []);
+
   return (
     <div>
       <div style={{ width: "100%", height: "100px" }}>

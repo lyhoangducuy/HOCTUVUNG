@@ -60,14 +60,12 @@ function Header() {
 
   return (
     <div className="header-container">
-      <div className="left-section">
-        <FontAwesomeIcon icon={faBars} className="icon menu-icon" />
-        <FontAwesomeIcon
-          icon={faBookOpen}
-          className="icon book-icon"
-          onClick={() => navigate("/giangvien")}
-        />
-      </div>
+      <FontAwesomeIcon
+        icon={faBars}
+        className="icon menu-icon"
+        onClick={() => window.dispatchEvent(new CustomEvent("sidebar:toggle"))}
+      />
+
 
       <div className="search-section">
         <FontAwesomeIcon icon={faSearch} className="icon search-icon" />
@@ -92,16 +90,6 @@ function Header() {
               >
                 <FontAwesomeIcon icon={faClone} />
                 <span>Bộ thẻ mới</span>
-              </div>
-              <div
-                className="plus-item"
-                onClick={() => {
-                  navigate("/newfolder");
-                  setShowplus(false);
-                }}
-              >
-                <FontAwesomeIcon icon={faFolderOpen} />
-                <span>Thư mục mới</span>
               </div>
               <div
                 className="plus-item"

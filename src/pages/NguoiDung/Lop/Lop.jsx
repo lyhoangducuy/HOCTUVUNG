@@ -3,12 +3,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./Lop.css";
 import { useParams, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faEllipsisH, faLink } from "@fortawesome/free-solid-svg-icons";
-import { PopUpFolder } from "../../../components";
+import { faPlus, faEllipsisH } from "@fortawesome/free-solid-svg-icons";
+
 import MoiThanhVien from "./chucNang/moiThanhVien";
 import ThuVienLop from "./chucNang/thuVienLop";
-import LopMenu from "./chucNang/lopMenu";               // ⬅️ thêm
-import ChiTietLopModal from "./chucNang/chiTietLop"; // ⬅️ thêm
+import LopMenu from "./chucNang/lopMenu";
+import ChiTietLopModal from "./chucNang/chiTietLop";
+import ChonBoThe from "./chucNang/chonBoThe"; // ⬅️ thêm
 
 export default function Lop() {
   const { id } = useParams();
@@ -17,14 +18,12 @@ export default function Lop() {
   const [classDetail, setClassDetail] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState("materials");
-  const [showAddFolder, setShowAddFolder] = useState(false);
 
-  // menu dấu 3 chấm
   const [showEllipsis, setShowEllipsis] = useState(false);
   const btnMenuRef = useRef(null);
 
-  // modal chi tiết lớp
   const [openDetail, setOpenDetail] = useState(false);
+  const [moChonBoThe, setMoChonBoThe] = useState(false); // ⬅️ thêm
 
   useEffect(() => {
     const listClass = JSON.parse(localStorage.getItem("lop") || "[]");
@@ -34,24 +33,6 @@ export default function Lop() {
   }, [id]);
 
   const toggleDropdown = () => setShowDropdown((prev) => !prev);
-  const handleAddFlashcardSet = () => { setShowDropdown(false); setShowAddFolder(true); };
-
-  // ———— HANDLERS MENU DẤU … ————
-  const handleViewDetail = () => setOpenDetail(true);
-
-  const handleDeleteClass = () => {
-    if (!classDetail) return;
-    const ok = window.confirm(`Bạn chắc chắn muốn xoá lớp "${classDetail.tenLop}"? Hành động này không thể hoàn tác.`);
-    if (!ok) return;
-
-    const ds = JSON.parse(localStorage.getItem("lop") || "[]");
-    const newList = ds.filter(l => String(l.idLop) !== String(classDetail.idLop));
-    localStorage.setItem("lop", JSON.stringify(newList));
-    window.dispatchEvent(new Event("lopUpdated")); // tuỳ ý, nếu nơi khác cần lắng nghe
-
-    alert("Đã xoá lớp.");
-    navigate("/giangvien"); // điều hướng sau khi xoá
-  };
 
   const dsNguoiDung = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("nguoiDung") || "[]"); }
@@ -64,6 +45,21 @@ export default function Lop() {
       .map((uid) => dsNguoiDung.find((u) => u.idNguoiDung === uid))
       .filter(Boolean);
   }, [classDetail, dsNguoiDung]);
+
+  const handleViewDetail = () => setOpenDetail(true);
+
+  const handleDeleteClass = () => {
+    if (!classDetail) return;
+    const ok = window.confirm(`Bạn chắc chắn muốn xoá lớp "${classDetail.tenLop}"?`);
+    if (!ok) return;
+
+    const ds = JSON.parse(localStorage.getItem("lop") || "[]");
+    const newList = ds.filter(l => String(l.idLop) !== String(classDetail.idLop));
+    localStorage.setItem("lop", JSON.stringify(newList));
+
+    alert("Đã xoá lớp.");
+    navigate("/giangvien");
+  };
 
   return (
     <>
@@ -80,7 +76,14 @@ export default function Lop() {
             </button>
             {showDropdown && (
               <div className="dropdown-menu">
-                <button onClick={handleAddFlashcardSet}>Thêm bộ thẻ</button>
+                <button
+                  onClick={() => {
+                    setShowDropdown(false);
+                    setMoChonBoThe(true);  // ⬅️ mở chọn bộ thẻ
+                  }}
+                >
+                  Thêm bộ thẻ
+                </button>
               </div>
             )}
           </div>
@@ -106,8 +109,6 @@ export default function Lop() {
           </div>
         </div>
       </div>
-
-      <PopUpFolder showAddFolder={showAddFolder} setShowAddFolder={setShowAddFolder} />
 
       <div className="noi-dung-lop">
         <div className="tab-navigation">
@@ -136,7 +137,6 @@ export default function Lop() {
 
         {activeTab === "members" && (
           <div className="tab-content" style={{ display: "block" }}>
-
             {classDetail && (
               <MoiThanhVien
                 idLop={classDetail.idLop}
@@ -162,11 +162,21 @@ export default function Lop() {
         )}
       </div>
 
+      {/* Modal chi tiết lớp */}
       <ChiTietLopModal
         open={openDetail}
         lop={classDetail}
         onClose={() => setOpenDetail(false)}
       />
+
+      {/* Modal chọn bộ thẻ */}
+      {moChonBoThe && classDetail && (
+        <ChonBoThe
+          idLop={classDetail.idLop}
+          onDong={() => setMoChonBoThe(false)}
+          onCapNhat={(lopMoi) => setClassDetail(lopMoi)}
+        />
+      )}
     </>
   );
 }

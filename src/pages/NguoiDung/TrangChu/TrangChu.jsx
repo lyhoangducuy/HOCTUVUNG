@@ -1,67 +1,117 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import "./TrangChu.css";
 
 export default function TrangChu() {
-  const boThe = [];
   const navigate = useNavigate();
-
-  const [cards, setCards] = useState(boThe);
+  const [dsBoThe, setDsBoThe] = useState([]);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("boThe")) || [];
-    if (!saved || saved.length === 0) {
-      localStorage.setItem("boThe", JSON.stringify(boThe)); 
-      setCards(boThe);
-    } else {
-      setCards(saved);
-    }
+    const luu = JSON.parse(localStorage.getItem("boThe")) || [];
+    setDsBoThe(Array.isArray(luu) ? luu : []);
   }, []);
 
-  const handleStudy = (id) => {
-    navigate(`/flashcard/${id}`);
+  const denHoc = (id) => navigate(`/flashcard/${id}`);
+
+  // Gần đây: lấy tối đa 6 bộ thẻ mới nhất theo id (đơn giản)
+  const ganDay = useMemo(() => {
+    const x = [...dsBoThe];
+    x.sort((a, b) => (b.idBoThe || 0) - (a.idBoThe || 0));
+    return x.slice(0, 6);
+  }, [dsBoThe]);
+
+  // Phổ biến: tạm thời cũng hiển thị danh sách (có thể đổi thành top theo soTu)
+  const phoBien = useMemo(() => {
+    const x = [...dsBoThe];
+    x.sort((a, b) => (b.soTu || 0) - (a.soTu || 0));
+    return x.slice(0, 8);
+  }, [dsBoThe]);
+
+  const AvatarNho = ({ url, ten }) => {
+    if (url) {
+      return <span className="mini-avatar" style={{ backgroundImage: `url(${url})` }} />;
+    }
+    const initial = (ten || "U").charAt(0).toUpperCase();
+    return <span className="mini-avatar mini-avatar-fallback">{initial}</span>;
   };
+
   return (
-    <div className="container">
-      <div className="section section-word">
-        <h2 className="title">Gần Đây</h2>
-        <div className="wordgroup">
-          <ul>
-            {cards.map((item, index) => (
+    <div className="home-wrap">
+      {/* GẦN ĐÂY */}
+      <section className="block">
+        <div className="block-head">
+          <h2 className="block-title">Gần đây</h2>
+        </div>
+
+        {ganDay.length === 0 ? (
+          <div className="empty">Chưa có bộ thẻ nào. Hãy tạo bộ thẻ mới!</div>
+        ) : (
+          <ul className="recent-list">
+            {ganDay.map((item) => (
               <li
-                key={index}
-                onClick={() => handleStudy(item.idBoThe)}
-                className="word-item"
+                key={item.idBoThe}
+                className="recent-item"
+                onClick={() => denHoc(item.idBoThe)}
               >
-                {" "}
-                <FontAwesomeIcon icon={faBook} className="icon icon-book" />
-                Từ vưng buổi {index + 1}
+                <FontAwesomeIcon icon={faBook} className="icon-book" />
+                <span className="recent-name">
+                  {item.tenBoThe || `Bộ thẻ #${item.idBoThe}`}
+                </span>
+                <span className="recent-count">{item.soTu ?? 0} từ</span>
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      {/* BỘ THẺ PHỔ BIẾN */}
+      <section className="block">
+        <div className="block-head">
+          <h2 className="block-title">Bộ thẻ phổ biến</h2>
         </div>
-      </div>
-      <div className="section section-card">
-        <h2 className="title">Bộ thẻ phổ biến</h2>
-        <div className="card-group">
-          {cards.map((item, index) => (
-            <div
-              key={index}
-              className="card-item"
-              onClick={() => handleStudy(item.idBoThe)}
-            >
-              <h3 className="nameCard">{item.tenBoThe}</h3>
-              <h4 className="numberWord">{item.soTu}</h4>
-              <div className="infor">
-                <img src={item.nguoiDung.anhDaiDien || null} alt="info" />
-                <span className="nameUser">{item.nguoiDung.tenNguoiDung}</span>
+
+        {phoBien.length === 0 ? (
+          <div className="empty">Chưa có dữ liệu để hiển thị.</div>
+        ) : (
+          <div className="mini-grid">
+            {phoBien.map((item) => (
+              <div
+                key={item.idBoThe}
+                className="mini-card"
+                onClick={() => denHoc(item.idBoThe)}
+              >
+                <div className="mini-title">{item.tenBoThe || "Không tên"}</div>
+
+                <div className="mini-sub">{item.soTu ?? 0} thuật ngữ</div>
+
+                <div className="mini-meta">
+                  <AvatarNho
+                    url={item?.nguoiDung?.anhDaiDien}
+                    ten={item?.nguoiDung?.tenNguoiDung}
+                  />
+                  <span className="mini-name">
+                    {item?.nguoiDung?.tenNguoiDung || "Ẩn danh"}
+                  </span>
+                </div>
+
+                <div className="mini-actions">
+                  <button
+                    className="btn ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      denHoc(item.idBoThe);
+                    }}
+                  >
+                    Học
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
