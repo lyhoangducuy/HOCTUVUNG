@@ -1,83 +1,83 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faClone,
-  faListCheck,
-  faLayerGroup,
-  faFilePen,
-  faPlay,
-  faArrowLeft,
-  faArrowRight,
-  faStar,
-} from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import "./FlashCard.css";
 import HocBoThe_Header from "../../../../components/HocBoThe/HocBoThe_Header";
 
-function FlashCard() {
+export default function FlashCard() {
   const { id } = useParams();
-  const [cards, setCards] = useState([]);
+  const [pack, setPack] = useState(null);            // bộ thẻ đã chọn
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [flip, setFlip] = useState(false);
-  const nagative = useNavigate();
-  useEffect(() => {
-    const selected = JSON.parse(localStorage.getItem("selected"));
-    if (selected) {
-      setCards([selected]);
-    }
-  }, []);
 
-  const currentCard = cards[0]?.danhSachThe?.[currentCardIndex];
+  useEffect(() => {
+    try {
+      const list = JSON.parse(localStorage.getItem("boThe") || "[]");
+      const selected = Array.isArray(list)
+        ? list.find(x => String(x.idBoThe) === String(id))
+        : null;
+
+      setPack(selected || null);
+      setCurrentCardIndex(0);
+      setFlip(false);
+    } catch {
+      setPack(null);
+    }
+  }, [id]);
+
+  const cards = pack?.danhSachThe || [];
+  const currentCard = cards[currentCardIndex];
 
   const handleNext = () => {
-    if (currentCardIndex < cards[0]?.danhSachThe?.length - 1) {
-      setCurrentCardIndex((prev) => prev + 1);
+    if (currentCardIndex < cards.length - 1) {
+      setCurrentCardIndex(i => i + 1);
       setFlip(false);
     }
   };
 
   const handlePrev = () => {
     if (currentCardIndex > 0) {
-      setCurrentCardIndex((prev) => prev - 1);
+      setCurrentCardIndex(i => i - 1);
       setFlip(false);
     }
   };
-  const handleLib = () => {
-    
-  }
+
   return (
     <div className="container">
-       <HocBoThe_Header activeMode={"flashcard"}/>
+      <HocBoThe_Header activeMode="flashcard" />
 
       <div className="main">
         <div className="header">
-          <h2 className="nameCard">{cards[0]?.tenBoThe}</h2>
+          <h2 className="nameCard">{pack?.tenBoThe || "Bộ thẻ"}</h2>
         </div>
 
         <div className="study">
-          {currentCard && (
-            <div className="card" onClick={() => setFlip(!flip)}>
-              <h3 className="word">
-                {flip ? currentCard.nghia : currentCard.tu}
-              </h3>
+          {currentCard ? (
+            <div className={`card ${flip ? "flipped" : ""}`} onClick={() => setFlip(f => !f)}>
+              <h3 className="word">{flip ? currentCard.nghia : currentCard.tu}</h3>
             </div>
+          ) : (
+            <p>Không có thẻ nào trong bộ này.</p>
           )}
 
           <div className="btn-group">
-            <div className="left" onClick={handlePrev}>
+            <button className="left" onClick={handlePrev} disabled={currentCardIndex === 0}>
               <FontAwesomeIcon icon={faArrowLeft} />
-            </div>
+            </button>
             <span>
-              {currentCardIndex + 1}/{cards[0]?.danhSachThe?.length}
+              {cards.length ? currentCardIndex + 1 : 0}/{cards.length}
             </span>
-            <div className="right" onClick={handleNext}>
+            <button
+              className="right"
+              onClick={handleNext}
+              disabled={currentCardIndex >= cards.length - 1}
+            >
               <FontAwesomeIcon icon={faArrowRight} />
-            </div>
+            </button>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-export default FlashCard;

@@ -1,214 +1,132 @@
-/* Tổng thể container */
-.container {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: "Segoe UI", sans-serif;
-  color: #1a1a1a;
+/* ============ Variables & Base ============ */
+:root{
+  --bg:#f8f9fa;
+  --card:#ffffff;
+  --text:#1a1a1a;
+  --muted:#6b7280;
+  --border:#e5e7eb;
+  --primary:#2563eb;
+  --primary-2:#1d4ed8;
+  --ring: rgba(37,99,235,.18);
 }
 
-/* Thanh lựa chọn chế độ học */
-.studyChange {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 0;
-  overflow-x: auto;
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
 
-  -ms-overflow-style: none;
+/* ============ Page Container ============ */
+.container{
+  max-width:960px;
+  margin:0 auto;
+  padding:20px;
 }
 
-.studyChange::-webkit-scrollbar {
-  display: none;
+/* ============ Mode Switch (HocBoThe_Header) ============ */
+.studyChange{
+  display:flex;align-items:center;justify-content:center;
+  gap:12px;padding:20px 0;overflow-x:auto;scrollbar-width:none
+}
+.studyChange::-webkit-scrollbar{display:none}
+
+.studyBtn{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 18px;border:1.5px solid var(--border);
+  border-radius:999px;background:#fff;color:var(--text);
+  font-weight:600;font-size:14px;white-space:nowrap;
+  cursor:pointer;transition:all .2s ease;
+  box-shadow:0 1px 2px rgba(0,0,0,.04)
+}
+.studyBtn:hover{background:#f3f4f6;transform:translateY(-1px)}
+.studyBtn.active{background:#111827;color:#fff;border-color:#111827}
+.studyBtn svg{font-size:16px}
+
+/* ============ Header ============ */
+.header{text-align:center;margin:8px 0 20px}
+.nameCard{font-size:24px;font-weight:700;color:#111}
+
+/* ============ Study Area ============ */
+.study{
+  display:flex;flex-direction:column;align-items:center;gap:20px
 }
 
-.studyBtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border: 1.5px solid #dcdcdc;
-  border-radius: 999px;
-  background-color: #fff;
-  font-weight: 500;
-  font-size: 14px;
-  color: #1a1a1a;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+/* ============ Flashcard ============ */
+.card{
+  width:min(92vw,460px);
+  height:280px;
+  border-radius:16px;
+  background:var(--card);
+  border:2px solid var(--border);
+  box-shadow:0 10px 24px rgba(0,0,0,.06);
+  display:grid;place-items:center;text-align:center;
+  cursor:pointer;user-select:none;
+  perspective:1000px;
+  padding:20px;
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.card:hover{transform:scale(1.01);box-shadow:0 14px 30px rgba(0,0,0,.08)}
+.word{font-size:26px;font-weight:700;color:#111;line-height:1.35}
+
+/* Optional: nếu bạn toggle class "flipped" khi click */
+.card.flipped .word{color:#0f172a;}
+
+/* ============ Nav Buttons ============ */
+.btn-group{
+  display:flex;align-items:center;gap:20px;font-size:16px;font-weight:600
 }
 
-.studyBtn:hover {
-  background-color: #f0f0f0;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.studyBtn svg {
-  font-size: 16px;
-  color: #1a1a1a;
-}
-
-.studyBtn.active {
-  background-color: #000;
-  color: #fff;
-  border-color: #000;
-}
-
-.studyBtn.active svg {
-  color: #fff;
-}
-
-/* Tên bộ thẻ */
-.header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.nameCard {
-  font-size: 28px;
-  font-weight: 600;
-  color: #333;
-}
-
-/* Phần học */
-.study {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-}
-
-/* Thẻ từ vựng */
-.card {
-  width: 420px;
-  height: 260px;
-  border-radius: 16px;
-  background-color: #fdfdfd;
-  border: 2px solid #e0e0e0;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  perspective: 1000px;
-  transition: transform 0.4s ease;
-  padding: 20px;
-  text-align: center;
-}
-
-.card:hover {
-  transform: scale(1.02);
-}
-
-.word {
-  font-size: 24px;
-  font-weight: 600;
-  color: #111;
-  transition: color 0.3s ease;
-}
-
-/* Nút điều hướng */
-.btn-group {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  font-size: 16px;
-  font-weight: 500;
-}
-
+/* Hỗ trợ cả <div> hoặc <button> */
 .btn-group .left,
-.btn-group .right {
-  background-color: #f2f2f2;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.2s ease;
+.btn-group .right,
+.btn-group .nav-btn{
+  width:44px;height:44px;border-radius:999px;
+  display:flex;align-items:center;justify-content:center;
+  background:#f3f4f6;border:1px solid var(--border);
+  cursor:pointer;transition:background .18s ease, transform .06s ease, box-shadow .18s ease;
 }
-
 .btn-group .left:hover,
-.btn-group .right:hover {
-  background-color: #dcdcdc;
+.btn-group .right:hover,
+.btn-group .nav-btn:hover{
+  background:#e5e7eb;box-shadow:0 8px 20px rgba(0,0,0,.06)
 }
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #333;
-  background-color: #f6f6f6;
-  padding: 10px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.25s ease-in-out;
-  border: 1px solid #dcdcdc;
-  margin-bottom: 16px;
-  width: fit-content;
+.btn-group .left:active,
+.btn-group .right:active,
+.btn-group .nav-btn:active{transform:translateY(1px)}
+
+.btn-group button[disabled],
+.btn-group .nav-btn[disabled]{
+  opacity:.55;cursor:not-allowed;filter:grayscale(.2)
 }
 
-.back:hover {
-  background-color: #e2e2e2;
-  transform: translateX(-2px);
-  color: #111;
+/* ============ Top Bar (Back & Add to Lib) ============ */
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+
+.back{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:12px;border:1px solid var(--border);
+  background:#f6f6f6;color:#333;font-size:16px;font-weight:700;
+  cursor:pointer;transition:all .18s ease
+}
+.back:hover{background:#e9ecef;transform:translateX(-2px)}
+
+.addLib{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--primary);color:#fff;font-size:15px;font-weight:700;
+  padding:10px 16px;border-radius:10px;cursor:pointer;
+  transition:background .18s ease, transform .06s ease, box-shadow .18s ease;
+  box-shadow:0 10px 26px rgba(37,99,235,.18);
+}
+.addLib:hover{background:var(--primary-2);transform:translateY(-1px)}
+.addLib:active{transform:translateY(0)}
+.addLib svg{font-size:16px}
+
+/* ============ Focus Rings ============ */
+button:focus-visible, .studyBtn:focus-visible, .back:focus-visible, .addLib:focus-visible{
+  outline:none;box-shadow:0 0 0 4px var(--ring)
 }
 
-.iconback {
-  font-size: 18px;
-}
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #333;
-  background-color: #f6f6f6;
-  padding: 10px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.25s ease-in-out;
-  border: 1px solid #dcdcdc;
-}
-
-.back:hover {
-  background-color: #e2e2e2;
-  transform: translateX(-2px);
-}
-
-
-.addLib {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #2563eb;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 600;
-  padding: 9px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.25s ease, transform 0.2s ease;
-}
-
-.addLib:hover {
-  background-color: #1d4ed8;
-  transform: translateY(-1px);
-}
-
-.addLib svg {
-  font-size: 16px;
+/* ============ Responsive ============ */
+@media (max-width:640px){
+  .nameCard{font-size:22px}
+  .word{font-size:22px}
+  .btn-group{gap:16px}
+  .card{height:250px}
 }

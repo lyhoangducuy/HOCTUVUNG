@@ -13,7 +13,7 @@ export default function Lop() {
   const [showAddFolder, setShowAddFolder] = useState(false);
 
   useEffect(() => {
-    const listClass = JSON.parse(localStorage.getItem("class")) || [];
+    const listClass = JSON.parse(localStorage.getItem("lop")) || [];
     const classFound = listClass.find(
       (item) => String(item.idLop) === String(id)
     );

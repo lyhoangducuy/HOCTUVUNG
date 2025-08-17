@@ -3,15 +3,17 @@ import { useNavigate } from "react-router-dom";
 import "./NewBoThe.css";
 
 function NewBoThe() {
-  const session = sessionStorage.getItem("session");
+  const nguoiDung = JSON.parse(localStorage.getItem("nguoiDung"))
+  const session = JSON.parse(sessionStorage.getItem("session"));
+  const found=nguoiDung.find(x =>x.idNguoiDung===session.idNguoiDung)
   const emptyBoThe = {
     idBoThe: null,
     tenBoThe: "",
     soTu: 0,
     nguoiDung: {
-      idNguoiDung: session.idNguoiDung,
-      anhDaiDien: session.anhDaiDien,
-      tenNguoiDung: session.tenNguoiDung
+      idNguoiDung: found.idNguoiDung,
+      anhDaiDien: found.anhDaiDien,
+      tenNguoiDung: found.tenNguoiDung
     },
     danhSachThe: [],
   };

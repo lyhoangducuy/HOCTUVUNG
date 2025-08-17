@@ -40,8 +40,7 @@ function Setting() {
 
             <section class="subscription-section">
                 <div class="card subscription-card">
-                    <p>Nâng cấp với H+</p>
-                    <button class="btn btn-upgrade1" >Nâng cấp tài khoản</button>
+                    <button class="btn btn-upgrade1">Nâng cấp tài khoản</button>
                 </div>
             </section>
 

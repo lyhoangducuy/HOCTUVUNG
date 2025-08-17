@@ -27,7 +27,7 @@ import Newfolder from "./pages/NguoiDung/AddNew/NewFolder/Newfolder";
 import Newclass from "./pages/NguoiDung/AddNew/NewClass/Newclass";
 import NewBoThe from "./pages/NguoiDung/AddNew/NewBoThe/NewBoThe";
 import Lop from "./pages/NguoiDung/Lop/Lop";
-import Library from "./pages/NguoiDung/MyLib/BoThe-Lib/Library";
+import ThuVienCuaToi from "./pages/NguoiDung/ThuVienCuaToi/ThuVienCuaToi";
 import MyFolder from "./pages/NguoiDung/MyFolder/MyFolder";
 import QuanLyUser from "./pages/Admin/QuanLyUser/QuanLyUser";
 import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTraPhi";
@@ -61,7 +61,7 @@ export default function App() {
             <Route path="/newcard" element={<NewBoThe />} />
             <Route path="/newfolder" element={<Newfolder />} />
             <Route path="/lop/:id" element={<Lop />} />
-            <Route path="/mylibrary" element={<Library />} />
+            <Route path="/thuviencuatoi" element={<ThuVienCuaToi />} />
             <Route path="/folder/:id" element={<MyFolder />} />
             <Route path="/setting" element={<Setting />} />
           </Route>

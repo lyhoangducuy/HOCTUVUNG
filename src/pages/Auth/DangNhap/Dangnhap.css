@@ -1,251 +1,192 @@
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: #f2f2f2;
-  box-sizing: border-box;
-  padding: 20px;
+/* =========================
+   Đăng nhập — Refreshed CSS
+   ========================= */
+
+/* ---------- Variables ---------- */
+:root{
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --text:#111827;
+  --muted:#6b7280;
+  --border:#e5e7eb;
+  --accent:#1565ff;
+  --accent-2:#0d47a1;
+  --ring: rgba(21,101,255,.18);
+  --radius:16px;
+  --shadow:0 10px 30px rgba(0,0,0,.08);
 }
 
-.login-card {
-  display: flex;
-  width: 800px;
-  height: 600px; 
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  overflow: hidden;
+/* ---------- Base ---------- */
+*{ box-sizing:border-box }
+html,body{ margin:0; background:var(--bg); color:var(--text); font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif }
+a{ text-decoration:none; color:inherit }
+
+/* ---------- Page Container ---------- */
+.login-container{
+  min-height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  padding:24px;
+  background:
+    radial-gradient(1200px 600px at -10% -10%, #eaf1ff 0%, transparent 60%),
+    radial-gradient(1000px 600px at 110% 110%, #eaf7ff 0%, transparent 60%),
+    var(--bg);
 }
 
-.login-left {
-  flex: 1;
-  background: #f5f5f5;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* ---------- Card ---------- */
+.login-card{
+  width:min(920px, 96vw);
+  min-height:560px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  display:flex;
 }
 
-.login-left img {
-  max-width: 100%;
-  height: 100%;
-  object-fit: cover;
+/* ---------- Left (image) ---------- */
+.login-left{
+  flex:1.05;
+  background:#eef2ff;
+  display:flex; align-items:center; justify-content:center;
+}
+.login-left img{
+  width:100%; height:100%; object-fit:cover;
 }
 
-.login-right {
-  flex: 1;
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  overflow: hidden;
+/* ---------- Right (form) ---------- */
+.login-right{
+  flex:1;
+  padding:36px 34px;
+  display:flex; flex-direction:column; gap:16px;
 }
 
-.login-tabs {
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  margin-bottom: 20px;
-  gap: 20px;
-  flex-shrink: 0;
+/* ---------- Tabs ---------- */
+.login-tabs{
+  display:flex; gap:20px; align-items:center;
+  margin-bottom:6px;
+}
+.login-tabs span{
+  font-size:18px; font-weight:700; color:#374151; cursor:pointer;
+  padding:6px 2px; border-bottom:2px solid transparent;
+  transition:color .18s ease, border-color .18s ease, transform .18s ease;
+}
+.login-tabs span:hover{ color:var(--accent) }
+.login-tabs span.active{
+  color:var(--accent);
+  border-bottom-color:var(--accent);
 }
 
-.login-tabs span {
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 18px;
-  color: #333;
-  display: inline-block;
-  border-bottom: 2px solid transparent; /* để giữ layout khi chưa active */
-  transition: all 0.2s ease; /* mượt mà */
+/* ---------- Form ---------- */
+.login-form{
+  display:flex; flex-direction:column; gap:10px;
+  margin-top:4px;
+}
+.login-form label{
+  font-weight:600; font-size:14px; color:#1f2937;
+}
+.login-form input{
+  width:100%; height:44px;
+  padding:10px 12px; font-size:14px;
+  background:#fff; color:#111827;
+  border:2px solid var(--border); border-radius:12px;
+  transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.login-form input:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px var(--ring);
+}
+.login-form input.error{
+  border-color:#dc2626;
+  box-shadow:0 0 0 3px rgba(220,38,38,.12);
 }
 
-.login-tabs span.active {
-  border-bottom: 2px solid #007bff;
-  transform: scale(1.1); /* phóng to mượt */
-  opacity: 0.8; /* thêm hiệu ứng nhẹ */
+/* ---------- Errors & help ---------- */
+.error{
+  color:#dc2626; font-size:12px; line-height:1.25;
+  min-height:16px; margin-top:2px;
 }
 
+/* ---------- Forgot ---------- */
+.forgot{
+  margin-top:2px; text-align:right;
+}
+.forgot a{ color:#374151; font-size:13px }
+.forgot a:hover{ color:var(--accent) }
 
-.login-btn.social {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background: #fff;
-  border: 1px solid #ddd;
-  padding: 10px 20px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  border-radius: 6px;
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
+/* ---------- Submit button ---------- */
+button.login-btn.submit{
+  width:min(240px, 70%);
+  align-self:center;
+  margin-top:12px;
+  height:44px;
+  background:var(--accent); color:#fff;
+  border:1px solid transparent; border-radius:999px;
+  font-size:15px; font-weight:700; cursor:pointer;
+  transition:background .18s ease, transform .06s ease, box-shadow .18s ease, opacity .18s ease;
+  box-shadow:0 10px 26px rgba(21,101,255,.18);
+}
+button.login-btn.submit:hover{ background:var(--accent-2); transform:translateY(-1px) }
+button.login-btn.submit:active{ transform:translateY(0) }
+button.login-btn.submit:disabled{
+  opacity:.6; cursor:not-allowed; box-shadow:none; transform:none;
 }
 
-.login-btn.social.facebook {
-  border-color: rgba(255, 0, 0, 0.3);
+/* ---------- Social buttons (nếu dùng) ---------- */
+.login-btn.social{
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  padding:10px 14px; border-radius:10px;
+  background:#fff; border:1px solid var(--border);
+  font-size:15px; font-weight:600; cursor:pointer;
+  transition:transform .06s ease, box-shadow .18s ease, border-color .12s ease;
+}
+.login-btn.social:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(0,0,0,.08) }
+.login-btn.social.facebook{ border-color:rgba(24,119,242,.35) }
+.login-btn.social.google{ border-color:rgba(234,67,53,.35) }
+
+/* ---------- Divider ---------- */
+.divider{
+  display:flex; align-items:center; gap:10px; color:var(--muted);
+  margin:10px 0;
+}
+.divider::before,.divider::after{
+  content:""; flex:1; border-top:1px solid var(--border);
+}
+.divider span{ font-size:12px; text-transform:uppercase; letter-spacing:.6px }
+
+/* ---------- Scrollbar (form) ---------- */
+.login-form::-webkit-scrollbar{ width:6px }
+.login-form::-webkit-scrollbar-track{ background:#f3f4f6; border-radius:3px }
+.login-form::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:3px }
+.login-form::-webkit-scrollbar-thumb:hover{ background:#94a3b8 }
+
+/* ---------- Focus visible (a11y) ---------- */
+.login-btn.submit:focus-visible,
+.login-btn.social:focus-visible,
+.login-tabs span:focus-visible,
+.login-form input:focus-visible{
+  outline:none; box-shadow:0 0 0 4px var(--ring);
 }
 
-.login-btn.social.google {
-   border-color: rgba(255, 0, 0, 0.3);
+/* ---------- Responsive ---------- */
+@media (max-width: 900px){
+  .login-card{ width:min(760px, 96vw); }
 }
-
-.login-btn.social:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.login-btn .icon {
-  font-size: 20px;
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  margin: 1rem 0;
-  flex-shrink: 0;
-}
-
-.divider::before,
-.divider::after {
-  content: "";
-  flex: 1;
-  border-top: 2px solid #ccc;
-}
-
-.divider span {
-  margin: 0 1rem;
-  color: #000000;
-  font-size: 14px;
-  text-transform: lowercase;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  flex: 1;
-  padding-right: 10px;
-}
-
-.login-form::-webkit-scrollbar {
-  width: 6px;
-}
-
-.login-form::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.login-form::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-.login-form::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-.login-form label {
-  font-weight: 500;
-  margin-top: 5px;
-  display: block;
-  font-size: 14px;
-}
-
-.login-form input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-sizing: border-box;
-  font-size: 14px;
-  transition: border-color 0.3s ease;
-  height: 40px; /* Cố định chiều cao input */
-}
-
-.login-form input:focus {
-  outline: none;
-  border-color: #1565ff;
-  box-shadow: 0 0 0 2px rgba(21, 101, 255, 0.1);
-}
-
-/* Style cho input có lỗi */
-.login-form input.error {
-  border-color: #dc3545;
-  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
-}
-
-.error {
-  color: #dc3545;
-  font-size: 11px;
-  margin: 0;
-  display: block;
-  line-height: 1.2;
-  min-height: 13px;
-  height: 13px; /* Cố định chiều cao error message */
-  overflow: hidden;
-}
-
-.forgot {
-  text-align: right;
-  margin-bottom: 10px;
-  flex-shrink: 0;
-}
-
-button.login-btn.submit {
-  width: 50%;
-  background-color: #1565ff;  
-  color: white;
-  border: none;
-  border-radius: 999px;
-  padding: 12px 32px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  margin: 20px auto 0 auto;
-  flex-shrink: 0;
-}
-
-button.login-btn.submit:hover {
-  background-color: #0d47a1; 
-}
-
-button.login-btn.submit:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-a{
-    text-decoration: none;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .login-card {
-    width: 100%;
-    max-width: 400px;
-    height: auto;
-    min-height: 500px;
-    flex-direction: column;
+@media (max-width: 768px){
+  .login-card{
+    width:100%; max-width:420px;
+    min-height:520px; height:auto;
+    flex-direction:column;
   }
-  
-  .login-left {
-    display: none;
-  }
-  
-  .login-right {
-    padding: 30px 20px;
-    overflow: visible;
-  }
-  
-  .login-form {
-    overflow-y: visible;
-    padding-right: 0;
-  }
+  .login-left{ display:none }
+  .login-right{ padding:28px 20px }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  .login-tabs span,
+  .login-btn.submit,
+  .login-btn.social,
+  .login-form input{ transition:none !important }
 }

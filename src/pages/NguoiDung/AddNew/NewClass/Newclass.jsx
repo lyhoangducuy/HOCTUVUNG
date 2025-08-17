@@ -11,14 +11,13 @@ function Newclass() {
   } = useForm();
 
   const onSubmit = (data) => {
-    const dataLocal = JSON.parse(localStorage.getItem("class")) || [];
+    const dataLocal = JSON.parse(localStorage.getItem("lop")) || [];
     const list = Array.isArray(dataLocal) ? dataLocal : [dataLocal];
 
     const idLop = Math.floor(Math.random() * 1000000);
 
-    // Nếu có thông tin đăng nhập, lấy idNguoiDung từ localStorage
-    const currentUser = JSON.parse(localStorage.getItem("nguoiDung")) || {};
-    const idNguoiDung = currentUser.id || Math.floor(Math.random() * 1000000);
+    const session= JSON.parse(sessionStorage.getItem("session"));
+    const idNguoiDung = session.idNguoiDung;
 
     const newClass = {
       idLop,
@@ -29,7 +28,7 @@ function Newclass() {
     };
 
     list.push(newClass);
-    localStorage.setItem("class", JSON.stringify(list));
+    localStorage.setItem("lop", JSON.stringify(list));
     navigate("/lop/" + idLop);
   };
 

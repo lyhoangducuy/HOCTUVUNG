@@ -14,10 +14,10 @@ function Newfolder() {
   const navigate = useNavigate();
   const handleOnSubmit = (e) => {
     e.preventDefault();
-    const folders = JSON.parse(localStorage.getItem("folders") || "[]");
+    const folders = JSON.parse(localStorage.getItem("thuMuc") || "[]");
     const newId = folders ? folders.length + 1 : 1;
     newFolder.idThuMuc = newId;
-    localStorage.setItem("folders", JSON.stringify([...folders, newFolder]));
+    localStorage.setItem("thuMuc", JSON.stringify([...folders, newFolder]));
     const event = new Event("foldersUpdated");
     window.dispatchEvent(event);
 

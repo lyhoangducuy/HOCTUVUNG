@@ -1,121 +1,166 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faClone,
-  faListCheck,
-  faLayerGroup,
-  faFilePen,
-  faPlay,
-  faArrowLeft,
-  faArrowRight,
-  faL,
-  faStar,
-} from "@fortawesome/free-solid-svg-icons";
-import "./MatchGame.css";
-import { useRef } from "react";
-import { ref } from "yup";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import HocBoThe_Header from "../../../../components/HocBoThe/HocBoThe_Header";
+import "./MatchGame.css";
 
-function MatchGame() {
+/* Trộn mảng đơn giản */
+function tronMang(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+export default function MatchGame() {
   const { id } = useParams();
-  const nagative = useNavigate();
-  const [cards, setCards] = useState([]);
-  const [danhsachthe, setDanhsachthe] = useState([]);
-  const [question, setQuestion] = useState([]);
-  const [match, setMatch] = useState([]);
-  const [choice, setChoice] = useState([]);
-  const [correct, setCorrect] = useState(false);
+
+  // ===== State tiếng Việt =====
+  const [boThe, setBoThe] = useState(null);             // bộ thẻ đã chọn
+  const [capTuNghia, setCapTuNghia] = useState([]);     // [{id, tu, nghia}]
+  const [oLuoi, setOLuoi] = useState([]);               // mảng ô hiển thị: [{id, loai:'tu'|'nghia', vanBan}]
+  const [chiSoDangChon, setChiSoDangChon] = useState([]); // các index đang chọn (tối đa 2)
+  const [idDaGhep, setIdDaGhep] = useState(new Set());  // id cặp đã ghép đúng (để style nếu muốn)
+  const [viTriAn, setViTriAn] = useState(new Set());    // index đã ẩn (giữ chỗ)
+  const [thongBao, setThongBao] = useState("");         // "ĐÚNG" | "SAI" | ""
+  const [khoaClick, setKhoaClick] = useState(false);    // khoá khi đang xử lý
+
+  // ===== Lấy bộ thẻ theo id URL =====
   useEffect(() => {
-    const selected = JSON.parse(localStorage.getItem("selected"));
-    if (selected) {
-      setDanhsachthe(selected.danhSachThe);
-      setCards(selected);
-    }
-  }, []);
-  useEffect(() => {
-    if (!danhsachthe || danhsachthe.length === 0) return;
+    try {
+      const ds = JSON.parse(localStorage.getItem("boThe") || "[]");
+      const tim = Array.isArray(ds)
+        ? ds.find((x) => String(x.idBoThe) === String(id))
+        : null;
 
-    const shuffled = danhsachthe.sort(() => 0.5 - Math.random());
-    // const newQuestions = shuffled.slice(0, 3);
-
-    setQuestion(shuffled);
-  }, [danhsachthe]);
-  useEffect(() => {
-    if (!question || question.length === 0) return;
-
-    const tuArray = question.map((q) => ({ text: q.tu, type: "tu" }));
-    const nghiaArray = question.map((q) => ({
-      text: q.nghia,
-      type: "nghia",
-    }));
-
-    const combined = [...tuArray, ...nghiaArray].sort(
-      () => 0.5 - Math.random()
-    );
-    setMatch(combined);
-  }, [question]);
-
-  const handleClick = (index) => {
-    if (choice.includes(index)) return;
-
-    const newChoice = [...choice, index];
-    setChoice(newChoice);
-
-    if (newChoice.length === 2) {
-      const first = match[newChoice[0]];
-      const second = match[newChoice[1]];
-
-      if (
-        (first.type === "tu" &&
-          second.type === "nghia" &&
-          question.find(
-            (q) => q.tu === first.text && q.nghia === second.text
-          )) ||
-        (first.type === "nghia" &&
-          second.type === "tu" &&
-          question.find((q) => q.nghia === first.text && q.tu === second.text))
-      ) {
-        setCorrect(true);
-        const remove1 = match.filter((item) => item.text !== first.text);
-        const remove2 = remove1.filter((item) => item.text !== second.text);
-        setMatch(remove2);
+      if (tim?.danhSachThe?.length) {
+        setBoThe(tim);
+      } else {
+        setBoThe(null);
       }
-      setTimeout(() => {
-        setChoice([]);
-        setCorrect(false);
-      }, 500);
+    } catch {
+      setBoThe(null);
+    }
+  }, [id]);
+
+  // Tạo cặp {id, tu, nghia}
+  useEffect(() => {
+    if (!boThe?.danhSachThe?.length) {
+      setCapTuNghia([]);
+      return;
+    }
+    const base = boThe.danhSachThe.map((t, i) => ({
+      id: i, tu: t.tu, nghia: t.nghia,
+    }));
+    setCapTuNghia(base);
+  }, [boThe]);
+
+  // Tạo ô lưới (mỗi cặp thành 2 ô) + reset trạng thái
+  useEffect(() => {
+    if (!capTuNghia.length) {
+      setOLuoi([]);
+      return;
+    }
+    const oTu = capTuNghia.map((p) => ({ id: p.id, loai: "tu", vanBan: p.tu }));
+    const oNghia = capTuNghia.map((p) => ({ id: p.id, loai: "nghia", vanBan: p.nghia }));
+    setOLuoi(tronMang([...oTu, ...oNghia]));
+    setIdDaGhep(new Set());
+    setChiSoDangChon([]);
+    setViTriAn(new Set());
+    setThongBao("");
+    setKhoaClick(false);
+  }, [capTuNghia]);
+
+  const chonO = (index) => {
+    if (khoaClick) return;
+    if (!oLuoi[index]) return;
+    if (viTriAn.has(index)) return;              // đã ẩn
+    if (chiSoDangChon.includes(index)) return;   // không chọn lại ô đang chọn
+
+    const tiepTheo = [...chiSoDangChon, index].slice(-2);
+    setChiSoDangChon(tiepTheo);
+
+    if (tiepTheo.length === 2) {
+      setKhoaClick(true);
+      const [i1, i2] = tiepTheo;
+      const a = oLuoi[i1], b = oLuoi[i2];
+      const dung = a && b && a.id === b.id && a.loai !== b.loai;
+
+      if (dung) {
+        setThongBao("ĐÚNG");
+        setIdDaGhep((prev) => new Set(prev).add(a.id));
+        // Ẩn 2 ô nhưng giữ chỗ (CSS .gone dùng visibility:hidden)
+        setViTriAn((prev) => {
+          const s = new Set(prev);
+          s.add(i1); s.add(i2);
+          return s;
+        });
+        setChiSoDangChon([]);
+        setTimeout(() => { setThongBao(""); setKhoaClick(false); }, 300);
+      } else {
+        setThongBao("SAI");
+        setTimeout(() => {
+          setChiSoDangChon([]);
+          setThongBao("");
+          setKhoaClick(false);
+        }, 600);
+      }
     }
   };
 
+  const hoanThanh = viTriAn.size === oLuoi.length && oLuoi.length > 0;
+
   return (
     <div className="container">
-       <HocBoThe_Header activeMode={"game"}/>
+      <HocBoThe_Header activeMode="game" />
 
       <div className="main">
-        <div className="header">{cards.tenBoThe}</div>
+        <div className="header">
+          <h2 className="nameCard">{boThe?.tenBoThe || "Trò chơi ghép cặp"}</h2>
+        </div>
 
         <div className="study">
-          <div className="question">
-            {match.map((item, index) => (
-              <div
-                className={`question-item ${
-                  choice.includes(index) ? "selected" : ""
-                }`}
-                key={index}
-                onClick={() => handleClick(index)}
-              >
-                {item.text}
+          {!oLuoi.length ? (
+            <p>Không có dữ liệu để chơi.</p>
+          ) : (
+            <>
+              <div className="question">
+                {oLuoi.map((o, idx) => {
+                  const dangChon = chiSoDangChon.includes(idx);
+                  const daAn = viTriAn.has(idx);
+                  const daGhep = idDaGhep.has(o.id); // nếu muốn style riêng
+
+                  return (
+                    <div
+                      key={`${o.loai}-${o.id}-${idx}`}
+                      className={
+                        `question-item${dangChon ? " selected" : ""}` +
+                        (daGhep ? " matched" : "") +
+                        (daAn ? " gone" : "")
+                      }
+                      onClick={() => chonO(idx)}
+                      aria-hidden={daAn}
+                    >
+                      {o.vanBan}
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-          <div className="display">
-            {choice.length === 2 && (correct ? <p>ĐÚNG</p> : <p>SAI</p>)}
-          </div>
+
+              <div className={`display ${thongBao === "ĐÚNG" ? "correct" : thongBao === "SAI" ? "wrong" : ""}`}>
+                {hoanThanh ? (
+                  <span className="feedback">Hoàn thành 🎉</span>
+                ) : thongBao ? (
+                  <span className="feedback">{thongBao}</span>
+                ) : (
+                  <span className="feedback" style={{ opacity: 0.6 }}>Chọn 2 ô để ghép</span>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 }
-
-export default MatchGame;

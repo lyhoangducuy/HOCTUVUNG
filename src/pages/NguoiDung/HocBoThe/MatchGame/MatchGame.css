@@ -1,226 +1,146 @@
-/* Tổng thể container */
-.container {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: 'Segoe UI', sans-serif;
-  color: #1a1a1a;
+/* =========================
+   Match Game — Refreshed CSS
+   ========================= */
+
+/* ---------- Variables ---------- */
+:root{
+  --bg:#f8f9fa;
+  --card:#ffffff;
+  --text:#111827;
+  --muted:#6b7280;
+  --border:#e5e7eb;
+  --primary:#2563eb;
+  --primary-2:#1d4ed8;
+  --ok:#16a34a;
+  --warn:#dc2626;
+  --ring: rgba(37,99,235,.18);
 }
 
-/* Thanh lựa chọn chế độ học */
-.studyChange {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 0;
-  overflow-x: auto;
- 
-  -ms-overflow-style: none;
+/* ---------- Base ---------- */
+*{ box-sizing:border-box }
+html,body{ margin:0; background:var(--bg); color:var(--text); font-family:"Segoe UI", system-ui, -apple-system, Roboto, sans-serif }
+
+/* ---------- Page Container ---------- */
+.container{
+  max-width:960px;
+  margin:0 auto;
+  padding:20px;
 }
 
-.studyChange::-webkit-scrollbar {
-  display: none;
+/* ---------- Back button ---------- */
+.back{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:16px; font-weight:700; color:#333;
+  background:#f6f6f6; padding:10px 16px; border-radius:12px;
+  border:1px solid var(--border); cursor:pointer;
+  transition:all .2s ease;
+  margin-bottom:16px;
+}
+.back:hover{ background:#e9ecef; transform:translateX(-2px); color:#111 }
+
+/* ---------- Mode Switch (chips) ---------- */
+.studyChange{
+  display:flex; align-items:center; justify-content:center;
+  gap:12px; padding:20px 0; overflow-x:auto; scrollbar-width:none
+}
+.studyChange::-webkit-scrollbar{ display:none }
+
+.studyBtn{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 18px; border:1.5px solid var(--border);
+  border-radius:999px; background:#fff; color:var(--text);
+  font-weight:600; font-size:14px; white-space:nowrap;
+  cursor:pointer; transition:all .2s ease;
+  box-shadow:0 1px 2px rgba(0,0,0,.04)
+}
+.studyBtn:hover{ background:#f3f4f6; transform:translateY(-1px) }
+.studyBtn.active{ background:#111827; color:#fff; border-color:#111827 }
+.studyBtn svg{ font-size:16px }
+
+/* ---------- Title ---------- */
+.header{
+  font-size:24px; font-weight:800; text-align:center;
+  margin:8px 0 20px; color:#111
 }
 
-.studyBtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border: 1.5px solid #dcdcdc;
-  border-radius: 999px;
-  background-color: #fff;
-  font-weight: 500;
-  font-size: 14px;
-  color: #1a1a1a;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+/* ---------- Study Area ---------- */
+.study{
+  display:flex; flex-direction:column; align-items:center; gap:20px
 }
 
-.studyBtn:hover {
-  background-color: #f0f0f0;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+/* ---------- Grid of Items ---------- */
+.question{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap:14px; width:100%; margin-bottom:12px;
+}
+@media (max-width:900px){ .question{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (max-width:640px){ .question{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+
+.question-item{
+  padding:14px 12px;
+  background:#fff;
+  border:2px solid var(--border);
+  border-radius:12px;
+  text-align:center;
+  font-size:18px; font-weight:600;
+  cursor:pointer; user-select:none;
+  transition:transform .12s ease, box-shadow .18s ease, border-color .12s ease, background .12s ease, opacity .18s ease;
+  box-shadow:0 2px 4px rgba(0,0,0,.05);
+}
+.question-item:hover{
+  transform:translateY(-1px);
+  box-shadow:0 10px 24px rgba(0,0,0,.06);
+  border-color:#cfd6dd;
 }
 
-.studyBtn svg {
-  font-size: 16px;
-  color: #1a1a1a;
+/* Selected state */
+.question-item.selected{
+  background:#eef4ff;
+  border-color:var(--primary);
+  box-shadow:0 0 0 4px var(--ring);
 }
 
-.studyBtn.active {
-  background-color: #000;
-  color: #fff;
-  border-color: #000;
+/* Matched (disabled) */
+.question-item.matched{
+  opacity:.45; background:#f3f4f6; border-color:#e3e6ea;
+  pointer-events:none; transform:scale(.98);
 }
 
-.studyBtn.active svg {
-  color: #fff;
+/* Optional flash states (add/remove class ngắn hạn nếu muốn) */
+.question-item.flash-correct{ background:#e8fbea; border-color:#b7efc1 }
+.question-item.flash-wrong{ background:#ffecec; border-color:#ffc9c9 }
+
+/* ---------- Feedback ---------- */
+.display{
+  min-height:34px; font-size:18px; font-weight:800; text-align:center;
+}
+.feedback{
+  display:inline-block;
+  padding:10px 14px; border-radius:10px;
+  background:#fef3c7; color:#92400e; /* default (neutral) */
+}
+.display.correct .feedback{ background:#d1fae5; color:#065f46; }
+.display.wrong .feedback{ background:#fee2e2; color:#991b1b; }
+
+/* ---------- Focus Ring ---------- */
+button:focus-visible, .studyBtn:focus-visible, .back:focus-visible, .question-item:focus-visible{
+  outline:none; box-shadow:0 0 0 4px var(--ring)
 }
 
-
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #333;
-  background-color: #f6f6f6;
-  padding: 10px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.25s ease-in-out;
-  border: 1px solid #dcdcdc;
-  margin-bottom: 16px;
-  width: fit-content;
+/* ---------- Reduced Motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  .question-item, .studyBtn, .back{ transition:none !important }
+}
+/* Giữ chỗ nhưng ẩn nội dung */
+.question-item.gone{
+  visibility: hidden;   /* vẫn chiếm chỗ trong grid */
+  pointer-events: none;
 }
 
-.back:hover {
-  background-color: #e2e2e2;
-  transform: translateX(-2px);
-  color: #111;
+/* (tuỳ chọn) hiệu ứng mờ dần trước khi ẩn
+.question-item.gone{
+  animation: vanish .18s ease forwards;
 }
-
-.iconback {
-  font-size: 18px;
-}
-/* === Container chính === */
-.container {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  padding: 20px;
-  max-width: 900px;
-  margin: 0 auto;
-  background-color: #f9fafb;
-  min-height: 100vh;
-}
-
-/* === Nút quay lại === */
-.back {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  color: #2563eb;
-  font-weight: 600;
-  font-size: 18px;
-  margin-bottom: 20px;
-  transition: color 0.3s ease;
-}
-.back:hover {
-  color: #1e40af;
-}
-.iconback {
-  margin-right: 8px;
-}
-
-/* === Thanh điều hướng chế độ học === */
-.studyChange {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.studyBtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background-color: #e5e7eb;
-  color: #374151;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-.studyBtn:hover {
-  background-color: #d1d5db;
-  color: #1f2937;
-}
-.studyBtn.active {
-  background-color: #3b82f6;
-  color: #fff;
-}
-
-/* === Tiêu đề bộ thẻ === */
-.header {
-  font-size: 32px;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 30px;
-  color: #111827;
-}
-
-/* === Khu vực thẻ từ vựng === */
-.study {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* === Lưới câu hỏi/thẻ từ === */
-.question {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr); /* Luôn có 4 cột */
-  gap: 16px;
-  width: 100%;
-  margin-bottom: 24px;
-}
-
-.question-item {
-  padding: 16px;
-  background-color: #fff;
-  border: 2px solid #d1d5db;
-  border-radius: 10px;
-  text-align: center;
-  font-size: 18px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
- 
-}
-
-.question-item:hover {
-  background-color: #f3f4f6;
-  border-color: #3b82f6;
-}
-
-/* Khi được chọn */
-.question-item.selected {
-  background-color: #dbeafe;
-  border-color: #3b82f6;
-}
-
-/* === Hiển thị kết quả === */
-.display {
-  font-size: 22px;
-  font-weight: 700;
-  margin-top: 16px;
-}
-
-.display p {
-  padding: 10px 20px;
-  border-radius: 8px;
-  background-color: #fef3c7;
-  color: #92400e;
-}
-.display p:empty {
-  display: none;
-}
-
-/* Nếu đúng */
-.display p:contains("ĐÚNG") {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-/* Nếu sai */
-.display p:contains("SAI") {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-
+@keyframes vanish{ to{ opacity:0; } }
+*/

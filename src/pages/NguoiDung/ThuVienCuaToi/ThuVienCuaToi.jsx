@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import "./Library.css";
+import "./ThuVienCuaToi.css";
 import { useLocation, useNavigate } from "react-router-dom";
-function Library() {
+function ThuVienCuaToi() {
   const [cardLib, setCardLib] = useState([]);
   const [actionTab, setActionTab] = useState("boThe");
   const [lopList, setLopList] = useState([]);
@@ -9,18 +9,16 @@ function Library() {
   const location = useLocation();
   useEffect(() => {
     const myCard = JSON.parse(localStorage.getItem("boThe")) || [];
-    const myClass = JSON.parse(localStorage.getItem("class")) || [];
-    const myCardLib = [...myCard];
+    const myClass = JSON.parse(localStorage.getItem("lop")) || [];
     setLopList(myClass);
-    setCardLib(myCardLib);
+    setCardLib(myCard);
   }, []);
 
   const handleStudy = (id) => {
     navigate(`/flashcard/${id}`,);
   };
   const handleLop =(id) =>{
-    const selectLop=lopList.find((item) => item.idLop === id);
-    navigate(`/lop/${selectLop.idLop}`);
+    navigate(`/lop/${id}`);
   }
   
   
@@ -54,6 +52,7 @@ function Library() {
           >
             <h2 className="lib-tittle">{item?.tenLop}</h2>
             <span className="quantity">{item?.school}</span>
+            <span className="nameUser">{item?.nguoiDung?.tenNguoiDung}</span>
           </div>
         ))}
         {lopList.length === 0 && <p className="emty">Không có bộ thẻ nào cả</p>}
@@ -61,4 +60,4 @@ function Library() {
     </div>
   );
 }
-export default Library;
+export default ThuVienCuaToi;

@@ -16,7 +16,7 @@ function Sidebar() {
   const navigate = useNavigate();
   const [myfolder, setMyfolder] = useState([]);
   const loaddata = () => {
-    const folder = JSON.parse(localStorage.getItem("folders")) || [];
+    const folder = JSON.parse(localStorage.getItem("thuMuc")) || [];
     if (folder && folder.lenght > 0) {
       setMyfolder([...myfolder, folder]);
     } else {
@@ -34,7 +34,7 @@ function Sidebar() {
 
   }, []);
   const handleFolder = (id) => {
-    const folder = JSON.parse(localStorage.getItem("folders")) || [];
+    const folder = JSON.parse(localStorage.getItem("thuMuc")) || [];
     const folder_click = folder.find((item) => item.idThuMuc === id);
     localStorage.setItem("currentFolder", JSON.stringify(folder_click));
     navigate(`/folder/${id}`);
@@ -58,7 +58,7 @@ function Sidebar() {
           <FontAwesomeIcon icon={faHouse} className="icon" />
           Trang chủ
         </div>
-        <div onClick={() => navigate("/mylibrary")}>
+        <div onClick={() => navigate("/thuviencuatoi")}>
           <FontAwesomeIcon icon={faFolderOpen} className="icon" />
           Thư viện của tôi
         </div>

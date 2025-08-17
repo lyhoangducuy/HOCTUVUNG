@@ -54,8 +54,6 @@ export default function DangNhap() {
     const sessionUser = {
       idNguoiDung: found.idNguoiDung,
       vaiTro: found.vaiTro,
-      anhDaiDien: found.anhDaiDien,
-      tenNguoiDung: found.tenNguoiDung
     };
     sessionStorage.setItem("session", JSON.stringify(sessionUser));
 

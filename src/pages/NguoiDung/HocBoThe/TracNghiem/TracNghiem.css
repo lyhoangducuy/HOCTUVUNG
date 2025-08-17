@@ -1,195 +1,127 @@
-/* Tổng thể container */
-.container {
+/* =========================
+   Trắc nghiệm — CSS đơn giản
+   ========================= */
+
+:root{
+  --nen:#f8f9fa;
+  --the:#ffffff;
+  --chu:#111827;
+  --vien:#e5e7eb;
+  --chinh:#2563eb;
+  --chinh-2:#1d4ed8;
+  --dung:#16a34a;
+  --dung-bg:#ecfdf5;
+  --sai:#dc2626;
+  --sai-bg:#fef2f2;
+  --ring: rgba(37,99,235,.18);
+}
+
+*{ box-sizing:border-box }
+html,body{ margin:0; background:var(--nen); color:var(--chu); font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif }
+
+/* Khung tổng */
+.tn-container{
   max-width: 960px;
   margin: 0 auto;
   padding: 20px;
-  font-family: 'Segoe UI', sans-serif;
-  color: #1a1a1a;
 }
+.tn-khong-thay{ padding:16px; text-align:center }
 
-/* Thanh lựa chọn chế độ học */
-.studyChange {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 0;
-  overflow-x: auto;
- 
-  -ms-overflow-style: none;
-}
-
-.studyChange::-webkit-scrollbar {
-  display: none;
-}
-
-.studyBtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border: 1.5px solid #dcdcdc;
-  border-radius: 999px;
-  background-color: #fff;
-  font-weight: 500;
-  font-size: 14px;
-  color: #1a1a1a;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.studyBtn:hover {
-  background-color: #f0f0f0;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.studyBtn svg {
-  font-size: 16px;
-  color: #1a1a1a;
-}
-
-.studyBtn.active {
-  background-color: #000;
-  color: #fff;
-  border-color: #000;
-}
-
-.studyBtn.active svg {
-  color: #fff;
-}
-
-
-
-
-
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #333;
-  background-color: #f6f6f6;
-  padding: 10px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.25s ease-in-out;
-  border: 1px solid #dcdcdc;
-  margin-bottom: 16px;
-  width: fit-content;
-}
-
-.back:hover {
-  background-color: #e2e2e2;
-  transform: translateX(-2px);
-  color: #111;
-}
-
-.iconback {
-  font-size: 18px;
-}
-/* ===== Phần trắc nghiệm (chỉ bổ sung riêng) ===== */
-
-/* ===== Header ===== */
-/* === Tiêu đề phần học === */
- /* ===== Header chính ===== */
-.header {
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  text-align: center;
-  color: #1f2937; /* gray-800 */
-}
-
-/* ===== Container học từ ===== */
-.study {
-  max-width: 540px;
-  margin: 0 auto;
-  padding: 0 16px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 24px; /* tạo khoảng cách đều đặn */
-}
-
-/* ===== Nhóm câu hỏi ===== */
-.questionGroup {
-  background: #ffffff;
+/* Thẻ nội dung */
+.tn-khung{
+  background: var(--the);
+  border: 1px solid var(--vien);
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   padding: 20px;
-  border: 1px solid #e5e7eb;
-  width: 100%;
-  box-sizing: border-box;
+  box-shadow: 0 10px 26px rgba(0,0,0,.06);
 }
 
-/* ===== Câu hỏi chính ===== */
-.question {
+.tn-tieu-de{
+  margin: 0 0 14px;
   font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: #111827; /* gray-900 */
+  font-weight: 800;
 }
 
-/* ===== Gợi ý hoặc tiêu đề phụ ===== */
-.tittle {
-  font-size: 16px;
-  color: #6b7280; /* gray-500 */
-  margin-top: 4px;
+/* Câu hỏi */
+.tn-the-cau{
+  padding: 14px;
+  border: 1px solid var(--vien);
+  border-radius: 12px;
+  background: #fff;
 }
+.tn-nhac{ font-size: 14px; opacity: .7; }
+.tn-tu{ font-size: 24px; font-weight: 800; margin-top: 6px; }
 
-/* ===== Danh sách đáp án (grid 2x2) ===== */
-.answer {
+/* Lưới đáp án */
+.tn-luoi-dap-an{
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  margin-top: 20px;
+  gap: 12px;
+  margin: 16px 0 8px;
+}
+@media (max-width: 560px){
+  .tn-luoi-dap-an{ grid-template-columns: 1fr; }
 }
 
-/* ===== Một đáp án ===== */
-.answer-item {
-  padding: 14px 20px;
-  background-color: #f9fafb;
-  border: 2px solid #d1d5db;
+.tn-nut-dap-an{
+  padding: 12px 14px;
   border-radius: 12px;
+  border: 2px solid var(--vien);
+  background: #f9fafb;
   font-size: 16px;
-  font-weight: 500;
-  color: #374151;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: background .18s ease, border-color .18s ease, transform .06s ease, box-shadow .18s ease;
+}
+.tn-nut-dap-an:hover{
+  background:#eef6ff;
+  border-color:var(--chinh);
+  box-shadow:0 10px 24px rgba(0,0,0,.06);
+  transform: translateY(-1px);
+}
+.tn-nut-dap-an:disabled{
+  cursor: not-allowed;
+  opacity: .9; /* vẫn thấy màu đúng/sai */
 }
 
-.answer-item:hover {
-  background-color: #e0f2fe;
-  border-color: #3b82f6;
-  transform: scale(1.03);
-}
+/* Trạng thái nút */
+.tn-nut-dap-an.da-chon{ border-color: var(--chinh) }
+.tn-nut-dap-an.dung{ background: var(--dung-bg); border-color: var(--dung); color:#065f46 }
+.tn-nut-dap-an.sai{ background: var(--sai-bg); border-color: var(--sai); color:#991b1b }
 
-/* ===== Điều hướng câu hỏi ===== */
-.btn-group {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 32px;
-  margin-top: -8px; /* rút sát lên */
+/* Dòng trạng thái dưới đáp án */
+.tn-trang-thai{
+  min-height: 30px;
+  font-weight: 800;
+  margin-top: 4px;
 }
+.tn-trang-thai.dung{ color: var(--dung) }
+.tn-trang-thai.sai{ color: var(--sai) }
 
-.left,
-.right {
-  cursor: pointer;
-  font-size: 18px;
+/* Thanh dưới cùng */
+.tn-thanh-duoi{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top: 10px;
+}
+.tn-dem{ opacity: .75 }
+.tn-diem{ font-weight: 800 }
+
+.tn-nut{
   padding: 10px 14px;
-  border-radius: 50%;
-  border: 1px solid #d1d5db;
-  background-color: white;
-  transition: all 0.2s ease;
+  border-radius: 10px;
+  border: 1px solid var(--vien);
+  background: var(--chinh);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s ease, transform .06s ease, box-shadow .18s ease;
+  box-shadow: 0 10px 26px rgba(37,99,235,.18);
 }
+.tn-nut:hover{ background: var(--chinh-2); transform: translateY(-1px); }
+.tn-nut:disabled{ opacity: .6; cursor: not-allowed; box-shadow: none; transform: none; }
 
-.left:hover,
-.right:hover {
-  background-color: #e0e7ff;
-  border-color: #3b82f6;
+/* Focus ring */
+.tn-nut:focus-visible, .tn-nut-dap-an:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ring);
 }
