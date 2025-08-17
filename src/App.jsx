@@ -35,7 +35,7 @@ import QuanLyLop from "./pages/Admin/QuanLyLop/QuanLyLop";
 import Setting from "./pages/NguoiDung/Setting/Setting";
 import Traphi from "./components/TraPhi/Traphi";
 import SuaBoThe from "./pages/NguoiDung/HocBoThe/SuaBoThe/SuaBoThe";
-
+import Newfolder from "./pages/NguoiDung/AddNew/NewFolder/Newfolder";
 
 
 export default function App() {
@@ -61,6 +61,7 @@ export default function App() {
             <Route path="/newcard" element={<NewBoThe />} />
             <Route path="/lop/:id" element={<Lop />} />
             <Route path="/thuviencuatoi" element={<ThuVienCuaToi />} />
+            <Route path="/newfolder" element={<Newfolder/>} />
             <Route path="/folder/:id" element={<MyFolder />} />
             <Route path="/setting" element={<Setting />} />
             <Route path="/suabothe/:id" element={<SuaBoThe />} />
