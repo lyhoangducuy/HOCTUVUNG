@@ -55,7 +55,7 @@ function Header() {
   };
 
   const avatarSrc =
-    nguoiDungHienTai?.anhDaiDien || "/src/assets/image/formimg.png"; // fallback ảnh sẵn có của bạn
+    nguoiDungHienTai?.anhDaiDien || "!"; // fallback ảnh sẵn có của bạn
   const tenNguoiDung = nguoiDungHienTai?.tenNguoiDung || "Người dùng";
 
   return (

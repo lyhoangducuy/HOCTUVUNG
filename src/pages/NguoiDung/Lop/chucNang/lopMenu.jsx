@@ -30,7 +30,7 @@ export default function LopMenu({ open, anchorRef, onClose, onViewDetail, onDele
   return (
     <div ref={menuRef} className="ellipsis-menu">
       <button className="ellipsis-item" onClick={() => { onViewDetail?.(); onClose?.(); }}>
-        Xem chi tiết lớp
+        Xem chi tiết lớp hoặc sửa
       </button>
       <button className="ellipsis-item danger" onClick={() => { onDelete?.(); onClose?.(); }}>
         Xoá lớp

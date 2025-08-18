@@ -1,0 +1,56 @@
+/* Lưới thẻ */
+.tvl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* Thẻ */
+.tvl-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,.05);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* Tiêu đề & phụ đề */
+.tvl-title { font-weight: 800; font-size: 16px; }
+.tvl-sub   { font-size: 13px; opacity: .7; }
+
+/* Meta người tạo */
+.tvl-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.tvl-name { font-size: 13px; opacity: .75; }
+
+/* Avatar + placeholder initials */
+.tvl-avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  object-fit: cover; display: inline-block;
+}
+.tvl-avatar--placeholder {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #e5e7eb; color: #555; font-size: 12px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  user-select: none;
+}
+
+/* Nút hành động */
+.tvl-actions { display: flex; gap: 8px; margin-top: 8px; }
+.tvl-btn {
+  padding: 6px 10px; border-radius: 8px; font-size: 13px; cursor: pointer;
+  border: 1px solid transparent; background: #f9fafb;
+}
+.tvl-btn--ghost  { border-color: #e5e7eb; background: #f9fafb; }
+.tvl-btn--danger { border-color: #ef4444; color: #991b1b; background: #fef2f2; }
+
+/* Trạng thái rỗng */
+.tvl-empty { opacity: .7; }
