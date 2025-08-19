@@ -6,7 +6,6 @@ import {
   faMoneyBill,
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
-import { createMomoPayment } from "../../services/momoApi";
 import "./Traphi.css";
 
 function Traphi() {
@@ -168,14 +167,14 @@ function Traphi() {
           <h3>{monthcost.month}</h3>
           <p>{monthcost.price.toLocaleString()} VNĐ</p>
           <button className="btn" onClick={() => handleSub(monthcost)}>
-            Đăng ký ngay
+            {prime?"Gia Hạn Thêm":"Đăng ký ngay" }
           </button>
         </div>
         <div className="pricing-card">
           <h3>{yearcost.month}</h3>
           <p>{yearcost.price.toLocaleString()} VNĐ</p>
           <button className="btn btn-red" onClick={() => handleSub(yearcost)}>
-            Đăng ký ngay
+            {prime?"Gia Hạn Thêm":"Đăng ký ngay" }
           </button>
         </div>
       </div>
