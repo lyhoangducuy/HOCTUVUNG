@@ -94,64 +94,69 @@ function ThuVienCuaToi() {
 
 
       {actionTab === "lop" && (
-  <div className="myLop">
-    {lopList
-      .filter((item) => {
-        try {
-          const session = JSON.parse(sessionStorage.getItem("session") || "null");
-          if (!session?.idNguoiDung) return false;
-          // kiểm tra xem user hiện tại có trong mảng thành viên của lớp
-          return (item.thanhVienIds || []).includes(session.idNguoiDung);
-        } catch {
-          return false;
-        }
-      })
-      .map((item) => {
-        const nguoiTao = dsNguoiDung.find(
-          (u) => String(u.idNguoiDung) === String(item.idNguoiDung)
-        );
-        const tenNguoiTao = nguoiTao?.tenNguoiDung || "Ẩn danh";
-        const anhNguoiTao = nguoiTao?.anhDaiDien || "";
+        <div className="myLop">
+          {lopList
+            .filter((item) => {
+              try {
+                const session = JSON.parse(sessionStorage.getItem("session") || "null");
+                if (!session?.idNguoiDung) return false;
+                // ✅ Hiển thị nếu user là thành viên hoặc là chủ lớp
+                return (
+                  (item.thanhVienIds || []).includes(session.idNguoiDung) ||
+                  String(item.idNguoiDung) === String(session.idNguoiDung)
+                );
+              } catch {
+                return false;
+              }
+            })
+            .map((item) => {
+              const nguoiTao = dsNguoiDung.find(
+                (u) => String(u.idNguoiDung) === String(item.idNguoiDung)
+              );
+              const tenNguoiTao = nguoiTao?.tenNguoiDung || "Ẩn danh";
+              const anhNguoiTao = nguoiTao?.anhDaiDien || "";
 
-        return (
-          <div
-            key={item.idLop}
-            className="mini-card"
-            onClick={() => handleLop(item.idLop)}
-          >
-            <div className="mini-title">{item?.tenLop || "Lớp học"}</div>
-            <div className="mini-sub">{item?.tenTruong || ""}</div>
+              return (
+                <div
+                  key={item.idLop}
+                  className="mini-card"
+                  onClick={() => handleLop(item.idLop)}
+                >
+                  <div className="mini-title">{item?.tenLop || "Lớp học"}</div>
+                  <div className="mini-sub">{item?.tenTruong || ""}</div>
 
-            <div className="mini-meta">
-              <div
-                className="mini-avatar"
-                style={anhNguoiTao ? { backgroundImage: `url(${anhNguoiTao})` } : {}}
-              />
-              <span className="mini-name">{tenNguoiTao}</span>
-            </div>
+                  <div className="mini-meta">
+                    <div
+                      className="mini-avatar"
+                      style={anhNguoiTao ? { backgroundImage: `url(${anhNguoiTao})` } : {}}
+                    />
+                    <span className="mini-name">{tenNguoiTao}</span>
+                  </div>
 
-            <div className="mini-actions">
-              <button
-                className="btn ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleLop(item.idLop);
-                }}
-              >
-                Vào lớp
-              </button>
-            </div>
-          </div>
-        );
-      })}
-    {lopList.filter(
-      (item) =>
-        (item.thanhVienIds || []).includes(
-          JSON.parse(sessionStorage.getItem("session") || "{}")?.idNguoiDung
-        )
-    ).length === 0 && <p className="emty">Không có lớp nào cả</p>}
-  </div>
-)}
+                  <div className="mini-actions">
+                    <button
+                      className="btn ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLop(item.idLop);
+                      }}
+                    >
+                      Vào lớp
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          {lopList.filter((item) => {
+            const session = JSON.parse(sessionStorage.getItem("session") || "{}");
+            return (
+              (item.thanhVienIds || []).includes(session.idNguoiDung) ||
+              String(item.idNguoiDung) === String(session.idNguoiDung)
+            );
+          }).length === 0 && <p className="emty">Không có lớp nào cả</p>}
+        </div>
+      )}
+
 
 
     </div>
