@@ -148,7 +148,7 @@ export default function QuenMatKhau() {
           </form>
 
           <div className="back-to-login">
-            <a onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
+            <a onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
               ← Quay lại đăng nhập
             </a>
           </div>
