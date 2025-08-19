@@ -1,5 +1,5 @@
 /* =========================
-   Đăng ký — Refreshed CSS
+   Đăng ký — Refreshed CSS (Optimized)
    ========================= */
 
 /* ---------- Variables ---------- */
@@ -50,15 +50,15 @@ a{ text-decoration:none; color:inherit }
   background:#eef2ff;
   display:flex; align-items:center; justify-content:center;
 }
-.signup-left img{
-  object-fit:cover;
-}
+.signup-left img{ object-fit:cover }
 
-/* ---------- Right (form) ---------- */
+/* ---------- Right (form container) ---------- */
 .signup-right{
   flex:1;
   padding:36px 34px;
   display:flex; flex-direction:column; gap:16px;
+  max-width:600px;     /* form rộng vừa đủ */
+  margin:0 auto;       /* căn giữa */
 }
 
 /* ---------- Tabs ---------- */
@@ -69,54 +69,40 @@ a{ text-decoration:none; color:inherit }
 .signup-tabs span{
   font-size:18px; font-weight:700; color:#374151; cursor:pointer;
   padding:6px 2px; border-bottom:2px solid transparent;
-  transition:color .18s ease, border-color .18s ease, transform .18s ease;
+  transition:color .18s ease, border-color .18s ease;
 }
 .signup-tabs span:hover{ color:var(--accent) }
-.signup-tabs span.active{
-  color:var(--accent);
-  border-bottom-color:var(--accent);
-}
+.signup-tabs span.active{ color:var(--accent); border-bottom-color:var(--accent) }
 
 /* ---------- Form ---------- */
 .signup-form{
-  display:flex; flex-direction:column; gap:10px;
-  margin-top:4px;
+  display:flex; flex-direction:column; gap:14px;
+  margin-top:8px; width:100%;
 }
 .signup-form label{
-  font-weight:600; font-size:14px; color:#1f2937;
+  font-weight:600; font-size:15px; color:#1f2937;
 }
 .signup-form input,
 .signup-form select{
-  width:100%; height:44px;
-  padding:10px 12px; font-size:14px;
-  background:#fff; color:#111827;
-  border:2px solid var(--border); border-radius:12px;
-  transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
-  appearance: none; /* gọn gàng trên một số trình duyệt */
-}
-.signup-form select{
-  background-image:
-    linear-gradient(45deg, transparent 50%, #9ca3af 50%),
-    linear-gradient(135deg, #9ca3af 50%, transparent 50%);
-  background-position:
-    calc(100% - 18px) calc(50% - 2px),
-    calc(100% - 12px) calc(50% - 2px);
-  background-size:6px 6px, 6px 6px;
-  background-repeat:no-repeat;
+  width:100%; height:52px;           /* cao hơn */
+  padding:14px 16px; font-size:15px; /* chữ to hơn */
+  background:#fff; color:var(--text);
+  border:2px solid var(--border); border-radius:14px;
+  transition:border-color .15s ease, box-shadow .15s ease;
+  appearance:none;
 }
 .signup-form input:focus,
 .signup-form select:focus{
-  outline:none;
-  border-color:var(--accent);
+  outline:none; border-color:var(--accent);
   box-shadow:0 0 0 4px var(--ring);
 }
-
-/* ---------- Errors ---------- */
 .signup-form input.error,
 .signup-form select.error{
   border-color:#dc2626;
   box-shadow:0 0 0 3px rgba(220,38,38,.12);
 }
+
+/* ---------- Errors ---------- */
 .error{
   color:#dc2626; font-size:12px; line-height:1.25;
   min-height:16px; margin-top:2px;
@@ -124,54 +110,29 @@ a{ text-decoration:none; color:inherit }
 
 /* ---------- Submit button ---------- */
 button.signup-btn.submit{
-  width:min(260px, 70%);
-  align-self:center;
-  margin-top:12px;
-  height:44px;
+  width:min(300px, 80%);
+  align-self:center; margin-top:12px;
+  height:52px;
   background:var(--accent); color:#fff;
   border:1px solid transparent; border-radius:999px;
-  font-size:15px; font-weight:700; cursor:pointer;
-  transition:background .18s ease, transform .06s ease, box-shadow .18s ease, opacity .18s ease;
+  font-size:16px; font-weight:700; cursor:pointer;
+  transition:background .18s ease, transform .06s ease, box-shadow .18s ease;
   box-shadow:0 10px 26px rgba(21,101,255,.18);
 }
 button.signup-btn.submit:hover{ background:var(--accent-2); transform:translateY(-1px) }
 button.signup-btn.submit:active{ transform:translateY(0) }
-button.signup-btn.submit:disabled{
-  opacity:.6; cursor:not-allowed; box-shadow:none; transform:none;
-}
-
-/* ---------- Scrollbar (nếu form overflow) ---------- */
-.signup-form::-webkit-scrollbar{ width:6px }
-.signup-form::-webkit-scrollbar-track{ background:#f3f4f6; border-radius:3px }
-.signup-form::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:3px }
-.signup-form::-webkit-scrollbar-thumb:hover{ background:#94a3b8 }
-
-/* ---------- Focus visible (a11y) ---------- */
-.signup-tabs span:focus-visible,
-.signup-form input:focus-visible,
-.signup-form select:focus-visible,
-button.signup-btn.submit:focus-visible{
-  outline:none; box-shadow:0 0 0 4px var(--ring);
-}
+button.signup-btn.submit:disabled{ opacity:.6; cursor:not-allowed; box-shadow:none }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 900px){
-  .signup-card{ width:min(760px, 96vw); }
+@media (max-width:900px){
+  .signup-card{ width:min(760px, 96vw) }
 }
-@media (max-width: 768px){
+@media (max-width:768px){
   .signup-card{
     width:100%; max-width:420px;
     min-height:520px; height:auto;
     flex-direction:column;
   }
   .signup-left{ display:none }
-  .signup-right{ padding:28px 20px }
-}
-
-/* ---------- Reduced motion ---------- */
-@media (prefers-reduced-motion: reduce){
-  .signup-tabs span,
-  .signup-form input,
-  .signup-form select,
-  .signup-btn.submit{ transition:none !important }
+  .signup-right{ padding:28px 20px; max-width:100% }
 }

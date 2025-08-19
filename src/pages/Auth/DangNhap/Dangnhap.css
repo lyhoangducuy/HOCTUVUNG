@@ -1,5 +1,5 @@
 /* =========================
-   Đăng nhập — Refreshed CSS
+   Đăng nhập — Refreshed CSS (Optimized)
    ========================= */
 
 /* ---------- Variables ---------- */
@@ -50,11 +50,9 @@ a{ text-decoration:none; color:inherit }
   background:#eef2ff;
   display:flex; align-items:center; justify-content:center;
 }
-.login-left img{
-  object-fit:cover;
-}
+.login-left img{ object-fit:cover }
 
-/* ---------- Right (form) ---------- */
+/* ---------- Right (form area) ---------- */
 .login-right{
   flex:1;
   padding:36px 34px;
@@ -72,29 +70,27 @@ a{ text-decoration:none; color:inherit }
   transition:color .18s ease, border-color .18s ease, transform .18s ease;
 }
 .login-tabs span:hover{ color:var(--accent) }
-.login-tabs span.active{
-  color:var(--accent);
-  border-bottom-color:var(--accent);
-}
+.login-tabs span.active{ color:var(--accent); border-bottom-color:var(--accent) }
 
 /* ---------- Form ---------- */
 .login-form{
-  display:flex; flex-direction:column; gap:10px;
-  margin-top:4px;
+  display:flex; flex-direction:column; gap:14px;
+  margin-top:8px;
+  width:100%; max-width:600px;
+  margin-left:auto; margin-right:auto;
 }
 .login-form label{
-  font-weight:600; font-size:14px; color:#1f2937;
+  font-weight:600; font-size:15px; color:#1f2937;
 }
 .login-form input{
-  width:100%; height:44px;
-  padding:10px 12px; font-size:14px;
-  background:#fff; color:#111827;
-  border:2px solid var(--border); border-radius:12px;
-  transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  width:100%; height:52px;
+  padding:14px 16px; font-size:15px;
+  background:#fff; color:var(--text);
+  border:2px solid var(--border); border-radius:14px;
+  transition:border-color .15s ease, box-shadow .15s ease;
 }
 .login-form input:focus{
-  outline:none;
-  border-color:var(--accent);
+  outline:none; border-color:var(--accent);
   box-shadow:0 0 0 4px var(--ring);
 }
 .login-form input.error{
@@ -102,76 +98,35 @@ a{ text-decoration:none; color:inherit }
   box-shadow:0 0 0 3px rgba(220,38,38,.12);
 }
 
-/* ---------- Errors & help ---------- */
+/* ---------- Errors ---------- */
 .error{
   color:#dc2626; font-size:12px; line-height:1.25;
   min-height:16px; margin-top:2px;
 }
 
 /* ---------- Forgot ---------- */
-.forgot{
-  margin-top:2px; text-align:right;
-}
+.forgot{ margin-top:2px; text-align:right }
 .forgot a{ color:#374151; font-size:13px }
 .forgot a:hover{ color:var(--accent) }
 
 /* ---------- Submit button ---------- */
 button.login-btn.submit{
-  width:min(240px, 70%);
-  align-self:center;
-  margin-top:12px;
-  height:44px;
+  width:min(300px, 80%);
+  align-self:center; margin-top:12px;
+  height:52px;
   background:var(--accent); color:#fff;
   border:1px solid transparent; border-radius:999px;
-  font-size:15px; font-weight:700; cursor:pointer;
+  font-size:16px; font-weight:700; cursor:pointer;
   transition:background .18s ease, transform .06s ease, box-shadow .18s ease, opacity .18s ease;
   box-shadow:0 10px 26px rgba(21,101,255,.18);
 }
 button.login-btn.submit:hover{ background:var(--accent-2); transform:translateY(-1px) }
 button.login-btn.submit:active{ transform:translateY(0) }
-button.login-btn.submit:disabled{
-  opacity:.6; cursor:not-allowed; box-shadow:none; transform:none;
-}
-
-/* ---------- Social buttons (nếu dùng) ---------- */
-.login-btn.social{
-  display:flex; align-items:center; justify-content:center; gap:10px;
-  padding:10px 14px; border-radius:10px;
-  background:#fff; border:1px solid var(--border);
-  font-size:15px; font-weight:600; cursor:pointer;
-  transition:transform .06s ease, box-shadow .18s ease, border-color .12s ease;
-}
-.login-btn.social:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(0,0,0,.08) }
-.login-btn.social.facebook{ border-color:rgba(24,119,242,.35) }
-.login-btn.social.google{ border-color:rgba(234,67,53,.35) }
-
-/* ---------- Divider ---------- */
-.divider{
-  display:flex; align-items:center; gap:10px; color:var(--muted);
-  margin:10px 0;
-}
-.divider::before,.divider::after{
-  content:""; flex:1; border-top:1px solid var(--border);
-}
-.divider span{ font-size:12px; text-transform:uppercase; letter-spacing:.6px }
-
-/* ---------- Scrollbar (form) ---------- */
-.login-form::-webkit-scrollbar{ width:6px }
-.login-form::-webkit-scrollbar-track{ background:#f3f4f6; border-radius:3px }
-.login-form::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:3px }
-.login-form::-webkit-scrollbar-thumb:hover{ background:#94a3b8 }
-
-/* ---------- Focus visible (a11y) ---------- */
-.login-btn.submit:focus-visible,
-.login-btn.social:focus-visible,
-.login-tabs span:focus-visible,
-.login-form input:focus-visible{
-  outline:none; box-shadow:0 0 0 4px var(--ring);
-}
+button.login-btn.submit:disabled{ opacity:.6; cursor:not-allowed; box-shadow:none }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px){
-  .login-card{ width:min(760px, 96vw); }
+  .login-card{ width:min(760px, 96vw) }
 }
 @media (max-width: 768px){
   .login-card{
@@ -181,12 +136,4 @@ button.login-btn.submit:disabled{
   }
   .login-left{ display:none }
   .login-right{ padding:28px 20px }
-}
-
-/* ---------- Reduced motion ---------- */
-@media (prefers-reduced-motion: reduce){
-  .login-tabs span,
-  .login-btn.submit,
-  .login-btn.social,
-  .login-form input{ transition:none !important }
 }
