@@ -10,6 +10,7 @@ import ThuVienLop from "./chucNang/thuVienLop";
 import LopMenu from "./chucNang/lopMenu";
 import ChiTietLopModal from "./chucNang/chiTietLop";
 import ChonBoThe from "./chucNang/chonBoThe";
+import FeedbackTab from "./chucNang/feedBackTab";
 
 export default function Lop() {
   const { id } = useParams();
@@ -44,6 +45,15 @@ export default function Lop() {
       return [];
     }
   }, []);
+  // thêm vào ngay dưới const dsNguoiDung = useMemo(...)
+  const session = useMemo(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("session") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
+
 
   const thanhVien = useMemo(() => {
     if (!chiTietLop?.thanhVienIds?.length) return [];
@@ -140,7 +150,10 @@ export default function Lop() {
               onClose={() => setHienMenu3Cham(false)}
               onViewDetail={moHopThoaiChiTiet}
               onDelete={xoaLop}
+              idLop={chiTietLop?.idLop}
+              isOwner={chiTietLop?.idNguoiDung === session?.idNguoiDung}
             />
+
           </div>
         </div>
       </div>
@@ -153,13 +166,24 @@ export default function Lop() {
           >
             Thư viện lớp học
           </button>
+
+          {chiTietLop?.idNguoiDung === session?.idNguoiDung && (
+            <button
+              className={`tab-item ${tabDangChon === "thanhVien" ? "active" : ""}`}
+              onClick={() => setTabDangChon("thanhVien")}
+            >
+              Thành viên
+            </button>
+          )}
+
           <button
-            className={`tab-item ${tabDangChon === "thanhVien" ? "active" : ""}`}
-            onClick={() => setTabDangChon("thanhVien")}
+            className={`tab-item ${tabDangChon === "feedback" ? "active" : ""}`}
+            onClick={() => setTabDangChon("feedback")}
           >
-            Thành viên
+            Feedback
           </button>
         </div>
+
 
         {tabDangChon === "thuVien" && chiTietLop && (
           <div className="tab-content">
@@ -169,6 +193,10 @@ export default function Lop() {
             />
           </div>
         )}
+        {tabDangChon === "feedback" && chiTietLop && (
+          <FeedbackTab idLop={chiTietLop.idLop} />
+        )}
+
 
         {tabDangChon === "thanhVien" && (
           <div className="tab-content" style={{ display: "block" }}>
@@ -195,6 +223,7 @@ export default function Lop() {
             </div>
           </div>
         )}
+
       </div>
 
       {/* Modal chi tiết lớp — ✅ truyền onSave để lưu localStorage */}
