@@ -21,6 +21,7 @@ function Header() {
   const [ketQuaBoThe, setKetQuaBoThe] = useState([]);
   const [ketQuaLop, setKetQuaLop] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
+  const [prime, setPrime] = useState(false);
 
   const menuRef = useRef(null);
   const plusRef = useRef(null);
@@ -37,10 +38,12 @@ function Header() {
       const found =
         ds.find((u) => u.idNguoiDung === session.idNguoiDung) || null;
       setNguoiDungHienTai(found);
+      setPrime(found?.isPrime === true);
     } catch {
       setNguoiDungHienTai(null);
     }
   }, []);
+console.log(prime);
 
   // ---- Đóng menu/nút plus/search khi click ra ngoài
   useEffect(() => {
@@ -210,17 +213,22 @@ function Header() {
         </button>
 
         <div className="inforContainer" ref={menuRef}>
-          <img
-            src={avatarSrc}
-            alt="avatar"
-            className="avatar"
-            onClick={() => setShow((v) => !v)}
-          />
+          <div className="avatar-wrapper" onClick={() => setShow((v) => !v)}>
+            <img
+              src={avatarSrc}
+              alt="avatar"
+              className="avatar"
+            />
+            {prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
+          </div>
 
           {show && (
             <div className="setting">
               <div className="infor">
-                <img src={avatarSrc} alt="avatar" className="avatar" />
+                <div className="avatar-wrapper">
+                  <img src={avatarSrc} alt="avatar" className="avatar" />
+                  {prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
+                </div>
                 <h2 className="tittle">{tenNguoiDung}</h2>
               </div>
 
