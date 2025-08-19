@@ -6,6 +6,7 @@ import {
   faMoneyBill,
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
+import { createMomoPayment } from "../../services/momoApi";
 import "./Traphi.css";
 
 function Traphi() {
