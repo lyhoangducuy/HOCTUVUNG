@@ -73,7 +73,7 @@ export default function DangNhap() {
     <div className="login-container">
       <div className="login-card">
         <div className="login-left">
-          <img src="/src/assets/image/formimg.png" alt="imgloginform" />
+          <img src="/src/assets/image/logo.jpg" alt="imgloginform" />
         </div>
 
         <div className="login-right">
