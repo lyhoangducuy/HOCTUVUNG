@@ -57,6 +57,38 @@
   text-transform: uppercase;
 }
 
+.subscription-banner {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-left: 6px solid #10b981;
+  padding: 16px 18px;
+  border-radius: 10px;
+  max-width: 800px;
+  margin: 0 auto 16px auto;
+  text-align: left;
+  color: #111827;
+}
+
+.purchase-result {
+  max-width: 800px;
+  margin: 8px auto 0 auto;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-weight: 600;
+}
+
+.purchase-result.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.purchase-result.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
 .traphi-pricing {
   display: flex;
   justify-content: center;
