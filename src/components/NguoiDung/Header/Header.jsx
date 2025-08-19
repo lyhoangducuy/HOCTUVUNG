@@ -103,16 +103,18 @@ function Header() {
                 <FontAwesomeIcon icon={faFolderOpen} />
                 <span>Thư mục mới</span>
               </div>
-              <div
-                className="plus-item"
-                onClick={() => {
-                  navigate("/newclass");
-                  setShowplus(false);
-                }}
-              >
-                <FontAwesomeIcon icon={faBookOpen} />
-                <span>Lớp học mới</span>
-              </div>
+               {nguoiDungHienTai?.vaiTro === "GIANG_VIEN" && (
+      <div
+        className="plus-item"
+        onClick={() => {
+          navigate("/newclass");
+          setShowplus(false);
+        }}
+      >
+        <FontAwesomeIcon icon={faBookOpen} />
+        <span>Lớp học mới</span>
+      </div>
+    )}
             </div>
           )}
         </div>
