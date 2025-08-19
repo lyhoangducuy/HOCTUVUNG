@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Button from "../../../components/inputs/Button";
+import Button from "../../../components/inputs/Button"; // nhớ đổi đúng path tới Button.jsx
 import "./Traphi.css";
 
 function Traphi() {
@@ -8,6 +8,7 @@ function Traphi() {
   const [currentUser, setCurrentUser] = useState(null);
   const [hasActiveSub, setHasActiveSub] = useState(false);
 
+  // Danh sách gói
   const goiList = [
     { idGoi: "BASIC1", tenGoi: "1 tháng", giaGoi: 30000, thoiHan: 30 },
     { idGoi: "PRO1Y", tenGoi: "1 năm", giaGoi: 120000, thoiHan: 365 },
@@ -22,7 +23,7 @@ function Traphi() {
     }
     setCurrentUser(sessionUser);
 
-    // kiểm tra gói đang hoạt động
+    // kiểm tra gói hoạt động
     const dsDangKy = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
     const mySubs = dsDangKy.filter((s) => s.idNguoiDung === sessionUser.idNguoiDung);
     const lastSub = mySubs.length > 0 ? mySubs[mySubs.length - 1] : null;
@@ -31,46 +32,53 @@ function Traphi() {
       const [d, m, y] = lastSub.NgayKetThuc.split("/");
       const expireDate = new Date(y, m - 1, d);
       const today = new Date();
-      if (expireDate >= today) setHasActiveSub(true);
+      if (expireDate >= today) {
+        setHasActiveSub(true);
+      }
     }
   }, [navigate]);
 
-  // cộng ngày
+  // hàm cộng ngày
   const addDays = (date, days) => {
     const d = new Date(date);
     d.setDate(d.getDate() + days);
     return d;
   };
 
-  // bấm đăng ký: tạo "đơn chờ thanh toán" rồi chuyển trang
+  // đăng ký gói
   const handleSub = (goi) => {
     if (!currentUser) return;
 
-    // chặn nếu đang còn hạn
     const dsDangKy = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
     const mySubs = dsDangKy.filter((s) => s.idNguoiDung === currentUser.idNguoiDung);
     const lastSub = mySubs.length > 0 ? mySubs[mySubs.length - 1] : null;
+
     if (lastSub) {
       const [d, m, y] = lastSub.NgayKetThuc.split("/");
       const expireDate = new Date(y, m - 1, d);
-      if (expireDate >= new Date()) {
+      const today = new Date();
+      if (expireDate >= today) {
         alert("Bạn đã có gói đang hoạt động. Hãy hủy hoặc chờ hết hạn mới được đăng ký gói khác.");
         return;
       }
     }
 
-    // tạo order pending (chưa ghi localStorage)
-    const orderId = "ORDER" + Date.now();
-    const pending = {
-      orderId,
-      userId: currentUser.idNguoiDung,
-      goi: { idGoi: goi.idGoi, tenGoi: goi.tenGoi, giaGoi: goi.giaGoi, thoiHan: goi.thoiHan },
-      createdAt: new Date().toISOString(),
-    };
-    sessionStorage.setItem("pendingPayment", JSON.stringify(pending));
+    const ngayBatDau = new Date();
+    const ngayKetThuc = addDays(ngayBatDau, goi.thoiHan);
 
-    // chuyển sang trang thanh toán giả lập
-    navigate(`/thanhtoan?orderId=${orderId}`);
+    const newSub = {
+      idGTPCND: "SUB" + Date.now(),
+      idNguoiDung: currentUser.idNguoiDung,
+      idGoi: goi.idGoi,
+      NgayBatDau: ngayBatDau.toLocaleDateString("vi-VN"),
+      NgayKetThuc: ngayKetThuc.toLocaleDateString("vi-VN"),
+    };
+
+    dsDangKy.push(newSub);
+    localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(dsDangKy));
+
+    setHasActiveSub(true);
+    alert("Đăng ký thành công!");
   };
 
   // hủy gói
@@ -94,7 +102,6 @@ function Traphi() {
   return (
     <div className="traphi-container">
       <h2>Danh sách gói trả phí</h2>
-
       <div className="traphi-pricing">
         {goiList.map((goi) => (
           <div key={goi.idGoi} className="pricing-card">
@@ -109,7 +116,7 @@ function Traphi() {
       </div>
 
       {hasActiveSub && (
-        <div className="traphi-actions" style={{ marginTop: 30 }}>
+        <div style={{ marginTop: "30px" }}>
           <Button variant="cancel" onClick={handleCancel}>
             Hủy gói hiện tại
           </Button>
