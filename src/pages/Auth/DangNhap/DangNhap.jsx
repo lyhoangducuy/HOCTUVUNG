@@ -106,7 +106,9 @@ export default function DangNhap() {
             {loginError && <span className="error">{loginError}</span>}
 
             <div className="forgot">
-              <a href="#">Quên mật khẩu</a>
+              <a onClick={() => navigate("/quen-mat-khau")} style={{ cursor: "pointer" }}>
+                Quên mật khẩu
+              </a>
             </div>
 
             <button type="submit" className="login-btn submit">

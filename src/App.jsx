@@ -11,6 +11,7 @@ import NguoiDungLayout from "./layouts/NguoiDungLayout/NguoiDungLayout";
 // Auth
 import DangNhap from "./pages/Auth/DangNhap";
 import DangKy from "./pages/Auth/DangKy";
+import QuenMatKhau from "./pages/Auth/QuenMatKhau";
 
 // Admin
 import TrangChuAdmin from "./pages/Admin/TrangChu";
@@ -45,6 +46,7 @@ export default function App() {
       <Route element={<AuthLayout />}>
         <Route path="/" element={<DangNhap />} />
         <Route path="/dang-ky" element={<DangKy />} />
+        <Route path="/quen-mat-khau" element={<QuenMatKhau />} />
         <Route path="/tra-phi" element={<Traphi />} />
       </Route>
       <Route element={<YeuCauDangNhap />}>
