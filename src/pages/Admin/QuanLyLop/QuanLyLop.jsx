@@ -78,11 +78,9 @@ const QuanLyLop = () => {
   ];
 
   return (
-    <div>
-      <AdminLayout>
+    
         <MainConTentQLL Data={DataDemo} />
-      </AdminLayout>
-    </div>
+     
   );
 };
 export default QuanLyLop;

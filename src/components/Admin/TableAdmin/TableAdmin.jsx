@@ -18,6 +18,7 @@ const TableAdmin = ({ Colums, Data, Action }) => {
   };
   return (
     <div className="table-wrapper">
+      
       <table className="user-table">
         <thead>
           <tr>

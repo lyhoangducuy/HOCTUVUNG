@@ -10,9 +10,9 @@ const MainContentQLBT = ({ Data }) => {
   const ColumsBoThe = [
     { name: "ID", key: "id" },
     { name: "Tên bộ thẻ", key: "name" },
-    { name: "Người tạo", key: "uerCreated" },
+    { name: "Người tạo", key: "userCreated" },
     { name: "Số thẻ", key: "numBer" },
-    { name: "Ngày tạo", key: "created" },
+    { name: "video", key: "videoSrc" },
   ];
   const [data, setData] = useState(Data);
 
@@ -39,6 +39,16 @@ const MainContentQLBT = ({ Data }) => {
   const onConfirmDelete = (id) => {
     const updatedData = data.filter((item) => item.id !== id);
     setData(updatedData);
+    try {
+      const cards = localStorage.getItem("cards");
+      const next =(Array.isArray(cards) ? cards : []).filter(
+        temp => String(temp.idBoThe ) !== String(id)
+      );
+      localStorage.setItem("card",JSON.stringify(next));
+    } catch (error) {
+      console.error("xóa bộ thẻ thất bại: ", error);
+      
+    }
     onClose();
   };
   //Edit
@@ -70,6 +80,7 @@ const MainContentQLBT = ({ Data }) => {
     );
     setData(updatedData);
     handleUserDetailClose();
+    
   };
 
   // Add functions

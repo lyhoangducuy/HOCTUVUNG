@@ -14,13 +14,14 @@
   transition: margin-left 0.3s;
 }
 .admin-layout-main {
-  overflow: hidden;
+
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   display: flex;
   position: relative;
-  height: calc(100vh - 60px);
+   height: auto;             /* cho auto để nội dung dài tới đâu cao tới đó */
+  min-height: calc(100vh - 60px);
 }
 .admin-layout-sidebar {
   width: 280px;

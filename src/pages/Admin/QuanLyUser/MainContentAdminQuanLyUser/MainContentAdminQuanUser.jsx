@@ -6,8 +6,29 @@ import Delete from "../../../../components/Admin/Delete/Delete";
 import Edit from "../../../../components/Admin/Edit/Edit";
 import Add from "../../../../components/Admin/Add/Add";
 import ExportModal from "../../../../components/ExportModal/ExportModal";
-const MainContentAdminQuanUser = ({ Data }) => {
-  const [data, setData] = useState(Data);
+const MainContentAdminQuanUser = ({ Data = [] }) => {
+  const mapToTable = (arr) => {
+    const list = Array.isArray(arr) ? arr : [];
+    return list.map((u) => ({
+      id: u?.id ?? u?.idNguoiDung ?? "",
+      username: u?.username ?? u?.tenNguoiDung ?? "",
+      fullname: u?.fullname ?? u?.hoten ?? "",
+      email: u?.email ?? "",  
+      role: u?.role ?? u?.vaiTro ?? "",
+      created: u?.created ?? u?.ngayTaoTaiKhoan ?? "",
+      password: u?.password ?? u?.matkhau ?? "",
+      image: u?.image ?? u?.anhDaiDien ?? "",
+    }));
+  };
+
+  const [data, setData] = useState(() => mapToTable(Data));
+  console.log(data);
+
+  // Đồng bộ khi prop Data thay đổi
+  useEffect(() => {
+    setData(mapToTable(Data));
+  }, [Data]);
+  
   const ColumsTable = [
     { name: "ID", key: "id" },
     { name: "UserName", key: "username" },
@@ -63,9 +84,21 @@ const MainContentAdminQuanUser = ({ Data }) => {
     setShowDeleteDialog(true);
   };
   const onConfirmDelete = (id) => {
+    const prevData = data;
     const updatedData = data.filter((item) => item.id !== id);
     setData(updatedData);
-    onClose();
+    // Đồng bộ về localStorage.nguoiDung theo schema gốc
+    try {
+      const gocRaw = localStorage.getItem("nguoiDung");
+      const goc = gocRaw ? JSON.parse(gocRaw) : [];
+      const after = (Array.isArray(goc) ? goc : []).filter((u) => String(u.idNguoiDung) !== String(id));
+      localStorage.setItem("nguoiDung", JSON.stringify(after));
+      onClose();
+    } catch (error){
+      console.error("Xóa người dùng thất bại (localStorage)", error);
+      setData(prevData);
+      alert("Không thể lưu thay đổi. Vui lòng thử lại.");
+    }
   };
   // Export
   const [exportModal, setExportModal] = useState(false);
@@ -95,11 +128,36 @@ const MainContentAdminQuanUser = ({ Data }) => {
       return;
     }
     // Cập nhật dữ liệu
+    const prevData = data;
     const updatedData = data.map((item) =>
       item.id === updatedUser.id ? updatedUser : item
     );
     setData(updatedData);
-    handleUserDetailClose();
+    // Đồng bộ schema gốc vào localStorage
+    try {
+      const gocRaw = localStorage.getItem("nguoiDung");
+      const goc = gocRaw ? JSON.parse(gocRaw) : [];
+      const idx = (Array.isArray(goc) ? goc : []).findIndex((u) => String(u.idNguoiDung) === String(updatedUser.id));
+      const mapped = {
+        idNguoiDung: updatedUser.id,
+        tenNguoiDung: updatedUser.username,
+        hoten: updatedUser.fullname,
+        email: updatedUser.email,
+        vaiTro: updatedUser.role,
+        ngayTaoTaiKhoan: updatedUser.created,
+        matkhau: updatedUser.password,
+        anhDaiDien: updatedUser.image,
+      };
+      if (idx !== -1) {
+        goc[idx] = { ...goc[idx], ...mapped };
+      }
+      localStorage.setItem("nguoiDung", JSON.stringify(goc));
+      handleUserDetailClose();
+    } catch (error){
+      console.error("Cập nhật người dùng thất bại (localStorage)", error);
+      setData(prevData);
+      alert("Không thể lưu thay đổi. Vui lòng thử lại.");
+    }
   };
 
   // Add functions
@@ -112,19 +170,41 @@ const MainContentAdminQuanUser = ({ Data }) => {
   };
 
   const handleAddSave = (newUser) => {
-   
-
-    // Tạo ID mới
-    const maxId = Math.max(...data.map((item) => item.id));
+    // Tạo ID mới an toàn
+    const safeIds = data.map((item) => Number(item.id)).filter(Number.isFinite);
+    const maxId = safeIds.length ? Math.max(...safeIds) : 0;
     const userWithId = {
       ...newUser,
-      id: maxId + 1,
+      id: String(maxId + 1),
     };
 
-    // Thêm user mới vào danh sách
-   
-    setData((prev) => [...prev, userWithId]);
-    handleAddClose();
+    // Thêm user mới vào danh sách hiển thị
+    const prevData = data;
+    const optimistic = [...data, userWithId];
+    setData(optimistic);
+
+    // Đồng bộ thêm vào localStorage.nguoiDung theo schema gốc
+    try {
+      const gocRaw = localStorage.getItem("nguoiDung");
+      const goc = gocRaw ? JSON.parse(gocRaw) : [];
+      const mapped = {
+        idNguoiDung: userWithId.id,
+        tenNguoiDung: userWithId.username,
+        hoten: userWithId.fullname,
+        email: userWithId.email,
+        vaiTro: userWithId.role,
+        ngayTaoTaiKhoan: userWithId.created || new Date().toISOString(),
+        matkhau: userWithId.password || "",
+        anhDaiDien: userWithId.image || "",
+      };
+      const next = [...(Array.isArray(goc) ? goc : []), mapped];
+      localStorage.setItem("nguoiDung", JSON.stringify(next));
+      handleAddClose();
+    } catch (error){
+      console.error("Thêm người dùng thất bại (localStorage)", error);
+      setData(prevData);
+      alert("Không thể lưu thay đổi. Vui lòng thử lại.");
+    }
   };
   const Action = [
     {

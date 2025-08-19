@@ -74,6 +74,19 @@
     padding: 24px;
   }
   
+  .user-detail-modal .avatar-placeholder {
+  width: 96px;           /* có thể 80/96/120 tùy bạn */
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;      /* quan trọng để không lộ mép */
+}
+
+.user-detail-modal .avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
   .user-avatar-section {
     display: flex;
     justify-content: center;
@@ -85,16 +98,10 @@
   }
   
   .avatar-placeholder {
-    width: 80px;
-    height: 80px;
+    width: 96px;
+    height: 96px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    cursor: pointer;
-    transition: transform 0.2s;
+    overflow: hidden;              /* giữ ảnh tròn */
   }
   
   .avatar-placeholder:hover {
@@ -248,7 +255,8 @@
     
     .user-detail-modal-header {
       padding: 16px 20px;
-    }
+      
+    } 
     
     .user-detail-modal-content {
       padding: 20px;

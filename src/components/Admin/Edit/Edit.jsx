@@ -74,8 +74,9 @@ const Edit = ({
                   ) : (
                     <div className="avatar-icon">👤</div>
                   )}
-                  {isEditMode && <div className="avatar-edit-icon">+</div>}
+                  
                 </div>
+                {isEditMode && <div className="avatar-edit-icon">+</div>}
               </div>
               <input
                 type="file"

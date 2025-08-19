@@ -6,11 +6,13 @@ const Search = ({ Data, onResult }) => {
     setSearch(e.target.value);
   };
   useEffect(() => {
-    const filteredData = Data.filter((item) =>
-      (item.name || item.username).toLowerCase().includes(search.toLowerCase())
-    );
+    const term = search.trim().toLowerCase();
+    const filteredData = (Array.isArray(Data) ? Data : []).filter((item) => {
+      const haystack = `${item.username || ""} ${item.fullname || ""} ${item.email || ""}`.toLowerCase();
+      return haystack.includes(term);
+    });
     onResult(filteredData);
-  }, [search]);
+  }, [search, Data, onResult]);
   return (
     <input
       className="search-input"
