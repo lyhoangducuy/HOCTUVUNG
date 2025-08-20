@@ -35,6 +35,7 @@ import QuanLyBoThe from "./pages/Admin/QuanLyBoThe/QuanLyBoThe";
 import QuanLyLop from "./pages/Admin/QuanLyLop/QuanLyLop";
 import Setting from "./pages/NguoiDung/Setting/Setting";
 import SuaBoThe from "./pages/NguoiDung/HocBoThe/SuaBoThe/SuaBoThe";
+import Landingpage from "./pages/Auth/LandingPage/Landingpage";
 import Traphi from "./pages/NguoiDung/TraPhi/Traphi";
 import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTRaPhi";
 
@@ -47,6 +48,8 @@ export default function App() {
         <Route path="/" element={<DangNhap />} />
         <Route path="/dang-ky" element={<DangKy />} />
         <Route path="/quen-mat-khau" element={<QuenMatKhau />} />
+        <Route path="/landingpage" element={<Landingpage />} />
+       
       </Route>
       <Route element={<YeuCauDangNhap />}>
         <Route
