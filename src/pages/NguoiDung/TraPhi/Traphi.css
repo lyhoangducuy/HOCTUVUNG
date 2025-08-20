@@ -1,0 +1,106 @@
+/* ===== Reset / base ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background: #f9fafb;
+  color: #111827;
+  line-height: 1.5;
+}
+
+/* ===== Container ===== */
+.traphi-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+/* Logo (nếu dùng) */
+.traphi-logo {
+  position: absolute; top: 20px; left: 20px;
+  width: 70px; height: 70px; border-radius: 50%;
+  object-fit: cover; border: 3px solid #fff;
+  box-shadow: 0 4px 8px rgba(0,0,0,.12);
+}
+
+/* ===== Header ===== */
+.traphi-header {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 20px;
+  margin-bottom: 28px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+}
+.traphi-header h2 {
+  font-size: 2rem; font-weight: 800; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.traphi-header p {
+  font-size: 1rem; color: #4b5563; text-transform: uppercase; font-weight: 500;
+}
+
+/* ===== Banner trạng thái (tuỳ chọn) ===== */
+.subscription-banner {
+  background: #e0f2fe;
+  border-left: 6px solid #0284c7;
+  padding: 14px 18px;
+  border-radius: 10px;
+  max-width: 820px;
+  margin: 0 auto 18px auto;
+  text-align: left;
+  font-size: .96rem; color: #1e3a8a;
+}
+
+/* ===== Pricing grid ===== */
+.traphi-pricing {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 22px;
+  margin-top: 24px;
+}
+
+/* Card gói */
+.pricing-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px 20px;
+  box-shadow: 0 8px 22px rgba(0,0,0,.07);
+  transition: transform .2s ease, box-shadow .2s ease;
+  text-align: center;
+}
+.pricing-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 28px rgba(0,0,0,.10);
+}
+.pricing-card h3 {
+  font-size: 1.35rem; font-weight: 700; color: #0f172a;
+  margin-bottom: 8px;
+}
+/* p đầu tiên là giá */
+.pricing-card p:first-of-type {
+  font-size: 1.6rem; font-weight: 800; color: #2563eb;
+  margin: 8px 0 14px 0;
+}
+/* p thứ hai có <small> thời hạn */
+.pricing-card p:last-of-type small {
+  font-size: .92rem; color: #475569; font-weight: 600;
+}
+
+/* Button trong card: để cách ra  */
+.pricing-card .btn { margin-top: 14px; }
+
+/* Khu vực action riêng (nút hủy) */
+.traphi-actions {
+  margin-top: 26px;
+  display: flex;
+  justify-content: center;
+}
+.traphi-actions .btn { width: 260px; }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .traphi-container { padding: 28px 14px; }
+  .traphi-header { padding: 24px 16px; }
+  .pricing-card { padding: 20px 16px; }
+  .traphi-actions .btn { width: 100%; max-width: 320px; }
+}

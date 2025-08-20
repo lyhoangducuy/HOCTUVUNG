@@ -44,6 +44,58 @@ function Header() {
     }
   }, []);
 console.log(prime);
+// ---- Nạp user từ session + tính prime: chỉ cần có bản ghi còn hạn trong goiTraPhiCuaNguoiDung
+useEffect(() => {
+  const parseVnDate = (dmy) => {
+    if (!dmy) return null;
+    const [d, m, y] = dmy.split("/").map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+  };
+
+  const hasActiveSub = (userId) => {
+    try {
+      const list = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
+      const today = new Date();
+      return list.some(
+        (s) =>
+          s.idNguoiDung === userId &&
+          parseVnDate(s.NgayKetThuc) &&
+          parseVnDate(s.NgayKetThuc) >= today
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  try {
+    const session = JSON.parse(sessionStorage.getItem("session") || "null");
+    if (!session?.idNguoiDung) {
+      setNguoiDungHienTai(null);
+      setPrime(false);
+      return;
+    }
+
+    const dsNguoiDung = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
+    const found = dsNguoiDung.find((u) => u.idNguoiDung === session.idNguoiDung) || null;
+    setNguoiDungHienTai(found);
+
+    // Chỉ dựa vào bảng goiTraPhiCuaNguoiDung & còn hạn
+    setPrime(hasActiveSub(session.idNguoiDung));
+
+    // Cập nhật realtime khi localStorage thay đổi (ví dụ thanh toán ở tab khác)
+    const onStorage = (e) => {
+      if (e.key === "goiTraPhiCuaNguoiDung") {
+        setPrime(hasActiveSub(session.idNguoiDung));
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  } catch {
+    setNguoiDungHienTai(null);
+    setPrime(false);
+  }
+}, []);
+
 
   // ---- Đóng menu/nút plus/search khi click ra ngoài
   useEffect(() => {
