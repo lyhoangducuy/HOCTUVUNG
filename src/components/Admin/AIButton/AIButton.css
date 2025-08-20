@@ -1,0 +1,39 @@
+.ai-button-container { position: fixed; right: 24px; bottom: 24px; z-index: 9999; }
+
+.ai-button-container {
+    position: fixed;     /* cố định theo viewport */
+    right: 24px;         /* cách mép phải */
+    bottom: 24px;        /* cách mép dưới */
+    z-index: 9999;       /* nổi lên trên */
+  }
+  
+  /* làm nút tròn nổi bật (tùy chọn) */
+  .ai-button-container .icon-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  }
+  
+  /* menu bung lên phía trên của nút */
+  .ai-dropdown {
+    position: absolute;
+    right: 0;
+    bottom: 64px;        /* bung lên trên thay vì top */
+    width: 240px;
+    background: #fff;
+    color: #111 !important;  /* ép màu chữ đen */
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+    overflow: hidden;
+    z-index: 20001;          /* cao hơn */
+  }
+  
+  .ai-dropdown, .ai-dropdown * { color: #111 !important; }
+  .ai-item { padding: 12px 14px; cursor: pointer; color: #111; }
+  .ai-item:hover { background: #f8fafc; color: #111; }

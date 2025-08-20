@@ -2,14 +2,19 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import "./DangKy.css";
-import axios from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const schema = yup.object({
-  email: yup.string().email("Email không hợp lệ").required("Vui lòng nhập email"),
+  email: yup
+    .string()
+    .email("Email không hợp lệ")
+    .required("Vui lòng nhập email"),
   username: yup.string().required("Vui lòng nhập tên người dùng"),
-  role: yup.string().oneOf(["hocvien", "giangvien"], "Vui lòng chọn vai trò").required(),
+  role: yup
+    .string()
+    .oneOf(["hocvien", "giangvien"], "Vui lòng chọn vai trò")
+    .required(),
   password: yup.string().min(6, "Mật khẩu tối thiểu 6 ký tự").required(),
   passwordConfirm: yup
     .string()
@@ -18,7 +23,11 @@ const schema = yup.object({
 });
 
 function DangKy() {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
     resolver: yupResolver(schema),
   });
 
@@ -32,7 +41,9 @@ function DangKy() {
   const [nguoiDung, setNguoiDung] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   });
 
   const onSubmit = async (data) => {
@@ -46,9 +57,8 @@ function DangKy() {
         anhDaiDien: "",
         matkhau: data.password,
         vaiTro: roleMap[data.role],
-        ngayTaoTaiKhoan: new Date().toISOString()
+        ngayTaoTaiKhoan: new Date().toISOString(),
       };
-
 
       const next = [...nguoiDung, newUser];
       setNguoiDung(next);
@@ -57,7 +67,10 @@ function DangKy() {
       alert("Đăng ký thành công!");
       navigate("/"); // trang đăng nhập theo routes của bạn
     } catch (error) {
-      const msg = error?.response?.data?.message || error?.response?.data || "Đăng ký thất bại!";
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        "Đăng ký thất bại!";
       alert(msg);
     } finally {
       setLoading(false);
@@ -72,7 +85,11 @@ function DangKy() {
         </div>
         <div className="signup-right">
           <div className="signup-tabs">
-            <span className="active" onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
+            <span
+              className="active"
+              onClick={() => navigate("/dang-ky")}
+              style={{ cursor: "pointer" }}
+            >
               Đăng ký
             </span>
             <span onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
@@ -82,30 +99,63 @@ function DangKy() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="signup-form">
             <label>Email</label>
-            <input type="email" {...register("email")} className={errors.email ? "error" : ""} />
-            {errors.email && <span className="error">{errors.email.message}</span>}
+            <input
+              type="email"
+              {...register("email")}
+              className={errors.email ? "error" : ""}
+            />
+            {errors.email && (
+              <span className="error">{errors.email.message}</span>
+            )}
 
             <label>Tên người dùng</label>
-            <input type="text" {...register("username")} className={errors.username ? "error" : ""} />
-            {errors.username && <span className="error">{errors.username.message}</span>}
+            <input
+              type="text"
+              {...register("username")}
+              className={errors.username ? "error" : ""}
+            />
+            {errors.username && (
+              <span className="error">{errors.username.message}</span>
+            )}
 
             <label>Vai trò</label>
-            <select {...register("role")} className={errors.role ? "error" : ""}>
+            <select
+              {...register("role")}
+              className={errors.role ? "error" : ""}
+            >
               <option value="">-- Chọn vai trò --</option>
               <option value="giangvien">Giảng viên</option>
               <option value="hocvien">Học viên</option>
             </select>
-            {errors.role && <span className="error">{errors.role.message}</span>}
+            {errors.role && (
+              <span className="error">{errors.role.message}</span>
+            )}
 
             <label>Mật khẩu</label>
-            <input type="password" {...register("password")} className={errors.password ? "error" : ""} />
-            {errors.password && <span className="error">{errors.password.message}</span>}
+            <input
+              type="password"
+              {...register("password")}
+              className={errors.password ? "error" : ""}
+            />
+            {errors.password && (
+              <span className="error">{errors.password.message}</span>
+            )}
 
             <label>Nhập lại mật khẩu</label>
-            <input type="password" {...register("passwordConfirm")} className={errors.passwordConfirm ? "error" : ""} />
-            {errors.passwordConfirm && <span className="error">{errors.passwordConfirm.message}</span>}
+            <input
+              type="password"
+              {...register("passwordConfirm")}
+              className={errors.passwordConfirm ? "error" : ""}
+            />
+            {errors.passwordConfirm && (
+              <span className="error">{errors.passwordConfirm.message}</span>
+            )}
 
-            <button type="submit" className="signup-btn submit" disabled={loading}>
+            <button
+              type="submit"
+              className="signup-btn submit"
+              disabled={loading}
+            >
               {loading ? "Đang đăng ký..." : "Đăng Ký"}
             </button>
           </form>

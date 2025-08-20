@@ -62,11 +62,10 @@ export default function DangNhap() {
       found.vaiTro === "GIANG_VIEN"
         ? "/giangvien"
         : found.vaiTro === "ADMIN"
-          ? "/admin"
-          : "/hocvien";
+        ? "/admin"
+        : "/hocvien";
 
     navigate(next);
-
   };
 
   return (
@@ -78,10 +77,17 @@ export default function DangNhap() {
 
         <div className="login-right">
           <div className="login-tabs">
-            <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
+            <span
+              onClick={() => navigate("/dang-ky")}
+              style={{ cursor: "pointer" }}
+            >
               Đăng ký
             </span>
-            <span className="active" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
+            <span
+              className="active"
+              onClick={() => navigate("/")}
+              style={{ cursor: "pointer" }}
+            >
               Đăng nhập
             </span>
           </div>
@@ -93,7 +99,9 @@ export default function DangNhap() {
               {...register("email")}
               className={errors.email ? "error" : ""}
             />
-            {errors.email && <span className="error">{errors.email.message}</span>}
+            {errors.email && (
+              <span className="error">{errors.email.message}</span>
+            )}
 
             <label>Mật khẩu</label>
             <input
@@ -101,12 +109,17 @@ export default function DangNhap() {
               {...register("matkhau")}
               className={errors.matkhau ? "error" : ""}
             />
-            {errors.matkhau && <span className="error">{errors.matkhau.message}</span>}
+            {errors.matkhau && (
+              <span className="error">{errors.matkhau.message}</span>
+            )}
 
             {loginError && <span className="error">{loginError}</span>}
 
             <div className="forgot">
-              <a onClick={() => navigate("/quen-mat-khau")} style={{ cursor: "pointer" }}>
+              <a
+                onClick={() => navigate("/quen-mat-khau")}
+                style={{ cursor: "pointer" }}
+              >
                 Quên mật khẩu
               </a>
             </div>

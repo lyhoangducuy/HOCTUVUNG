@@ -72,8 +72,9 @@ const Add = ({ onClose, onSave, Colums, showAvatar }) => {
                   ) : (
                     <div className="avatar-icon">👤</div>
                   )}
-                  <div className="avatar-edit-icon">+</div>
+                  
                 </div>
+                <div className="avatar-edit-icon">+</div>
               </div>
 
               <input

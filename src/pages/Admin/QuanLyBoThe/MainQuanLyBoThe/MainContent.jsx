@@ -6,13 +6,13 @@ import Edit from "../../../../components/Admin/Edit/Edit";
 import Add from "../../../../components/Admin/Add/Add";
 import ExportModal from "../../../../components/ExportModal/ExportModal";
 import "./MainContent.css";
+import { number } from "yup";
 const MainContentQLBT = ({ Data }) => {
   const ColumsBoThe = [
     { name: "ID", key: "id" },
     { name: "Tên bộ thẻ", key: "name" },
-    { name: "Người tạo", key: "uerCreated" },
+    { name: "Người tạo", key: "userCreated" },
     { name: "Số thẻ", key: "numBer" },
-    { name: "Ngày tạo", key: "created" },
   ];
   const [data, setData] = useState(Data);
 
@@ -39,6 +39,20 @@ const MainContentQLBT = ({ Data }) => {
   const onConfirmDelete = (id) => {
     const updatedData = data.filter((item) => item.id !== id);
     setData(updatedData);
+    try {
+      const cards = JSON.parse( localStorage.getItem("boThe"));
+     
+      
+      const next =(Array.isArray(cards) ? cards : []).filter(
+        temp => String(temp.idBoThe ) !== String(id)
+      );
+      
+      
+      localStorage.setItem("boThe",JSON.stringify(next));
+    } catch (error) {
+      console.error("xóa bộ thẻ thất bại: ", error);
+      
+    }
     onClose();
   };
   //Edit
@@ -68,8 +82,34 @@ const MainContentQLBT = ({ Data }) => {
     const updatedData = data.map((item) =>
       item.id === updatedUser.id ? updatedUser : item
     );
+    console.log(updatedUser);
+    
     setData(updatedData);
+    try {
+      const raw= localStorage.getItem("boThe");
+      const list = raw ? JSON.parse(raw) : [];
+    const idx = list.findIndex(c=> String(c.idBoThe) === String(updatedUser.id));
+    console.log(idx);
+    
+    if(idx !== -1){
+      const cur = {...list[idx]}
+        list[idx] = {
+          ...cur,
+          tenBoThe : updatedUser.name,
+          userCreated : updatedUser.userCreated,
+          numBer : updatedUser.numBer,
+          
+        }
+        localStorage.setItem("boThe",JSON.stringify(list))
+    }
+    } catch (error) {
+      console.error("cập nhật bộ thẻ thất bại ", error);
+      
+    }
+    
+
     handleUserDetailClose();
+    
   };
 
   // Add functions

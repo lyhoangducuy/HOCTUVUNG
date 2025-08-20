@@ -38,6 +38,7 @@ import SuaBoThe from "./pages/NguoiDung/HocBoThe/SuaBoThe/SuaBoThe";
 import Landingpage from "./pages/Auth/LandingPage/Landingpage";
 import Traphi from "./pages/NguoiDung/TraPhi/Traphi";
 import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTRaPhi";
+import SettingAdmin from "./pages/Admin/Setting/Setting";
 
 
 export default function App() {
@@ -86,6 +87,7 @@ export default function App() {
         <Route element={<DangNhapTheoRole allowed={["ADMIN"]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<TrangChuAdmin />} />
+            <Route path="/admin/setting" element ={<SettingAdmin/>}/>
             <Route path="/admin/quan-ly-user" element={<QuanLyUser />} />
             <Route path="/admin/thong-ke" element={<ThongKeAdmin />} />
             <Route path="/admin/quan-ly-tra-phi" element={<QuanLyTraPhi />} />
