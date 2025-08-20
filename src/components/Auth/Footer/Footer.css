@@ -1,5 +1,84 @@
+.footer {
+  background: #ffffff; /* nền trắng */
+  color: #000000;      /* chữ đen mặc định */
+  padding: 40px 20px 20px;
+  font-family: "Segoe UI", sans-serif;
+}
+
 .footer-container {
-  background-color: #f8f9fa;
-  padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 30px;
+}
+
+.footer-col {
+  flex: 1;
+  min-width: 220px;
+}
+
+.footer-logo {
+  font-size: 22px;
+  font-weight: 700;
+  color: #000000; /* logo cũng đen */
+  margin-bottom: 10px;
+}
+
+.footer-col h4 {
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.footer-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-col ul li {
+  margin-bottom: 8px;
+}
+
+.footer-col ul li a {
+  color: #000000;
+  text-decoration: none;
+  transition: color .2s;
+}
+
+.footer-col ul li a:hover {
+  color: #3b82f6; /* xanh khi hover */
+}
+
+.social-icons a {
+  color: #000000;  /* icon đen */
+  margin-right: 12px;
+  font-size: 18px;
+  transition: color .2s;
+}
+
+.social-icons a:hover {
+  color: #3b82f6; /* xanh khi hover */
+}
+
+.footer-bottom {
+  margin-top: 20px;
+  padding-top: 12px;
   text-align: center;
+  font-size: 14px;
+  color: #000000;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .footer-container {
+    flex-direction: column;
+    text-align: center;
+  }
+  .social-icons {
+    margin-top: 10px;
+  }
 }
