@@ -167,6 +167,7 @@ useEffect(() => {
             setShowSearch(true);
           }}
           onFocus={() => setShowSearch(true)}
+          onKeyDown={(e) => e.key === "Enter" ?  navigate(`/timkiem/${keyword}`) : null}
         />
         {showSearch && keyword && (
           <div className="search-result">
