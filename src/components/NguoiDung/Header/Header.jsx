@@ -156,7 +156,7 @@ useEffect(() => {
       </div>
 
       <div className="search-section" ref={searchRef}>
-        <FontAwesomeIcon icon={faSearch} className="icon search-icon" />
+        
         <input
           type="search"
           placeholder="Tìm kiếm"

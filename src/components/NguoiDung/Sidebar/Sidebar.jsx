@@ -100,13 +100,6 @@ function Sidebar() {
 
       <div className="divider" />
 
-      <div className="sidebar_bottom">
-        <h3>Bắt đầu</h3>
-        <div>
-          <FontAwesomeIcon icon={faClone} className="icon" />
-          Flashcards
-        </div>
-      </div>
     </div>
   );
 }
