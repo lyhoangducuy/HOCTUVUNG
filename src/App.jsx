@@ -38,7 +38,7 @@ import SuaBoThe from "./pages/NguoiDung/HocBoThe/SuaBoThe/SuaBoThe";
 import Landingpage from "./pages/Auth/LandingPage/Landingpage";
 import Traphi from "./pages/NguoiDung/TraPhi/Traphi";
 import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTRaPhi";
-
+import TrangTimKiem from "./pages/NguoiDung/TrangTimKiem/TrangTimKiem";
 
 export default function App() {
   return (
@@ -74,6 +74,7 @@ export default function App() {
 
             <Route path="/setting" element={<Setting />} />
             <Route path="/suabothe/:id" element={<SuaBoThe />} />
+            <Route path="/timkiem/:id" element={<TrangTimKiem />} />
 
           </Route>
         </Route>
