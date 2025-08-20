@@ -2,7 +2,6 @@ import { Routes, Route } from "react-router-dom";
 //router
 import { YeuCauDangNhap, DangNhapTheoRole } from "./router/phanQuyen";
 
-
 // Layouts
 import AuthLayout from "./layouts/AuthLayout/AuthLayout";
 import AdminLayout from "./layouts/AdminLayout";
@@ -23,21 +22,24 @@ import FlashCard from "./pages/NguoiDung/HocBoThe/FlashCard/FlashCard";
 import TracNghiem from "./pages/NguoiDung/HocBoThe/TracNghiem";
 import Test from "./pages/NguoiDung/HocBoThe/Test";
 import MatchGame from "./pages/NguoiDung/HocBoThe/MatchGame";
-import Video from "./pages/NguoiDung/HocBoThe/Video";
+import Video from "./pages/NguoiDung/HocBoThe/Video/Video";
+import VideoLibrary from "./pages/NguoiDung/HocBoThe/Video/VideoLibrary";
+
 import Newclass from "./pages/NguoiDung/AddNew/NewClass/Newclass";
 import NewBoThe from "./pages/NguoiDung/AddNew/NewBoThe/NewBoThe";
 import Lop from "./pages/NguoiDung/Lop/Lop";
 import ThuVienCuaToi from "./pages/NguoiDung/ThuVienCuaToi/ThuVienCuaToi";
-import MyFolder from "./pages/NguoiDung/MyFolder/MyFolder";
+
 import QuanLyUser from "./pages/Admin/QuanLyUser/QuanLyUser";
-import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTraPhi";
 import QuanLyBoThe from "./pages/Admin/QuanLyBoThe/QuanLyBoThe";
 import QuanLyLop from "./pages/Admin/QuanLyLop/QuanLyLop";
 import Setting from "./pages/NguoiDung/Setting/Setting";
-import Traphi from "./components/TraPhi/Traphi";
 import SuaBoThe from "./pages/NguoiDung/HocBoThe/SuaBoThe/SuaBoThe";
 import Newfolder from "./pages/NguoiDung/AddNew/NewFolder/Newfolder";
 import Landingpage from "./pages/Auth/LandingPage/Landingpage";
+import Traphi from "./pages/NguoiDung/TraPhi/Traphi";
+import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTRaPhi";
+
 
 export default function App() {
   return (
@@ -51,7 +53,11 @@ export default function App() {
        
       </Route>
       <Route element={<YeuCauDangNhap />}>
-        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN", "HOC_VIEN","ADMIN"]} />}>
+        <Route
+          element={
+            <DangNhapTheoRole allowed={["GIANG_VIEN", "HOC_VIEN", "ADMIN"]} />
+          }
+        >
           {/* Giảng viên */}
           <Route element={<NguoiDungLayout />}>
             <Route path="/giangvien" element={<TrangChu />} />
@@ -61,21 +67,21 @@ export default function App() {
             <Route path="/tracnghiem/:id" element={<TracNghiem />} />
             <Route path="/test/:id" element={<Test />} />
             <Route path="/game/:id" element={<MatchGame />} />
-            <Route path="/video/:id" element={<Video />} />
             <Route path="/newBoThe" element={<NewBoThe />} />
             <Route path="/lop/:id" element={<Lop />} />
             <Route path="/thuviencuatoi" element={<ThuVienCuaToi />} />
-            <Route path="/newfolder" element={<Newfolder/>} />
-            <Route path="/folder/:id" element={<MyFolder />} />
+            <Route path="/video" element={<VideoLibrary/>} />
+            <Route path="/video/:id" element={<Video />} />
+
             <Route path="/setting" element={<Setting />} />
             <Route path="/suabothe/:id" element={<SuaBoThe />} />
+
           </Route>
         </Route>
-        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN","ADMIN"]} />}>
+        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN", "ADMIN"]} />}>
           <Route element={<NguoiDungLayout />}>
             <Route path="/newclass" element={<Newclass />} />
           </Route>
-
         </Route>
 
         {/* Admin */}

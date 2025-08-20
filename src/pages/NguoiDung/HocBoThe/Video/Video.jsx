@@ -1,106 +1,117 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faClone,
-  faListCheck,
-  faLayerGroup,
-  faFilePen,
   faPlay,
-  faArrowLeft,
-  faArrowRight,
-  faStar,
+  faPause,
+  faCircleCheck,
+  faCircleXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import "./Video.css";
-import HocBoThe_Header from "../../../../components/HocBoThe/HocBoThe_Header";
 
 function Video() {
   const { id } = useParams();
-  const nagative = useNavigate();
-  const [card, setCard] = useState([]);
-  const [video, setVideo] = useState();
-  const [answer, setAnswer] = useState();
-  const [correct, setCorrect] = useState(false);
-  const [choice, setChoice] = useState(false);
-  const [play, setPlay] = useState(false);
-  const videoRef = useRef();
+  const [card, setCard] = useState(null);
+  const [video, setVideo] = useState(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [userAnswers, setUserAnswers] = useState({});
+  const [results, setResults] = useState({});
+  const [submit, setSubmit] = useState({});
+
+  const videoRef = useRef(null);
+  const inputRef = useRef([]);
+
   useEffect(() => {
-    const selected = JSON.parse(localStorage.getItem("selected"));
-    if (selected) {
-      setCard(selected);
-    }
+    const selected = JSON.parse(localStorage.getItem("selected") || "null");
+    setCard(selected);
+  }, [id]);
+
+  useEffect(() => {
+    setVideo(card?.video || null);
+  }, [card]);
+
+  useEffect(() => {
+    const handleTimeUpdate = () => {
+      setCurrentTime(videoRef.current?.currentTime);
+    };
+
+    videoRef.current?.addEventListener("timeupdate", handleTimeUpdate);
+    return () => {
+      videoRef.current?.removeEventListener("timeupdate", handleTimeUpdate);
+    };
   }, []);
   useEffect(() => {
-    setVideo(card.video);
-  }, [card]);
-  useEffect(() => {
+    video?.transcript?.map((item, index) => {
+     if (Math.abs(currentTime - item.t) < 0.1) { 
+      if (!submit[index]) { 
+        inputRef.current[index]?.focus();
+        videoRef.current.pause();
+      }
+    }
+    });
+  }, [currentTime,submit]);
+  const handleAnswers = (index, value) => {
+    setUserAnswers((pre) => ({
+      ...pre,
+      [index]: value,
+    }));
+  };
+  const handleSubmit = (item, index) => {
+    setResults((prev) => ({
+      ...prev,
+      [index]: item.answers === userAnswers[index],
+    }));
+    setSubmit((pre) => ({
+      ...pre,
+      [index]: true,
+    }));
     setTimeout(() => {
       videoRef.current.play();
-      setPlay(true);
     }, 1000);
-  }, [video]);
-  useEffect(() => {
-    setTimeout(() => {
-      videoRef.current.pause();
-      setPlay(false);
-    }, 20000);
-  }, [play]);
-  const getEmbedUrl = (url) => {
-    if (!url) return "";
-    if (url.includes("youtube.com/shorts/")) {
-      const videoId = url.split("shorts/")[1]?.split("?")[0];
-      return `https://www.youtube.com/embed/${videoId}`;
-    }
-
-    return url;
   };
-
-  const handleSubmit = () => {
-    setChoice(true);
-    if (answer === video.answer[0] || answer === video.answer[1]) {
-      setCorrect(true);
-    }
-    setTimeout(() => {
-      setChoice(false);
-    }, 500);
-  };
-
   return (
-    <div className="container">
-      <HocBoThe_Header activeMode={"video"}/>
+    <div className="video-container">
+      <h3>{card?.tenBoThe}</h3>
 
-      <div className="main">
-        <div className="study">
-          <div className="video-card">
-            <h3 className="video-title">{card?.tenBoThe}</h3>
-            <div className="video-frame">
-              <video
-                ref={videoRef}
-                width="100%"
-                height="315"
-                controls
-                src={video?.src}
-                title={card?.tenBoThe}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></video>
-            </div>
-          </div>
-          <div className="answer_video">
+      <video
+        ref={videoRef}
+        src={video?.src}
+        className="video-element"
+        controls
+        autoPlay
+      />
+
+      <div className="transcript">
+        <h4>Transcript</h4>
+        {video?.transcript?.map((item, index) => (
+          <div className="transcript-item" key={index}>
+            <span>Đoạn {item.t} giây có đáp án là</span>
             <input
-              type="text"
-              placeholder="Nhập cụm từ bạn nghe được"
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
+              ref={(ref) => (inputRef.current[index] = ref)}
+              className="answers"
+              value={userAnswers[index]}
+              onChange={(e) => handleAnswers(index, e.target.value)}
             />
-            <button onClick={() => handleSubmit()}>Nộp</button>
-            {choice && (correct ? <p>ĐÚNG</p> : <p>SAI</p>)}
+            <button
+              className="submit"
+              onClick={() => handleSubmit(item, index)}
+            >
+              Nộp
+            </button>
+            {submit[index] &&
+              (results[index] ? (
+                <span className="result correct">
+                  <FontAwesomeIcon icon={faCircleCheck} /> Đúng
+                </span>
+              ) : (
+                <span className="result wrong">
+                  <FontAwesomeIcon icon={faCircleXmark} /> Sai
+                </span>
+              ))}
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
 }
-
 export default Video;
