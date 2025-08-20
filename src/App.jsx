@@ -30,13 +30,13 @@ import Lop from "./pages/NguoiDung/Lop/Lop";
 import ThuVienCuaToi from "./pages/NguoiDung/ThuVienCuaToi/ThuVienCuaToi";
 import MyFolder from "./pages/NguoiDung/MyFolder/MyFolder";
 import QuanLyUser from "./pages/Admin/QuanLyUser/QuanLyUser";
-import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTraPhi";
 import QuanLyBoThe from "./pages/Admin/QuanLyBoThe/QuanLyBoThe";
 import QuanLyLop from "./pages/Admin/QuanLyLop/QuanLyLop";
 import Setting from "./pages/NguoiDung/Setting/Setting";
 import SuaBoThe from "./pages/NguoiDung/HocBoThe/SuaBoThe/SuaBoThe";
 import Newfolder from "./pages/NguoiDung/AddNew/NewFolder/Newfolder";
 import Traphi from "./pages/NguoiDung/TraPhi/Traphi";
+import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTRaPhi";
 
 
 export default function App() {
