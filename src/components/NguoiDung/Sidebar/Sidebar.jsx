@@ -1,17 +1,12 @@
 // src/components/Sidebar/Sidebar.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faHouse,
-  faFolderOpen,
-  faBell,
-  faVideo,
-} from "@fortawesome/free-solid-svg-icons";
+import { faHouse, faFolderOpen, faBell, faVideo } from "@fortawesome/free-solid-svg-icons";
 import "./sidebar.css";
 import { useNavigate } from "react-router-dom";
 
 /* ===== Helpers ===== */
-const readJSON = (k, def) => {
+const readJSON = (k, def = []) => {
   try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? def; }
   catch { return def; }
 };
@@ -20,11 +15,14 @@ const parseVNDate = (dmy) => {
   const [d, m, y] = dmy.split("/").map(Number);
   return y ? new Date(y, (m || 1) - 1, d || 1) : null;
 };
+// ✅ Chỉ tính prime nếu: chưa bị hủy + còn hạn
 const hasActiveSub = (userId) => {
   const list = readJSON("goiTraPhiCuaNguoiDung", []);
   const today = new Date();
-  return list.some(
-    (s) => s.idNguoiDung === userId && parseVNDate(s.NgayKetThuc) >= today
+  return list.some((s) =>
+    s.idNguoiDung === userId &&
+    s.status !== "Đã hủy" &&
+    parseVNDate(s.NgayKetThuc) >= today
   );
 };
 
@@ -33,16 +31,9 @@ function Sidebar() {
 
   const [open, setOpen] = useState(true);
   const [prime, setPrime] = useState(false);
-  const [folders, setFolders] = useState([]);
 
   const [showNoti, setShowNoti] = useState(false);
   const notiRef = useRef(null);
-
-  // load folders (để sau có render list thì đã sẵn state)
-  const loadFolders = () => {
-    const folderArr = readJSON("thuMuc", []);
-    setFolders(Array.isArray(folderArr) ? folderArr : []);
-  };
 
   // load user + prime; lắng nghe thay đổi
   useEffect(() => {
@@ -52,34 +43,22 @@ function Sidebar() {
       setPrime(hasActiveSub(ss.idNguoiDung));
     };
 
-    loadFolders();
     loadPrime();
 
-    // toggle sidebar từ Header
     const onToggle = () => setOpen(v => !v);
-
-    // cập nhật khi localStorage đổi (đăng ký/hủy gói ở tab khác)
     const onStorage = (e) => {
       if (e.key === "goiTraPhiCuaNguoiDung") loadPrime();
-      if (e.key === "thuMuc") loadFolders();
     };
-
-    // event tuỳ chỉnh khi page trả phí bắn
-    const onSubChanged = () => loadPrime();
-    const onFoldersUpdated = () => loadFolders();
+    const onSubChanged = () => loadPrime(); // Traphi phát sự kiện này khi đăng ký/hủy
 
     window.addEventListener("sidebar:toggle", onToggle);
     window.addEventListener("storage", onStorage);
     window.addEventListener("subscriptionChanged", onSubChanged);
-    window.addEventListener("foldersUpdated", onFoldersUpdated);
-
 
     return () => {
       window.removeEventListener("sidebar:toggle", onToggle);
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("subscriptionChanged", onSubChanged);
-      window.removeEventListener("foldersUpdated", onFoldersUpdated);
-      
     };
   }, []);
 
@@ -136,7 +115,8 @@ function Sidebar() {
         <div onClick={gotoVideo}>
           <FontAwesomeIcon icon={faVideo} className="icon" />
           Học qua Video
-          {!prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
+          {/* ⭐ Hiện sao khi CHƯA prime */}
+          {!prime && <span className="prime-badge" title="Nâng cấp để mở khóa">★</span>}
         </div>
       </div>
 

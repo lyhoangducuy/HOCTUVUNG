@@ -22,15 +22,14 @@ const parseVN = (dmy) => {
   return new Date(y, (m || 1) - 1, d || 1);
 };
 
-/* -------- Component -------- */
 function Traphi() {
   const navigate = useNavigate();
 
   const [currentUser, setCurrentUser] = useState(null);
   const [packs, setPacks] = useState([]);
-  const [activeSub, setActiveSub] = useState(null); // {idGTPCND, idGoi, NgayBatDau, NgayKetThuc}
+  const [activeSub, setActiveSub] = useState(null); // {idGTPCND, idGoi, NgayBatDau, NgayKetThuc, status}
 
-  // Seed fallback nếu chưa có gói trong localStorage (newbie-friendly)
+  // Gói mặc định nếu chưa có
   const DEFAULT_PACKS = [
     {
       idGoi: "GOI_" + (Date.now() - 2),
@@ -46,52 +45,9 @@ function Traphi() {
       moTa: "Tiết kiệm hơn với gói 12 tháng.",
       giaGoi: 120000,
       thoiHan: 365,
-      giamGia: 20, // ví dụ giảm 20%
+      giamGia: 20,
     },
   ];
-
-  // --- Load session + gói + trạng thái gói đang hoạt động ---
-  useEffect(() => {
-    const sessionUser = JSON.parse(sessionStorage.getItem("session") || "null");
-    if (!sessionUser) {
-      alert("Vui lòng đăng nhập để sử dụng tính năng trả phí.");
-      navigate("/");
-      return;
-    }
-    setCurrentUser(sessionUser);
-
-    // Load gói từ localStorage (nếu rỗng -> seed mặc định)
-    let storedPacks = JSON.parse(localStorage.getItem("goiTraPhi") || "[]");
-    if (!Array.isArray(storedPacks) || storedPacks.length === 0) {
-      storedPacks = DEFAULT_PACKS;
-      localStorage.setItem("goiTraPhi", JSON.stringify(storedPacks));
-    }
-    setPacks(storedPacks);
-
-    // Tìm gói đang hoạt động của user (nếu có)
-    const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
-    const mySubs = subs.filter((s) => s.idNguoiDung === sessionUser.idNguoiDung);
-
-    const today = new Date();
-    const activeOnes = mySubs.filter((s) => {
-      const end = parseVN(s.NgayKetThuc);
-      return end && end >= today;
-    });
-
-    // lấy gói active có hạn dùng xa nhất (nếu nhiều)
-    if (activeOnes.length > 0) {
-      const chosen = activeOnes.sort((a, b) => {
-        const ea = parseVN(a.NgayKetThuc);
-        const eb = parseVN(b.NgayKetThuc);
-        return eb - ea; // giảm dần
-      })[0];
-      setActiveSub(chosen);
-    } else {
-      setActiveSub(null);
-    }
-  }, [navigate]);
-
-  const hasActiveSub = !!activeSub;
 
   // Tính giá sau giảm
   const calcDiscounted = (gia, giamGia) => {
@@ -100,16 +56,63 @@ function Traphi() {
     return Math.max(0, Math.round(g * (1 - gg / 100)));
   };
 
-  // Đăng ký gói
+  // Tải dữ liệu + xác định gói active (bỏ qua gói status = "Đã hủy")
+  const loadAll = () => {
+    const sessionUser = JSON.parse(sessionStorage.getItem("session") || "null");
+    if (!sessionUser) {
+      alert("Vui lòng đăng nhập để sử dụng tính năng trả phí.");
+      navigate("/");
+      return;
+    }
+    setCurrentUser(sessionUser);
+
+    let storedPacks = JSON.parse(localStorage.getItem("goiTraPhi") || "[]");
+    if (!Array.isArray(storedPacks) || storedPacks.length === 0) {
+      storedPacks = DEFAULT_PACKS;
+      localStorage.setItem("goiTraPhi", JSON.stringify(storedPacks));
+    }
+    setPacks(storedPacks);
+
+    const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
+    const mySubs = subs.filter((s) => s.idNguoiDung === sessionUser.idNguoiDung);
+
+    const today = new Date();
+    const activeOnes = mySubs.filter((s) => {
+      const end = parseVN(s.NgayKetThuc);
+      const isCanceled = s.status === "Đã hủy";           // <-- chỉ khác ở đây
+      return !isCanceled && end && end >= today;
+    });
+
+    if (activeOnes.length > 0) {
+      const chosen = activeOnes.sort((a, b) => {
+        const ea = parseVN(a.NgayKetThuc);
+        const eb = parseVN(b.NgayKetThuc);
+        return eb - ea;
+      })[0];
+      setActiveSub(chosen);
+    } else {
+      setActiveSub(null);
+    }
+  };
+
+  useEffect(() => {
+    loadAll();
+    // reload khi nơi khác cập nhật sub
+    const onSubChanged = () => loadAll();
+    window.addEventListener("subscriptionChanged", onSubChanged);
+    return () => window.removeEventListener("subscriptionChanged", onSubChanged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const hasActiveSub = !!activeSub;
+
+  // Đăng ký gói (set status = "Đang hoạt động")
   const handleSub = (pack) => {
-    
     if (!currentUser) return;
     if (hasActiveSub) {
       alert("Bạn đã có gói đang hoạt động. Hãy hủy hoặc chờ hết hạn mới đăng ký gói khác.");
       return;
     }
-
-    // Tạo đăng ký mới
     const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
     const ngayBatDau = new Date();
     const ngayKetThuc = addDays(ngayBatDau, pack.thoiHan);
@@ -120,6 +123,7 @@ function Traphi() {
       idGoi: pack.idGoi,
       NgayBatDau: toVN(ngayBatDau),
       NgayKetThuc: toVN(ngayKetThuc),
+      status: "Đang hoạt động", // <-- thêm trạng thái
     };
 
     subs.push(newSub);
@@ -127,29 +131,26 @@ function Traphi() {
     setActiveSub(newSub);
     window.dispatchEvent(new Event("subscriptionChanged"));
     alert("Đăng ký thành công!");
-    window.dispatchEvent(new Event("dangkytraphi"));
   };
 
-  // Hủy gói đang hoạt động
+  // Hủy gói: CHỈ đổi status = "Đã hủy", KHÔNG xoá record
   const handleCancel = () => {
     if (!currentUser) return;
     if (!activeSub) {
       alert("Bạn chưa có gói đang hoạt động để hủy.");
       return;
     }
-
     const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
-    const updated = subs.filter((s) => s.idGTPCND !== activeSub.idGTPCND);
-    localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(updated));
-    setActiveSub(null);
+    const next = subs.map((s) =>
+      s.idGTPCND === activeSub.idGTPCND ? { ...s, status: "Đã hủy" } : s
+    );
+    localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(next));
+    setActiveSub(null); // để UI hết "đang hoạt động"
     alert("Đã hủy gói thành công!");
-    
     window.dispatchEvent(new Event("subscriptionChanged"));
-    
-
   };
 
-  // Chuẩn bị hiển thị tên gói đang hoạt động (nếu có)
+  // Hiển thị info gói đang active
   const activePack = useMemo(() => {
     if (!activeSub) return null;
     return packs.find((p) => p.idGoi === activeSub.idGoi) || null;
@@ -159,7 +160,6 @@ function Traphi() {
     <div className="traphi-container">
       <h2>Danh sách gói trả phí</h2>
 
-      {/* Thông tin gói đang hoạt động */}
       {hasActiveSub && activePack && (
         <div className="active-sub">
           <div className="active-sub__title">Gói đang hoạt động</div>
@@ -178,7 +178,6 @@ function Traphi() {
         </div>
       )}
 
-      {/* Danh sách gói */}
       <div className="traphi-pricing">
         {packs.length === 0 ? (
           <div className="pricing-empty">Chưa có gói để đăng ký.</div>

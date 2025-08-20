@@ -7,12 +7,8 @@ import { useNavigate } from "react-router-dom";
 
 /* Helpers an toàn */
 const readJSON = (key, fallback) => {
-  try {
-    const v = JSON.parse(localStorage.getItem(key) || "null");
-    return v ?? fallback;
-  } catch {
-    return fallback;
-  }
+  try { const v = JSON.parse(localStorage.getItem(key) || "null"); return v ?? fallback; }
+  catch { return fallback; }
 };
 const parseVNDate = (dmy) => {
   if (!dmy || typeof dmy !== "string") return null;
@@ -20,11 +16,13 @@ const parseVNDate = (dmy) => {
   if (!d || !m || !y) return null;
   return new Date(y, m - 1, d);
 };
+// ✅ Prime khi: đúng user + chưa "Đã hủy" + còn hạn
 const checkPrime = (userId) => {
   const list = readJSON("goiTraPhiCuaNguoiDung", []);
   const today = new Date();
   return list.some((s) => {
     if (s.idNguoiDung !== userId) return false;
+    if (s.status === "Đã hủy") return false;
     const end = parseVNDate(s.NgayKetThuc);
     return end && end >= today;
   });
@@ -47,15 +45,11 @@ export default function Header() {
   const [resCard, setResCard] = useState([]);
   const [resClass, setResClass] = useState([]);
 
-  // Nạp user + prime (và tự reload khi storage hoặc app bắn event)
+  // Nạp user + prime (tự reload khi storage hoặc app bắn event)
   useEffect(() => {
     const load = () => {
       const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-      if (!ss?.idNguoiDung) {
-        setUser(null);
-        setPrime(false);
-        return;
-      }
+      if (!ss?.idNguoiDung) { setUser(null); setPrime(false); return; }
       const ds = readJSON("nguoiDung", []);
       const u = ds.find((x) => x.idNguoiDung === ss.idNguoiDung) || null;
       setUser(u);
@@ -63,17 +57,13 @@ export default function Header() {
     };
 
     load();
-
-    const onStorage = (e) => {
-      if (!e || !e.key || ["nguoiDung", "goiTraPhiCuaNguoiDung"].includes(e.key)) load();
-    };
-    const onSubChanged = () => load();   // event tự đặt để cập nhật ngay trong cùng tab
-    const onDangKy = () => load();       // alias khi bạn dispatch "dangkytraphi"
+    const onStorage = (e) => { if (!e || !e.key || ["nguoiDung","goiTraPhiCuaNguoiDung"].includes(e.key)) load(); };
+    const onSubChanged = () => load();   // từ Traphi: đăng ký/hủy
+    const onDangKy = () => load();       // alias nếu bạn dispatch "dangkytraphi"
 
     window.addEventListener("storage", onStorage);
     window.addEventListener("subscriptionChanged", onSubChanged);
     window.addEventListener("dangkytraphi", onDangKy);
-
     return () => {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("subscriptionChanged", onSubChanged);
@@ -92,27 +82,19 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", outside);
   }, []);
 
-  // Search đơn giản
+  // Search
   const doSearch = (q) => {
     setKeyword(q);
-    if (!q.trim()) {
-      setResCard([]);
-      setResClass([]);
-      return;
-    }
+    if (!q.trim()) { setResCard([]); setResClass([]); return; }
     const ql = q.toLowerCase();
     const cards = readJSON("boThe", []).filter((x) => x.tenBoThe?.toLowerCase().includes(ql));
     const classes = readJSON("lop", []).filter((x) => x.tenLop?.toLowerCase().includes(ql));
-    setResCard(cards);
-    setResClass(classes);
+    setResCard(cards); setResClass(classes);
   };
 
-  const logout = () => {
-    sessionStorage.clear();
-    navigate("/", { replace: true });
-  };
+  const logout = () => { sessionStorage.clear(); navigate("/", { replace: true }); };
 
-  const avatarSrc = user?.anhDaiDien || ""; // để trống nếu không có URL
+  const avatarSrc = user?.anhDaiDien || "";
   const displayName = user?.tenNguoiDung || "Người dùng";
 
   return (
@@ -120,42 +102,25 @@ export default function Header() {
       {/* Left */}
       <div className="left-section">
         <FontAwesomeIcon icon={faBars} className="icon menu-icon" />
-        <FontAwesomeIcon
-          icon={faBookOpen}
-          className="icon book-icon"
-          onClick={() => navigate("/giangvien")}
-        />
+        <FontAwesomeIcon icon={faBookOpen} className="icon book-icon" onClick={() => navigate("/giangvien")} />
       </div>
 
       {/* Search */}
       <div className="search-section" ref={searchRef}>
         <input
-          type="search"
-          placeholder="Tìm kiếm"
-          className="search-input"
-          value={keyword}
+          type="search" placeholder="Tìm kiếm" className="search-input" value={keyword}
           onChange={(e) => { doSearch(e.target.value); setShowSearch(true); }}
           onFocus={() => setShowSearch(true)}
           onKeyDown={(e) => { if (e.key === "Enter") navigate(`/timkiem/${encodeURIComponent(keyword)}`); }}
         />
         {showSearch && keyword && (
           <div className="search-result">
-            {resCard.length === 0 && resClass.length === 0 && (
-              <p className="empty">Không tìm thấy kết quả</p>
-            )}
+            {resCard.length === 0 && resClass.length === 0 && <p className="empty">Không tìm thấy kết quả</p>}
             {resCard.length > 0 && (
               <div className="result-group">
                 <h4>Bộ thẻ</h4>
                 {resCard.map((item) => (
-                  <div
-                    key={item.idBoThe}
-                    className="result-item"
-                    onClick={() => {
-                      navigate(`/flashcard/${item.idBoThe}`);
-                      setShowSearch(false);
-                      setKeyword("");
-                    }}
-                  >
+                  <div key={item.idBoThe} className="result-item" onClick={() => { navigate(`/flashcard/${item.idBoThe}`); setShowSearch(false); setKeyword(""); }}>
                     📑 {item.tenBoThe}
                   </div>
                 ))}
@@ -165,15 +130,7 @@ export default function Header() {
               <div className="result-group">
                 <h4>Lớp học</h4>
                 {resClass.map((item) => (
-                  <div
-                    key={item.idLop}
-                    className="result-item"
-                    onClick={() => {
-                      navigate(`/lop/${item.idLop}`);
-                      setShowSearch(false);
-                      setKeyword("");
-                    }}
-                  >
+                  <div key={item.idLop} className="result-item" onClick={() => { navigate(`/lop/${item.idLop}`); setShowSearch(false); setKeyword(""); }}>
                     🏫 {item.tenLop}
                   </div>
                 ))}
@@ -187,43 +144,32 @@ export default function Header() {
       <div className="right-section">
         {/* Plus */}
         <div className="plus-container" ref={plusRef}>
-          <FontAwesomeIcon
-            icon={faCirclePlus}
-            className="icon plus-icon"
-            onClick={() => setShowPlus((v) => !v)}
-          />
+          <FontAwesomeIcon icon={faCirclePlus} className="icon plus-icon" onClick={() => setShowPlus(v => !v)} />
           {showPlus && (
             <div className="plus">
               <div className="plus-item" onClick={() => { navigate("/newBoThe"); setShowPlus(false); }}>
-                <FontAwesomeIcon icon={faClone} />
-                <span>Bộ thẻ mới</span>
+                <FontAwesomeIcon icon={faClone} /><span>Bộ thẻ mới</span>
               </div>
               <div className="plus-item" onClick={() => { navigate("/newfolder"); setShowPlus(false); }}>
-                <FontAwesomeIcon icon={faFolderOpen} />
-                <span>Thư mục mới</span>
+                <FontAwesomeIcon icon={faFolderOpen} /><span>Thư mục mới</span>
               </div>
               {user?.vaiTro === "GIANG_VIEN" && (
                 <div className="plus-item" onClick={() => { navigate("/newclass"); setShowPlus(false); }}>
-                  <FontAwesomeIcon icon={faBookOpen} />
-                  <span>Lớp học mới</span>
+                  <FontAwesomeIcon icon={faBookOpen} /><span>Lớp học mới</span>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
-          Nâng cấp tài khoản
-        </button>
+        <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>Nâng cấp tài khoản</button>
 
         {/* Account */}
         <div className="inforContainer" ref={menuRef}>
-          <div className="avatar-wrapper" onClick={() => setShowMenu((v) => !v)}>
-            {avatarSrc ? (
-              <img src={avatarSrc} alt="avatar" className="avatar" />
-            ) : (
-              <div className="avatar avatar-fallback">{(displayName || "U").charAt(0).toUpperCase()}</div>
-            )}
+          <div className="avatar-wrapper" onClick={() => setShowMenu(v => !v)}>
+            {avatarSrc
+              ? <img src={avatarSrc} alt="avatar" className="avatar" />
+              : <div className="avatar avatar-fallback">{(displayName || "U").charAt(0).toUpperCase()}</div>}
             {prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
           </div>
 
@@ -231,11 +177,9 @@ export default function Header() {
             <div className="setting">
               <div className="infor">
                 <div className="avatar-wrapper">
-                  {avatarSrc ? (
-                    <img src={avatarSrc} alt="avatar" className="avatar" />
-                  ) : (
-                    <div className="avatar avatar-fallback">{(displayName || "U").charAt(0).toUpperCase()}</div>
-                  )}
+                  {avatarSrc
+                    ? <img src={avatarSrc} alt="avatar" className="avatar" />
+                    : <div className="avatar avatar-fallback">{(displayName || "U").charAt(0).toUpperCase()}</div>}
                   {prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
                 </div>
                 <h2 className="tittle">{displayName}</h2>
