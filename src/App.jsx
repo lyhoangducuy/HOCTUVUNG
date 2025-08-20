@@ -74,7 +74,6 @@ export default function App() {
             <Route path="/video/:id" element={<Video />} />
             <Route path="/setting" element={<Setting />} />
             <Route path="/suabothe/:id" element={<SuaBoThe />} />
-
           </Route>
         </Route>
         <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN", "ADMIN"]} />}>

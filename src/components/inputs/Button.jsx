@@ -5,7 +5,7 @@ import "./Button.css";
 export default function Button({ children, onClick, variant = "register", disabled = false }) {
   return (
     <button
-      className={`btn ${variant === "register" ? "btn-register" : "btn-cancel"}`}
+      className={`btn ${variant }`}
       onClick={onClick}
       disabled={disabled}
     >
