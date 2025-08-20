@@ -35,7 +35,6 @@ import QuanLyBoThe from "./pages/Admin/QuanLyBoThe/QuanLyBoThe";
 import QuanLyLop from "./pages/Admin/QuanLyLop/QuanLyLop";
 import Setting from "./pages/NguoiDung/Setting/Setting";
 import SuaBoThe from "./pages/NguoiDung/HocBoThe/SuaBoThe/SuaBoThe";
-import Newfolder from "./pages/NguoiDung/AddNew/NewFolder/Newfolder";
 import Traphi from "./pages/NguoiDung/TraPhi/Traphi";
 import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTRaPhi";
 
@@ -69,7 +68,6 @@ export default function App() {
             <Route path="/thuviencuatoi" element={<ThuVienCuaToi />} />
             <Route path="/video" element={<VideoLibrary/>} />
             <Route path="/video/:id" element={<Video />} />
-
             <Route path="/setting" element={<Setting />} />
             <Route path="/suabothe/:id" element={<SuaBoThe />} />
 

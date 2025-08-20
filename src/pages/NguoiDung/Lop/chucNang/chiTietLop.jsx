@@ -64,7 +64,6 @@ export default function ChiTietLopModal({ open, lop, onClose, onSave }) {
 
   // Hiển thị số liệu (nếu cần)
   const soBoThe = Array.isArray(lop.boTheIds) ? lop.boTheIds.length : (Number.isFinite(lop?.soBoThe) ? lop.soBoThe : 0);
-  const soFolder = Array.isArray(lop.folderIds) ? lop.folderIds.length : (Number.isFinite(lop?.soFolder) ? lop.soFolder : 0);
   const soThanhVien = Array.isArray(lop.thanhVienIds) ? lop.thanhVienIds.length : (Number.isFinite(lop?.soThanhVien) ? lop.soThanhVien : 0);
 
   return (

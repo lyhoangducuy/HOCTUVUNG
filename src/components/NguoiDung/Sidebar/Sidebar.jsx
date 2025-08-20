@@ -7,19 +7,20 @@ import {
   faPlus,
   faClone,
   faBook,
+  faVideo,
 } from "@fortawesome/free-solid-svg-icons";
 import "./sidebar.css";
 import { useNavigate } from "react-router-dom";
 
 function Sidebar() {
   const navigate = useNavigate();
-  const [myfolder, setMyfolder] = useState([]);
   const [moSidebar, setMoSidebar] = useState(true); // <-- trạng thái mở/đóng
   const [prime, setPrime] = useState(false);
+
   const loaddata = () => {
     const folder = JSON.parse(localStorage.getItem("thuMuc") || "[]");
     // sửa typo 'lenght' -> 'length' và set luôn mảng
-    setMyfolder(Array.isArray(folder) ? folder : []);
+
   };
 
   useEffect(() => {
@@ -41,14 +42,6 @@ function Sidebar() {
     };
   }, []);
 
-  const handleFolder = (idThuMuc) => {
-    const folder = JSON.parse(localStorage.getItem("thuMuc") || "[]");
-    const folder_click = folder.find((item) => item.idThuMuc === idThuMuc);
-    if (folder_click) {
-      localStorage.setItem("currentFolder", JSON.stringify(folder_click));
-      navigate(`/folder/${idThuMuc}`);
-    }
-  };
 
   const notiRef = useRef(null);
   const [showNoti, setShowNoti] = useState(false);
@@ -98,12 +91,12 @@ function Sidebar() {
 
       <div className="divider" />
 
-      {prime && (
-        <div className="sidebar_center">
-          <h3>Học qua video</h3>
-          <div onClick={() => navigate('/video')} style={{ cursor: 'pointer', color: '#2563eb', marginTop: 6 }}>Mở thư viện video</div>
+      <div className="sidebar_center">
+        <div onClick={() => navigate('/video')} style={{ cursor: 'pointer', color: '#2563eb', marginTop: 6 }}>
+          <FontAwesomeIcon icon={faVideo} />
+          Học Tự Vựng Qua Video
         </div>
-      )}
+      </div>
 
       <div className="divider" />
 
