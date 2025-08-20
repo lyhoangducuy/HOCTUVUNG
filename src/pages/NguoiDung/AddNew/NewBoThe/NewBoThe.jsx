@@ -5,53 +5,21 @@ import "./NewBoThe.css";
 export default function NewBoThe() {
   const navigate = useNavigate();
 
-  // ===== Lấy session + người dùng hiện tại =====
+  //lay nguoi dung tu session
   const session = useMemo(() => {
-    try { return JSON.parse(sessionStorage.getItem("session") || "null"); }
-    catch { return null; }
+    return JSON.parse(sessionStorage.getItem("session") || "null");
   }, []);
-
-  const dsNguoiDung = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("nguoiDung") || "[]"); }
-    catch { return []; }
+  const nguoiDungList = useMemo(() => {
+    return JSON.parse(localStorage.getItem("nguoiDung") || "null");
   }, []);
-
-  const nguoiDung = useMemo(() => {
-    if (!session?.idNguoiDung) return null;
-    return dsNguoiDung.find(u => u.idNguoiDung === session.idNguoiDung) || null;
-  }, [dsNguoiDung, session]);
-
-  // Nếu chưa đăng nhập / không tìm thấy user
-  if (!session?.idNguoiDung || !nguoiDung) {
-    return (
-      <div className="sua-container">
-        <div className="sua-card">
-          <h2>Vui lòng đăng nhập</h2>
-          <p style={{opacity:.75, margin:"6px 0 12px"}}>
-            Không tìm thấy thông tin người dùng hiện tại.
-          </p>
-          <button className="btn primary" onClick={() => navigate("/")}>Đến trang đăng nhập</button>
-        </div>
-      </div>
-    );
-  }
-
+  const nguoiDungHT=nguoiDungList.find((x)=>(x.idNguoiDung===session.idNguoiDung));
   // ===== State form =====
   const [tenBoThe, setTenBoThe] = useState("");
   const [danhSachThe, setDanhSachThe] = useState([{ tu: "", nghia: "" }]);
   const [loi, setLoi] = useState("");
 
   // ===== Helpers =====
-  const getNextId = () => {
-    try {
-      const list = JSON.parse(localStorage.getItem("boThe") || "[]");
-      const ids = (Array.isArray(list) ? list : []).map(x => Number(x.idBoThe)).filter(Number.isFinite);
-      if (ids.length === 0) return 1;
-      return Math.max(...ids) + 1;
-    } catch {
-      return Date.now(); // fallback
-    }
-  };
+  const getNextId = Math.floor(Math.random() * 1000000);
 
   const themThe = () => setDanhSachThe(prev => [...prev, { tu: "", nghia: "" }]);
   const xoaThe = (i) => setDanhSachThe(prev => prev.filter((_, idx) => idx !== i));
@@ -82,16 +50,12 @@ export default function NewBoThe() {
     }
 
     try {
-      const idBoThe = getNextId();
+      const idBoThe = getNextId;
       const boTheMoi = {
         idBoThe,
         tenBoThe: ten,
         soTu: dsHopLe.length,
-        nguoiDung: {
-          idNguoiDung: nguoiDung.idNguoiDung,
-          anhDaiDien: nguoiDung.anhDaiDien || "",
-          tenNguoiDung: nguoiDung.tenNguoiDung || "",
-        },
+        idNguoiDung: nguoiDungHT.idNguoiDung,
         danhSachThe: dsHopLe,
       };
 

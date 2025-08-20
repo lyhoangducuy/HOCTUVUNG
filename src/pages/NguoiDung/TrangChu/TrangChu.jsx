@@ -8,6 +8,14 @@ export default function TrangChu() {
   const navigate = useNavigate();
   const [dsBoThe, setDsBoThe] = useState([]);
 
+  const dsNguoiDung = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("nguoiDung") || "[]");
+    } catch {
+      return [];
+    }
+  }, []);
+
   useEffect(() => {
     const luu = JSON.parse(localStorage.getItem("boThe")) || [];
     setDsBoThe(Array.isArray(luu) ? luu : []);
@@ -76,40 +84,46 @@ export default function TrangChu() {
           <div className="empty">Chưa có dữ liệu để hiển thị.</div>
         ) : (
           <div className="mini-grid">
-            {phoBien.map((item) => (
-              <div
-                key={item.idBoThe}
-                className="mini-card"
-                onClick={() => denHoc(item.idBoThe)}
-              >
-                <div className="mini-title">{item.tenBoThe || "Không tên"}</div>
+            {phoBien.map((item) => {
+              const nguoiTao = dsNguoiDung.find(
+                (u) => String(u.idNguoiDung) === String(item.idNguoiDung)
+              );
+              const tenNguoiTao = nguoiTao?.tenNguoiDung || "Ẩn danh";
+              const anhNguoiTao = nguoiTao?.anhDaiDien || "";
 
-                <div className="mini-sub">{item.soTu ?? 0} thẻ</div>
+              return (
+                <div
+                  key={item.idBoThe}
+                  className="mini-card"
+                  onClick={() => denHoc(item.idBoThe)}
+                >
+                  <div className="mini-title">{item.tenBoThe || "Không tên"}</div>
+                  <div className="mini-sub">{item.soTu ?? 0} thẻ</div>
 
-                <div className="mini-meta">
-                  <AvatarNho
-                    url={item?.nguoiDung?.anhDaiDien}
-                    ten={item?.nguoiDung?.tenNguoiDung}
-                  />
-                  <span className="mini-name">
-                    {item?.nguoiDung?.tenNguoiDung || "Ẩn danh"}
-                  </span>
+                  <div className="mini-meta">
+                    <div
+                      className="mini-avatar"
+                      style={anhNguoiTao ? { backgroundImage: `url(${anhNguoiTao})` } : {}}
+                    />
+                    <span className="mini-name">{tenNguoiTao}</span>
+                  </div>
+
+                  <div className="mini-actions">
+                    <button
+                      className="btn ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        denHoc(item.idBoThe);
+                      }}
+                    >
+                      Học
+                    </button>
+                  </div>
                 </div>
-
-                <div className="mini-actions">
-                  <button
-                    className="btn ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      denHoc(item.idBoThe);
-                    }}
-                  >
-                    Học
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
         )}
       </section>
     </div>

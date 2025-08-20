@@ -10,6 +10,7 @@ import ThuVienLop from "./chucNang/thuVienLop";
 import LopMenu from "./chucNang/lopMenu";
 import ChiTietLopModal from "./chucNang/chiTietLop";
 import ChonBoThe from "./chucNang/chonBoThe";
+import FeedbackTab from "./chucNang/feedBackTab";
 
 export default function Lop() {
   const { id } = useParams();
@@ -25,6 +26,7 @@ export default function Lop() {
   const [moChiTietLop, setMoChiTietLop] = useState(false);
   const [moChonBoThe, setMoChonBoThe] = useState(false);
 
+  // nạp lớp theo id từ localStorage
   useEffect(() => {
     const dsLop = JSON.parse(localStorage.getItem("lop") || "[]");
     const lopTimThay = dsLop.find((item) => String(item.idLop) === String(id));
@@ -43,6 +45,15 @@ export default function Lop() {
       return [];
     }
   }, []);
+  // thêm vào ngay dưới const dsNguoiDung = useMemo(...)
+  const session = useMemo(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("session") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
+
 
   const thanhVien = useMemo(() => {
     if (!chiTietLop?.thanhVienIds?.length) return [];
@@ -55,19 +66,35 @@ export default function Lop() {
 
   const xoaLop = () => {
     if (!chiTietLop) return;
-    const xacNhan = window.confirm(
-      `Bạn chắc chắn muốn xoá lớp "${chiTietLop.tenLop}"?`
-    );
+    const xacNhan = window.confirm(`Bạn chắc chắn muốn xoá lớp "${chiTietLop.tenLop}"?`);
     if (!xacNhan) return;
 
     const ds = JSON.parse(localStorage.getItem("lop") || "[]");
-    const dsMoi = ds.filter(
-      (l) => String(l.idLop) !== String(chiTietLop.idLop)
-    );
+    const dsMoi = ds.filter((l) => String(l.idLop) !== String(chiTietLop.idLop));
     localStorage.setItem("lop", JSON.stringify(dsMoi));
 
     alert("Đã xoá lớp.");
     navigate("/giangvien");
+  };
+
+  // ✅ lưu thay đổi từ modal vào localStorage + state
+  const luuChiTietLop = (lopDaSua) => {
+    try {
+      const ds = JSON.parse(localStorage.getItem("lop") || "[]");
+      const idx = ds.findIndex((l) => String(l.idLop) === String(lopDaSua?.idLop));
+      if (idx > -1) {
+        ds[idx] = { ...ds[idx], ...lopDaSua };
+      } else if (lopDaSua) {
+        ds.push(lopDaSua); // phòng khi chưa có, sẽ thêm mới
+      }
+      localStorage.setItem("lop", JSON.stringify(ds));
+      // đồng bộ lại state hiển thị
+      setChiTietLop(idx > -1 ? ds[idx] : lopDaSua);
+    } catch (e) {
+      console.error("Không thể lưu lớp vào localStorage:", e);
+      // vẫn cập nhật state để UI phản ánh
+      setChiTietLop(lopDaSua);
+    }
   };
 
   return (
@@ -84,7 +111,7 @@ export default function Lop() {
 
         <div className="ten-lop">
           <h1>{chiTietLop?.tenLop || "Lớp học"}</h1>
-          <h3>{chiTietLop?.school || ""}</h3>
+          <h3>{chiTietLop?.tenTruong || ""}</h3>
         </div>
 
         <div className="header-actions">
@@ -123,7 +150,10 @@ export default function Lop() {
               onClose={() => setHienMenu3Cham(false)}
               onViewDetail={moHopThoaiChiTiet}
               onDelete={xoaLop}
+              idLop={chiTietLop?.idLop}
+              isOwner={chiTietLop?.idNguoiDung === session?.idNguoiDung}
             />
+
           </div>
         </div>
       </div>
@@ -136,14 +166,24 @@ export default function Lop() {
           >
             Thư viện lớp học
           </button>
+
+          {chiTietLop?.idNguoiDung === session?.idNguoiDung && (
+            <button
+              className={`tab-item ${tabDangChon === "thanhVien" ? "active" : ""}`}
+              onClick={() => setTabDangChon("thanhVien")}
+            >
+              Thành viên
+            </button>
+          )}
+
           <button
-            className={`tab-item ${tabDangChon === "thanhVien" ? "active" : ""
-              }`}
-            onClick={() => setTabDangChon("thanhVien")}
+            className={`tab-item ${tabDangChon === "feedback" ? "active" : ""}`}
+            onClick={() => setTabDangChon("feedback")}
           >
-            Thành viên
+            Feedback
           </button>
         </div>
+
 
         {tabDangChon === "thuVien" && chiTietLop && (
           <div className="tab-content">
@@ -153,6 +193,10 @@ export default function Lop() {
             />
           </div>
         )}
+        {tabDangChon === "feedback" && chiTietLop && (
+          <FeedbackTab idLop={chiTietLop.idLop} />
+        )}
+
 
         {tabDangChon === "thanhVien" && (
           <div className="tab-content" style={{ display: "block" }}>
@@ -171,8 +215,7 @@ export default function Lop() {
                 <ul>
                   {thanhVien.map((u) => (
                     <li key={u.idNguoiDung}>
-                      {u.tenNguoiDung}{" "}
-                      <span style={{ opacity: 0.65 }}>({u.email})</span>
+                      {u.tenNguoiDung} <span style={{ opacity: 0.65 }}>({u.email})</span>
                     </li>
                   ))}
                 </ul>
@@ -180,13 +223,15 @@ export default function Lop() {
             </div>
           </div>
         )}
+
       </div>
 
-      {/* Modal chi tiết lớp */}
+      {/* Modal chi tiết lớp — ✅ truyền onSave để lưu localStorage */}
       <ChiTietLopModal
         open={moChiTietLop}
         lop={chiTietLop}
         onClose={() => setMoChiTietLop(false)}
+        onSave={luuChiTietLop}
       />
 
       {/* Modal chọn bộ thẻ */}

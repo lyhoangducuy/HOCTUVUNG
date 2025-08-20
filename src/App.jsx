@@ -11,6 +11,7 @@ import NguoiDungLayout from "./layouts/NguoiDungLayout/NguoiDungLayout";
 // Auth
 import DangNhap from "./pages/Auth/DangNhap";
 import DangKy from "./pages/Auth/DangKy";
+import QuenMatKhau from "./pages/Auth/QuenMatKhau";
 
 // Admin
 import TrangChuAdmin from "./pages/Admin/TrangChu";
@@ -36,6 +37,7 @@ import Setting from "./pages/NguoiDung/Setting/Setting";
 import Traphi from "./components/TraPhi/Traphi";
 import SuaBoThe from "./pages/NguoiDung/HocBoThe/SuaBoThe/SuaBoThe";
 import Newfolder from "./pages/NguoiDung/AddNew/NewFolder/Newfolder";
+import SettingAdmin from "./pages/Admin/Setting/Setting";
 
 
 export default function App() {
@@ -45,6 +47,7 @@ export default function App() {
       <Route element={<AuthLayout />}>
         <Route path="/" element={<DangNhap />} />
         <Route path="/dang-ky" element={<DangKy />} />
+        <Route path="/quen-mat-khau" element={<QuenMatKhau />} />
         <Route path="/tra-phi" element={<Traphi />} />
       </Route>
       <Route element={<YeuCauDangNhap />}>
@@ -78,6 +81,7 @@ export default function App() {
         <Route element={<DangNhapTheoRole allowed={["ADMIN"]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<TrangChuAdmin />} />
+            <Route path="/admin/setting" element ={<SettingAdmin/>}/>
             <Route path="/admin/quan-ly-user" element={<QuanLyUser />} />
             <Route path="/admin/thong-ke" element={<ThongKeAdmin />} />
             <Route path="/admin/quan-ly-tra-phi" element={<QuanLyTraPhi />} />

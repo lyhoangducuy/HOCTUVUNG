@@ -89,7 +89,7 @@ export default function DangNhap() {
     <div className="login-container">
       <div className="login-card">
         <div className="login-left">
-          <img src="/src/assets/image/formimg.png" alt="imgloginform" />
+          <img src="/src/assets/image/logo.jpg" alt="imgloginform" />
         </div>
 
         <div className="login-right">
@@ -133,7 +133,9 @@ export default function DangNhap() {
             {loginError && <span className="error">{loginError}</span>}
 
             <div className="forgot">
-              <a href="#">Quên mật khẩu</a>
+              <a onClick={() => navigate("/quen-mat-khau")} style={{ cursor: "pointer" }}>
+                Quên mật khẩu
+              </a>
             </div>
 
             <button type="submit" className="login-btn submit">
