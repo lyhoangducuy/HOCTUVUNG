@@ -9,20 +9,19 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
 
-  // Clamp currentPage khi pageSize/Data thay đổi
+  // Clamp currentPage khi Data/pageSize đổi (tránh tối đa render vòng lặp)
   useEffect(() => {
     const newTotal = Math.max(1, Math.ceil((Data?.length || 0) / pageSize));
-    if (currentPage > newTotal) setCurrentPage(newTotal);
-  }, [Data, pageSize, currentPage]);
+    setCurrentPage((p) => Math.min(p, newTotal));
+  }, [Data, pageSize]);
 
   const pageData = useMemo(
     () => (Array.isArray(Data) ? Data.slice(startIndex, endIndex) : []),
     [Data, startIndex, endIndex]
   );
 
-  const handlePrev = () => currentPage > 1 && setCurrentPage(currentPage - 1);
-  const handleNext = () =>
-    currentPage < totalPages && setCurrentPage(currentPage + 1);
+  const handlePrev = () => setCurrentPage((p) => Math.max(1, p - 1));
+  const handleNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
 
   const handleInputChange = (e) => {
     const value = Number(e.target.value);
@@ -40,7 +39,7 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
             {Colums.map((col, idx) => (
               <th key={idx}>{col.name}</th>
             ))}
-            {Action && Action.length > 0 && <th>Action</th>}
+            {Action?.length > 0 && <th>Action</th>}
           </tr>
         </thead>
 
@@ -48,7 +47,7 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
           {pageData.length === 0 ? (
             <tr>
               <td
-                colSpan={Colums.length + (Action && Action.length > 0 ? 1 : 0)}
+                colSpan={Colums.length + (Action?.length > 0 ? 1 : 0)}
                 style={{ textAlign: "center", padding: 16, opacity: 0.7 }}
               >
                 Không có dữ liệu
@@ -61,7 +60,7 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
                   <td key={idx}>{item[col.key]}</td>
                 ))}
 
-                {Action && Action.length > 0 && (
+                {Action?.length > 0 && (
                   <td>
                     <div
                       style={{
@@ -76,9 +75,15 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
                           key={idx}
                           className={act.class}
                           style={act.style}
-                          // ✅ LUÔN bọc trong arrow để KHÔNG gọi khi render
-                          onClick={() => act.onClick?.(item.id, item)}
                           title={act.title || ""}
+                          onClick={() => {
+                            // Hỗ trợ cả 2 dạng:
+                            // 1) (id,item)=>handleXxx(id,item)
+                            // 2) (id,item)=>()=>handleXxx(id,item)
+                            const ret = act.onClick?.(item.id, item);
+                            if (typeof ret === "function") ret();
+                          }}
+                          aria-label={act.ariaLabel || act.name}
                         >
                           {act.name}
                         </button>

@@ -1,206 +1,269 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import TableAdmin from "../../../../components/Admin/TableAdmin/TableAdmin";
+import Search from "../../../../components/Admin/Search/Search";
+import Delete from "../../../../components/Admin/Delete/Delete";
+import Edit from "../../../../components/Admin/Edit/Edit";
+import Add from "../../../../components/Admin/Add/Add";
 
-// Helpers
+// ===== Helpers =====
 const genPackId = () => "GOI_" + Date.now();
-const toNumber = (v, def = 0) => {
+const toNum = (v, def = 0) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : def;
 };
 
-export default function QuanLyGoiTraPhi() {
-  const [packs, setPacks] = useState([]);
-  const [form, setForm] = useState({
-    idGoi: "",        // tự tạo khi thêm
-    tenGoi: "",
-    moTa: "",
-    giaGoi: "",
-    thoiHan: "",
-    giamGia: "",      // phần trăm 0..100
-  });
-  const [isEdit, setIsEdit] = useState(false);
-
-  // Load
-  const reload = () => {
+// Tải danh sách gói từ localStorage
+const loadPacks = () => {
+  try {
     const raw = JSON.parse(localStorage.getItem("goiTraPhi") || "[]");
-    setPacks(Array.isArray(raw) ? raw : []);
-  };
-  useEffect(() => { reload(); }, []);
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+};
 
-  // Reset form
-  const resetForm = () => {
-    setForm({ idGoi: "", tenGoi: "", moTa: "", giaGoi: "", thoiHan: "", giamGia: "" });
-    setIsEdit(false);
-  };
+// Lưu lại localStorage
+const savePacks = (arr) => {
+  localStorage.setItem("goiTraPhi", JSON.stringify(arr));
+};
 
-  // Validate nhẹ nhàng
-  const validate = () => {
-    if (!form.tenGoi.trim()) return alert("Vui lòng nhập tên gói");
-    if (!String(form.giaGoi).trim()) return alert("Vui lòng nhập giá");
-    if (!String(form.thoiHan).trim()) return alert("Vui lòng nhập thời hạn (ngày)");
-    const gg = toNumber(form.giamGia, 0);
-    if (gg < 0 || gg > 100) return alert("Giảm giá phải nằm trong 0 - 100%");
-    return true;
-  };
+export default function QuanLyGoiTraPhi() {
+  // ===== Cấu hình cột bảng (TableAdmin) =====
+  const ColumnsTable = [
+    { name: "ID gói", key: "idGoi" },
+    { name: "Tên gói", key: "tenGoi" },
+    { name: "Mô tả", key: "moTa" },
+    { name: "Giá (đ)", key: "giaGoiFmt" },
+    { name: "Giảm (%)", key: "giamGia" },
+    { name: "Giá sau giảm (đ)", key: "giaSauGiamFmt" },
+    { name: "Thời hạn (ngày)", key: "thoiHan" },
+  ];
 
-  const handleAdd = () => {
-    if (!validate()) return;
-    const newPack = {
-      idGoi: genPackId(),
-      tenGoi: form.tenGoi.trim(),
-      moTa: form.moTa.trim(),
-      giaGoi: toNumber(form.giaGoi, 0),
-      thoiHan: toNumber(form.thoiHan, 0),
-      giamGia: toNumber(form.giamGia, 0),
-    };
-    const next = [...packs, newPack];
-    localStorage.setItem("goiTraPhi", JSON.stringify(next));
+  // ===== Cấu hình form (Add/Edit) =====
+  // Không cho nhập id → chỉ các field bên dưới
+  const ColumnsForm = [
+    { name: "Tên gói", key: "tenGoi" },
+    { name: "Mô tả", key: "moTa" },
+    { name: "Giá (đ)", key: "giaGoi" },
+    { name: "Giảm giá (%)", key: "giamGia" },
+    { name: "Thời hạn (ngày)", key: "thoiHan" },
+  ];
+
+  // ===== State =====
+  const [rows, setRows] = useState([]);          // dữ liệu hiển thị (đã format + id mirror)
+  const [filtered, setFiltered] = useState([]);  // dữ liệu sau khi search
+
+  // Delete dialog
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+
+  // Edit dialog
+  const [showEdit, setShowEdit] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null); // { id, idGoi, tenGoi, ... }
+
+  // Add dialog
+  const [showAdd, setShowAdd] = useState(false);
+
+  // ===== Load lần đầu =====
+  useEffect(() => {
     reload();
-    resetForm();
-  };
+  }, []);
 
-  const handleEditPick = (p) => {
-    setIsEdit(true);
-    setForm({
-      idGoi: p.idGoi,
-      tenGoi: p.tenGoi,
-      moTa: p.moTa || "",
-      giaGoi: String(p.giaGoi ?? ""),
-      thoiHan: String(p.thoiHan ?? ""),
-      giamGia: String(p.giamGia ?? 0),
+  // Tạo rows hiển thị (có id mirror và các field format)
+  const buildRows = (packs) =>
+    packs.map((p) => {
+      const giaGoi = toNum(p.giaGoi, 0);
+      const giamGia = toNum(p.giamGia, 0);
+      const giaSauGiam = Math.max(0, Math.round(giaGoi * (1 - giamGia / 100)));
+      return {
+        // các field gốc
+        idGoi: p.idGoi,
+        tenGoi: p.tenGoi,
+        moTa: p.moTa || "",
+        giaGoi: giaGoi,
+        giamGia: giamGia,
+        thoiHan: toNum(p.thoiHan, 0),
+
+        // field phục vụ TableAdmin
+        id: p.idGoi,                          // mirror để TableAdmin dùng làm key & Action
+        giaGoiFmt: giaGoi.toLocaleString(),
+        giaSauGiamFmt: giaSauGiam.toLocaleString(),
+      };
     });
+
+  // Reload từ localStorage → set rows + filtered
+  const reload = () => {
+    const packs = loadPacks();
+    const r = buildRows(packs);
+    setRows(r);
+    setFiltered(r);
   };
 
-  const handleSaveEdit = () => {
-    if (!validate()) return;
-    const next = packs.map((p) =>
-      p.idGoi === form.idGoi
-        ? {
-            ...p,
-            tenGoi: form.tenGoi.trim(),
-            moTa: form.moTa.trim(),
-            giaGoi: toNumber(form.giaGoi, 0),
-            thoiHan: toNumber(form.thoiHan, 0),
-            giamGia: toNumber(form.giamGia, 0),
-          }
-        : p
-    );
-    localStorage.setItem("goiTraPhi", JSON.stringify(next));
+  // ====== Delete flow ======
+  const askDelete = (id) => {
+    setDeleteId(id);
+    setShowDelete(true);
+  };
+  const closeDelete = () => {
+    setShowDelete(false);
+    setDeleteId(null);
+  };
+  const confirmDelete = (id) => {
+    const packs = loadPacks().filter((p) => p.idGoi !== id);
+    savePacks(packs);
+    closeDelete();
     reload();
-    resetForm();
   };
 
-  const handleDelete = (idGoi) => {
-    if (!window.confirm("Xoá gói này?")) return;
-    const next = packs.filter((p) => p.idGoi !== idGoi);
-    localStorage.setItem("goiTraPhi", JSON.stringify(next));
+  // ====== Edit flow ======
+  const openEdit = (id) => {
+    const row = rows.find((r) => r.id === id);
+    if (!row) return;
+    // giữ "id" để Edit khi Save trả về ta biết record nào
+    setSelectedRow({
+      id: row.id,           // mirror idGoi
+      idGoi: row.idGoi,     // để dùng khi lưu
+      tenGoi: row.tenGoi,
+      moTa: row.moTa,
+      giaGoi: row.giaGoi,
+      giamGia: row.giamGia,
+      thoiHan: row.thoiHan,
+    });
+    setShowEdit(true);
+  };
+  const closeEdit = () => {
+    setShowEdit(false);
+    setSelectedRow(null);
+  };
+
+  // Lưu Edit (Edit sẽ gọi onSave(payload))
+  const handleSaveEdit = (payload) => {
+    // payload chứa các field theo ColumnsForm + giữ nguyên "id" do ta đã set trong selectedRow
+    const id = payload?.id || selectedRow?.id; // mirror idGoi
+    if (!id) return;
+
+    // Validate nhẹ
+    const g = toNum(payload.giaGoi, 0);
+    const gg = toNum(payload.giamGia, 0);
+    const t = toNum(payload.thoiHan, 0);
+    if (gg < 0 || gg > 100) {
+      alert("Giảm giá phải nằm trong khoảng 0 - 100%");
+      return;
+    }
+
+    const packs = loadPacks();
+    const idx = packs.findIndex((p) => p.idGoi === id);
+    if (idx < 0) return;
+
+    packs[idx] = {
+      ...packs[idx],
+      tenGoi: String(payload.tenGoi || "").trim(),
+      moTa: String(payload.moTa || "").trim(),
+      giaGoi: g,
+      giamGia: gg,
+      thoiHan: t,
+    };
+
+    savePacks(packs);
+    closeEdit();
     reload();
-    // nếu đang sửa gói vừa xoá, reset form
-    if (form.idGoi === idGoi) resetForm();
   };
 
-  const giaSauGiam = (p) => {
-    const g = toNumber(p.giaGoi, 0);
-    const gg = toNumber(p.giamGia, 0);
-    return Math.max(0, Math.round(g * (1 - gg / 100)));
+  // ====== Add flow ======
+  const openAdd = () => setShowAdd(true);
+  const closeAdd = () => setShowAdd(false);
+
+  // Add lưu — Add sẽ trả về payload theo ColumnsForm
+  const handleAddSave = (payload) => {
+    const tenGoi = String(payload.tenGoi || "").trim();
+    if (!tenGoi) {
+      alert("Vui lòng nhập tên gói");
+      return;
+    }
+    const g = toNum(payload.giaGoi, 0);
+    const gg = toNum(payload.giamGia, 0);
+    const t = toNum(payload.thoiHan, 0);
+    if (gg < 0 || gg > 100) {
+      alert("Giảm giá phải nằm trong khoảng 0 - 100%");
+      return;
+    }
+
+    const newPack = {
+      idGoi: genPackId(),      // ✅ ID tự tạo
+      tenGoi,
+      moTa: String(payload.moTa || "").trim(),
+      giaGoi: g,
+      giamGia: gg,
+      thoiHan: t,
+    };
+
+    const packs = loadPacks();
+    packs.push(newPack);
+    savePacks(packs);
+    closeAdd();
+    reload();
   };
+
+  // ===== Actions cho TableAdmin (sử dụng API mới onClick(id, item)) =====
+  const Action = useMemo(
+    () => [
+      {
+        name: "👀",
+        title: "Sửa",
+        onClick: (id) => openEdit(id),
+      },
+      {
+        name: "🗑️",
+        title: "Xoá",
+        onClick: (id) => askDelete(id),
+      },
+    ],
+    [rows]
+  );
 
   return (
-    <div>
-      {/* Form thêm/sửa */}
-      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
-        <div>
-          <label>Tên gói</label>
-          <input
-            value={form.tenGoi}
-            onChange={(e) => setForm((s) => ({ ...s, tenGoi: e.target.value }))}
-            placeholder="VD: 1 tháng, 1 năm…"
-          />
-        </div>
-        <div>
-          <label>Giá (VNĐ)</label>
-          <input
-            type="number"
-            value={form.giaGoi}
-            onChange={(e) => setForm((s) => ({ ...s, giaGoi: e.target.value }))}
-            placeholder="VD: 120000"
-          />
-        </div>
-        <div>
-          <label>Thời hạn (ngày)</label>
-          <input
-            type="number"
-            value={form.thoiHan}
-            onChange={(e) => setForm((s) => ({ ...s, thoiHan: e.target.value }))}
-            placeholder="VD: 30, 365"
-          />
-        </div>
-        <div>
-          <label>Giảm giá (%)</label>
-          <input
-            type="number"
-            value={form.giamGia}
-            onChange={(e) => setForm((s) => ({ ...s, giamGia: e.target.value }))}
-            placeholder="0..100"
-          />
-        </div>
-        <div style={{ gridColumn: "1/-1" }}>
-          <label>Mô tả</label>
-          <textarea
-            rows={3}
-            value={form.moTa}
-            onChange={(e) => setForm((s) => ({ ...s, moTa: e.target.value }))}
-            placeholder="Mô tả ngắn về gói…"
-          />
-        </div>
+    <div className="main-content-admin-user">
+      <h2>Quản lý gói trả phí</h2>
 
-        <div style={{ gridColumn: "1/-1", display: "flex", gap: 8 }}>
-          {!isEdit ? (
-            <button className="btn btn-primary" onClick={handleAdd}>Thêm gói</button>
-          ) : (
-            <>
-              <button className="btn btn-primary" onClick={handleSaveEdit}>Lưu thay đổi</button>
-              <button className="btn btn-secondary" onClick={resetForm}>Huỷ</button>
-            </>
-          )}
+      <div className="user-actions">
+        <div className="user-actions-buttons">
+          <button className="btn btn-primary" onClick={openAdd}>Thêm gói</button>
         </div>
+        <Search Data={rows} onResult={setFiltered} />
       </div>
 
-      {/* Bảng */}
-      <table className="user-table" style={{ marginTop: 20 }}>
-        <thead>
-          <tr>
-            <th>ID gói</th>
-            <th>Tên gói</th>
-            <th>Mô tả</th>
-            <th>Giá</th>
-            <th>Giảm (%)</th>
-            <th>Giá sau giảm</th>
-            <th>Thời hạn (ngày)</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {packs.length === 0 ? (
-            <tr><td colSpan={8} style={{ textAlign: "center" }}>Chưa có gói nào</td></tr>
-          ) : (
-            packs.map((p) => (
-              <tr key={p.idGoi}>
-                <td>{p.idGoi}</td>
-                <td>{p.tenGoi}</td>
-                <td style={{ maxWidth: 280 }}>{p.moTa}</td>
-                <td>{(p.giaGoi ?? 0).toLocaleString()} đ</td>
-                <td>{p.giamGia ?? 0}%</td>
-                <td>{giaSauGiam(p).toLocaleString()} đ</td>
-                <td>{p.thoiHan}</td>
-                <td>
-                  <button onClick={() => handleEditPick(p)}>👀</button>{" "}
-                  <button onClick={() => handleDelete(p.idGoi)}>🗑️</button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <TableAdmin Colums={ColumnsTable} Data={filtered} Action={Action} />
+
+      {/* Delete dialog */}
+      {showDelete && (
+        <Delete
+          id={deleteId}
+          onClose={closeDelete}
+          onConfirm={confirmDelete}
+          message="Bạn có chắc chắn muốn xoá gói này?"
+        />
+      )}
+
+      {/* Edit dialog */}
+      {showEdit && selectedRow && (
+        <Edit
+          user={selectedRow}               // phải có { id: <idGoi> } để Edit trả về payload.id
+          onClose={closeEdit}
+          onSave={handleSaveEdit}
+          Colums={ColumnsForm}
+          showAvatar={false}
+        />
+      )}
+
+      {/* Add dialog */}
+      {showAdd && (
+        <Add
+          onClose={closeAdd}
+          onSave={handleAddSave}
+          Colums={ColumnsForm}
+          showAvatar={false}
+        />
+      )}
     </div>
   );
 }

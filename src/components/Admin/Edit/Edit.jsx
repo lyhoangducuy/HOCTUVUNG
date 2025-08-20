@@ -101,9 +101,9 @@ const Edit = ({
                         onChange={handleInputChange(item.key)}
                         className="edit-input"
                       >
-                        <option value="Student">Student</option>
-                        <option value="Teacher">Teacher</option>
-                        <option value="Admin">Admin</option>
+                        <option value="HOC_VIEN">Học viên</option>
+                        <option value="GIANG_VIEN">Giảng viên</option>
+                        <option value="ADMIN">Admin</option>
                       </select>
                     ) : (
                       <span>{formData[item.key]}</span>
