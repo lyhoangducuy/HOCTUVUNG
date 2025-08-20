@@ -1,30 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { FaRobot } from "react-icons/fa";
 import "./AIButton.css";
-import {generateVocabulary} from "../../../services/ai/generateVocabulary"
-import { Await } from "react-router-dom";
+import { fetchVocabulary } from "../ChatAI/ChatBot";
 export default function AIButton() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
     const onClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target))
+        setOpen(false);
     };
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  const getCurrentUserName = () => {
-    try {
-      const session = JSON.parse(sessionStorage.getItem("session") || "null");
-      const ds = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-      const me = ds.find((u) => u.idNguoiDung === session?.idNguoiDung);
-      return me?.tenNguoiDung || "Ẩn danh";
-    } catch {
-      return "Ẩn danh";
-    }
-  };
+
 
   const addCardsByTopic = async () => {
     const topic = window.prompt("Nhập chủ đề bộ thẻ ");
@@ -32,28 +23,24 @@ export default function AIButton() {
     const countStr = window.prompt("Số thẻ") || 10;
     const session = JSON.parse(sessionStorage.getItem("session") || "null");
     const userCreated = session.idNguoiDung;
-    const danhsachThe = await generateVocabulary(topic, countStr); // gọi AI/fallback
-
-   
+    const danhsachThe = await fetchVocabulary(topic, Number(countStr));
+    
     const raw = localStorage.getItem("boThe");
     const cards = raw ? JSON.parse(raw) : [];
     const list = Array.isArray(cards) ? cards : [];
-    const ids = list.map((c) => Number( c.idBoThe)).filter(Number.isFinite);
+    const ids = list.map((c) => Number(c.idBoThe)).filter(Number.isFinite);
     const nextId = ids.length ? Math.max(...ids) + 1 : 1;
+    console.log(danhsachThe);
+    const newCard = {
+      idBoThe: String(nextId),
+      tenBoThe: topic,
+      idNguoiDung: userCreated,
+      danhSachThe: danhsachThe,
+      soTu: Array.isArray(danhsachThe) ? danhsachThe.length : Number(countStr),
+    };
 
-
-      
-      const newCard = {
-        idBoThe: String(nextId),
-        tenBoThe: topic,
-        idNguoiDung: userCreated,
-        danhsachThe,
-        soTu: Array.isArray(danhSachThe) ? danhSachThe.length : count,
-      };
-
-      localStorage.setItem("boThe", JSON.stringify([...list, newCard]));
-      alert("Đã tạo bộ thẻ chủ đề: " + topic);
-
+    localStorage.setItem("boThe", JSON.stringify([...list, newCard]));
+    alert("Đã tạo bộ thẻ chủ đề: " + topic);
   };
 
   const addFakeUsers = () => {
@@ -88,17 +75,23 @@ export default function AIButton() {
 
   return (
     <div className="ai-button-container" ref={menuRef}>
-      <button className="icon-btn" onClick={() => setOpen((v) => !v)} title="AI trợ giúp">
+      <button
+        className="icon-btn"
+        onClick={() => setOpen((v) => !v)}
+        title="AI trợ giúp"
+      >
         <FaRobot />
       </button>
       {open && (
         <div className="ai-dropdown">
-          <div className="ai-item" onClick={addCardsByTopic}>Tạo bộ thẻ theo chủ đề</div>
-          <div className="ai-item" onClick={addFakeUsers}>Thêm người dùng ảo</div>
+          <div className="ai-item" onClick={addCardsByTopic}>
+            Tạo bộ thẻ theo chủ đề
+          </div>
+          <div className="ai-item" onClick={addFakeUsers}>
+            Thêm người dùng ảo
+          </div>
         </div>
       )}
     </div>
   );
 }
-
-

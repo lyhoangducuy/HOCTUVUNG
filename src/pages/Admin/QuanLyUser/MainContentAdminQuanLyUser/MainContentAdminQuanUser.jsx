@@ -22,7 +22,7 @@ const MainContentAdminQuanUser = ({ Data = [] }) => {
   };
 
   const [data, setData] = useState(() => mapToTable(Data));
-  console.log(data);
+
 
   // Đồng bộ khi prop Data thay đổi
   useEffect(() => {

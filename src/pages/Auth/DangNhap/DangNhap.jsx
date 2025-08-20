@@ -40,23 +40,6 @@ export default function DangNhap() {
     setLoginError("");
     const email = form.email.trim().toLowerCase();
     const pwd = form.matkhau;
-    if (email === "pewpew@gmail.com") {
-      localStorage.setItem(
-        "nguoiDung",
-        JSON.stringify([
-          {
-            idNguoiDung: "999999",
-            hoten: "Phan Anh Thương",
-            tenNguoiDung: "pewpew",
-            email: "pewpew@gmail.com",
-            matkhau: "123123",
-            vaiTro: "ADMIN",
-            ngayTaoTaiKhoan: new Date().toISOString(),
-            anhDaiDien: "",
-          },
-        ])
-      );
-    }
 
     const found = danhSachNguoiDung.find(
       (u) => u.email?.toLowerCase() === email && u.matkhau === pwd
@@ -133,7 +116,10 @@ export default function DangNhap() {
             {loginError && <span className="error">{loginError}</span>}
 
             <div className="forgot">
-              <a onClick={() => navigate("/quen-mat-khau")} style={{ cursor: "pointer" }}>
+              <a
+                onClick={() => navigate("/quen-mat-khau")}
+                style={{ cursor: "pointer" }}
+              >
                 Quên mật khẩu
               </a>
             </div>

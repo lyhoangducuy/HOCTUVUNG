@@ -40,11 +40,15 @@ const MainContentQLBT = ({ Data }) => {
     const updatedData = data.filter((item) => item.id !== id);
     setData(updatedData);
     try {
-      const cards = localStorage.getItem("cards");
+      const cards = JSON.parse( localStorage.getItem("boThe"));
+     
+      
       const next =(Array.isArray(cards) ? cards : []).filter(
         temp => String(temp.idBoThe ) !== String(id)
       );
-      localStorage.setItem("card",JSON.stringify(next));
+      
+      
+      localStorage.setItem("boThe",JSON.stringify(next));
     } catch (error) {
       console.error("xóa bộ thẻ thất bại: ", error);
       
