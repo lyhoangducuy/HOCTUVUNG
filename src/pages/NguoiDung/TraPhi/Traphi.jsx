@@ -102,6 +102,7 @@ function Traphi() {
 
   // Đăng ký gói
   const handleSub = (pack) => {
+    
     if (!currentUser) return;
     if (hasActiveSub) {
       alert("Bạn đã có gói đang hoạt động. Hãy hủy hoặc chờ hết hạn mới đăng ký gói khác.");
@@ -124,7 +125,9 @@ function Traphi() {
     subs.push(newSub);
     localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(subs));
     setActiveSub(newSub);
+    window.dispatchEvent(new Event("subscriptionChanged"));
     alert("Đăng ký thành công!");
+    window.dispatchEvent(new Event("dangkytraphi"));
   };
 
   // Hủy gói đang hoạt động
@@ -140,6 +143,10 @@ function Traphi() {
     localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(updated));
     setActiveSub(null);
     alert("Đã hủy gói thành công!");
+    
+    window.dispatchEvent(new Event("subscriptionChanged"));
+    
+
   };
 
   // Chuẩn bị hiển thị tên gói đang hoạt động (nếu có)
