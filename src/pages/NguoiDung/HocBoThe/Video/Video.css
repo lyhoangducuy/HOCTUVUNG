@@ -1,209 +1,141 @@
-/* Tổng thể container */
-.container {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: 'Segoe UI', sans-serif;
-  color: #1a1a1a;
-}
-
-/* Thanh lựa chọn chế độ học */
-.studyChange {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 0;
-  overflow-x: auto;
- 
-  -ms-overflow-style: none;
-}
-
-.studyChange::-webkit-scrollbar {
-  display: none;
-}
-
-.studyBtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border: 1.5px solid #dcdcdc;
-  border-radius: 999px;
-  background-color: #fff;
-  font-weight: 500;
-  font-size: 14px;
-  color: #1a1a1a;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.studyBtn:hover {
-  background-color: #f0f0f0;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.studyBtn svg {
-  font-size: 16px;
-  color: #1a1a1a;
-}
-
-.studyBtn.active {
-  background-color: #000;
-  color: #fff;
-  border-color: #000;
-}
-
-.studyBtn.active svg {
-  color: #fff;
-}
-
-/* Nút điều hướng */
-.btn-group {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.btn-group .left,
-.btn-group .right {
-  background-color: #f2f2f2;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.btn-group .left:hover,
-.btn-group .right:hover {
-  background-color: #dcdcdc;
-}
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #333;
-  background-color: #f6f6f6;
-  padding: 10px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.25s ease-in-out;
-  border: 1px solid #dcdcdc;
-  margin-bottom: 16px;
-  width: fit-content;
-}
-
-.back:hover {
-  background-color: #e2e2e2;
-  transform: translateX(-2px);
-  color: #111;
-}
-
-.iconback {
-  font-size: 18px;
-}
-/* === VIDEO CARD === */
-.video-card {
-  background-color: #f9fafb; /* very light gray */
+.video-container {
+  display: flex;              /* Cho thành flex */
+  align-items: flex-start;     /* Căn top */
+  gap: 20px;                   /* Khoảng cách giữa video và transcript */
+  max-width: 1200px;           /* Rộng hơn 800px để đủ chỗ */
+  margin: 20px auto;
+  padding: 16px;
+  background: #f9f9fb;
   border-radius: 16px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-  padding: 10px;
-  max-width: 720px;
-  margin: 0px auto;
-  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #333;
 }
 
-/* === VIDEO TITLE === */
-.video-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1f2937; /* gray-800 */
+
+
+
+.video-container h3 {
+  text-align: center;
+  margin-bottom: 12px;
+  color: #2c3e50;
+}
+.video-element {
+  width: 600px;      /* Cố định video chiếm ~50% */
+  border-radius: 12px;
+  background: #000;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
-/* === VIDEO FRAME === */
-.video-frame {
-  border-radius: 12px;
-  overflow: hidden;
-  background-color: #000; /* fallback for loading */
-}
-
-.video-frame video {
-  width: 100%;
-  height: auto;
-  border-radius: 12px;
-  display: block;
-  outline: none;
-}
-
-.answer_video {
-  width: 100%;
-  max-width: 960px;
-  margin: 24px auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap; /* Cho responsive nhỏ gọn trên mobile */
-  box-sizing: border-box;
-  background-color: #f9fafb; /* light background */
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-/* === INPUT FIELD === */
-.answer_video input {
-  flex: 1 1 300px;
-  padding: 12px 16px;
-  font-size: 16px;
-  border: 2px solid #d1d5db; /* gray-300 */
-  border-radius: 8px;
-  transition: border-color 0.2s ease;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.answer_video input:focus {
-  border-color: #3b82f6; /* blue-500 */
-}
-
-/* === SUBMIT BUTTON === */
-.answer_video button {
-  padding: 12px 20px;
-  font-size: 16px;
-  font-weight: 600;
+.controls .btn {
+  background: #3498db;
   color: #fff;
-  background-color: #3b82f6; /* blue-500 */
   border: none;
+  padding: 10px 14px;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-  white-space: nowrap;
+  transition: background 0.2s;
 }
 
-.answer_video button:hover {
-  background-color: #2563eb; /* blue-600 */
+.controls .btn:hover {
+  background: #2980b9;
 }
 
-/* === RESULT TEXT === */
-.answer_video p {
-  font-size: 16px;
+.controls input[type="range"] {
+  flex: 1;
+  accent-color: #3498db;
+}
+
+.controls span {
+  font-size: 14px;
+  color: #555;
+}
+.transcript {
+  flex: 1;           /* Transcript chiếm hết chỗ còn lại */
+  max-height: 400px; /* Giới hạn chiều cao */
+  overflow-y: auto;  /* Có thanh cuộn nếu quá dài */
+  background: #f9f9f9;
+  padding: 16px 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.transcript h4 {
+  margin-bottom: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 6px;
+}
+
+.transcript-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+  transition: all 0.3s ease;
+}
+
+.transcript-item:hover {
+  background: #f0f7ff;
+  border-color: #2196f3;
+}
+
+.transcript-item span {
+  flex: 1;
+  font-size: 15px;
+  color: #444;
+}
+
+.answers {
+  flex: 1;
+  padding: 8px 10px;
+  margin: 0 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+  transition: 0.3s;
+}
+
+.answers:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 5px rgba(33, 150, 243, 0.4);
+}
+
+.submit {
+  background: #2196f3;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.submit:hover {
+  background: #1976d2;
+}
+.result {
   font-weight: bold;
   margin-left: 8px;
-  white-space: nowrap;
 }
 
+.correct {
+  color: green;
+}
 
+.wrong {
+  color: red;
+}

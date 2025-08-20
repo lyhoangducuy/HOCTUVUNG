@@ -153,13 +153,7 @@ function HocBoThe_Header({ activeMode }) {
           <span>Match game</span>
         </div>
 
-        <div
-          className={`studyBtn ${activeMode === "video" ? "active" : ""}`}
-          onClick={() => navigate(`/video/${id}`)}
-        >
-          <FontAwesomeIcon icon={faPlay} />
-          <span>Học bằng video</span>
-        </div>
+        
       </div>
     </>
   );

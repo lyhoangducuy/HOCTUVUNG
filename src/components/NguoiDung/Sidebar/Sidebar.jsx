@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHouse, faFolderOpen, faBell, faPlus, faClone, faBook } from "@fortawesome/free-solid-svg-icons";
+import {
+  faHouse,
+  faFolderOpen,
+  faBell,
+  faPlus,
+  faClone,
+  faBook,
+} from "@fortawesome/free-solid-svg-icons";
 import "./sidebar.css";
 import { useNavigate } from "react-router-dom";
 
@@ -8,7 +15,7 @@ function Sidebar() {
   const navigate = useNavigate();
   const [myfolder, setMyfolder] = useState([]);
   const [moSidebar, setMoSidebar] = useState(true); // <-- trạng thái mở/đóng
-
+  const [prime, setPrime] = useState(false);
   const loaddata = () => {
     const folder = JSON.parse(localStorage.getItem("thuMuc") || "[]");
     // sửa typo 'lenght' -> 'length' và set luôn mảng
@@ -22,7 +29,12 @@ function Sidebar() {
     // nghe sự kiện toggle sidebar từ Header
     const toggle = () => setMoSidebar((v) => !v);
     window.addEventListener("sidebar:toggle", toggle);
+    const session = JSON.parse(sessionStorage.getItem("session") || "null");
+    if (!session?.idNguoiDung) return;
 
+    const ds = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
+    const found = ds.find((u) => u.idNguoiDung === session.idNguoiDung) || null;
+    setPrime(found?.isPrime === true);
     return () => {
       window.removeEventListener("foldersUpdated", loaddata);
       window.removeEventListener("sidebar:toggle", toggle);
@@ -63,7 +75,11 @@ function Sidebar() {
           Thư viện của tôi
         </div>
 
-        <div ref={notiRef} className="noti-wrapper" onClick={() => setShowNoti((v) => !v)}>
+        <div
+          ref={notiRef}
+          className="noti-wrapper"
+          onClick={() => setShowNoti((v) => !v)}
+        >
           <span className="noti-trigger">
             <FontAwesomeIcon icon={faBell} className="icon" />
             Thông báo
@@ -82,25 +98,12 @@ function Sidebar() {
 
       <div className="divider" />
 
-      <div className="sidebar_center">
-        <h3>Thư mục của tôi</h3>
-        <ul>
-          {myfolder.map((item) => (
-            <li
-              key={item.idThuMuc}
-              className="folder-item"
-              onClick={() => handleFolder(item.idThuMuc)} // dùng idThuMuc thực tế
-            >
-              <FontAwesomeIcon icon={faBook} className="icon icon-book" />
-              {item.tenThuMuc}
-            </li>
-          ))}
-        </ul>
-        <div className="create_folder" onClick={() => navigate("/newfolder")}>
-          <FontAwesomeIcon icon={faPlus} className="icon" />
-          Thư mục mới
+      {prime && (
+        <div className="sidebar_center">
+          <h3>Học qua video</h3>
+          <div onClick={() => navigate('/video')} style={{ cursor: 'pointer', color: '#2563eb', marginTop: 6 }}>Mở thư viện video</div>
         </div>
-      </div>
+      )}
 
       <div className="divider" />
 
