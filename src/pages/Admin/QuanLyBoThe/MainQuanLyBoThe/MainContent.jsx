@@ -6,20 +6,29 @@ import Edit from "../../../../components/Admin/Edit/Edit";
 import Add from "../../../../components/Admin/Add/Add";
 import ExportModal from "../../../../components/ExportModal/ExportModal";
 import "./MainContent.css";
-const MainContentQLBT = ({ Data }) => {
+
+const MainContentQLBT = ({ Data = [] }) => {
   const ColumsBoThe = [
     { name: "ID", key: "id" },
     { name: "Tên bộ thẻ", key: "name" },
-    { name: "Người tạo", key: "uerCreated" },
+    { name: "Người tạo", key: "userCreated" },
     { name: "Số thẻ", key: "numBer" },
-    { name: "Ngày tạo", key: "created" },
   ];
-  const [data, setData] = useState(Data);
 
-  // delete
+  const [data, setData] = useState(Data);
+  const [filteredData, setFilteredData] = useState(Data);
+
+  // Delete dialog
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
-  const [filteredData, setFilteredData] = useState(data);
+
+  // Edit dialog
+  const [showEdit, setShowEdit] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  // Export
+  const [exportModal, setExportModal] = useState(false);
 
   useEffect(() => {
     setFilteredData(data);
@@ -29,25 +38,40 @@ const MainContentQLBT = ({ Data }) => {
     setDeleteId(id);
     setShowDeleteDialog(true);
   };
-  // Export
-  const [exportModal, setExportModal] = useState(false);
+
   const onClose = () => {
     setShowDeleteDialog(false);
     setDeleteId(null);
   };
 
-  const onConfirmDelete = (id) => {
-    const updatedData = data.filter((item) => item.id !== id);
-    setData(updatedData);
+  // ✅ FIX: dùng fallback từ state nếu modal không truyền id
+  const onConfirmDelete = (idFromModal) => {
+    const id = idFromModal ?? deleteId;
+    if (id == null) return;
+
+    // Cập nhật state list hiển thị
+    const updated = data.filter((item) => String(item.id) !== String(id));
+    setData(updated);
+    setFilteredData(updated); // ✅ cập nhật ngay UI
+
+    // Xoá trong localStorage "boThe" (idBoThe phải trùng với item.id)
+    try {
+      const raw = localStorage.getItem("boThe");
+      const list = raw ? JSON.parse(raw) : [];
+      const next = (Array.isArray(list) ? list : []).filter(
+        (bt) => String(bt.idBoThe) !== String(id)
+      );
+      localStorage.setItem("boThe", JSON.stringify(next));
+    } catch (e) {
+      console.error("Xoá bộ thẻ trong localStorage thất bại:", e);
+    }
+
     onClose();
   };
-  //Edit
 
-  const [showEdit, setShowEdit] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [isEditMode, setIsEditMode] = useState(false);
   const handleEdit = (id) => {
-    const user = data.find((item) => item.id === id);
+    const user = data.find((item) => String(item.id) === String(id));
+    if (!user) return;
     setSelectedUser(user);
     setShowEdit(true);
     setIsEditMode(false);
@@ -58,21 +82,41 @@ const MainContentQLBT = ({ Data }) => {
     setSelectedUser(null);
     setIsEditMode(false);
   };
+  
 
-  const handleUserDetailSave = (updatedUser, isEditMode = false) => {
-    if (isEditMode) {
-      setIsEditMode(true);
-      return;
-    }
-    // Cập nhật dữ liệu
-    const updatedData = data.map((item) =>
-      item.id === updatedUser.id ? updatedUser : item
+  const handleUserDetailSave = (updatedUser, flagIsEditMode = false) => {
+    if (flagIsEditMode) { setIsEditMode(true); return; }
+
+    const updated = data.map((it) =>
+      String(it.id) === String(updatedUser.id) ? updatedUser : it
     );
-    setData(updatedData);
+    setData(updated);
+    setFilteredData(updated);
+
+    // Đồng bộ localStorage/boThe (map các field phù hợp schema thực tế)
+    try {
+      const raw = localStorage.getItem("boThe");
+      const list = raw ? JSON.parse(raw) : [];
+      const idx = list.findIndex(
+        (c) => String(c.idBoThe) === String(updatedUser.id)
+      );
+      if (idx !== -1) {
+        const cur = { ...list[idx] };
+        list[idx] = {
+          ...cur,
+          tenBoThe: updatedUser.name,
+          // tuỳ schema thật của bạn: soTu hoặc danhSachThe.length
+          soTu: Number(updatedUser.numBer) || cur.soTu || 0,
+          // idNguoiDung / thông tin creator không nhất thiết lưu string "userCreated"
+        };
+        localStorage.setItem("boThe", JSON.stringify(list));
+      }
+    } catch (e) {
+      console.error("Cập nhật bộ thẻ trong localStorage thất bại:", e);
+    }
+
     handleUserDetailClose();
   };
-
-  // Add functions
 
   const Action = [
     {
@@ -92,13 +136,12 @@ const MainContentQLBT = ({ Data }) => {
   return (
     <div className="main-content-admin-user">
       <h1>Quản Lý Bộ Thẻ</h1>
+
       <div className="user-actions">
         <div className="user-actions-buttons">
           <button
             className="btn btn-secondary"
-            onClick={() => {
-              setExportModal(true);
-            }}
+            onClick={() => setExportModal(true)}
           >
             Xuất
           </button>
@@ -112,10 +155,11 @@ const MainContentQLBT = ({ Data }) => {
         <Delete
           id={deleteId}
           onClose={onClose}
-          onConfirm={onConfirmDelete}
-          message="Bạn có muốn xóa người dùng này không?"
+          onConfirm={onConfirmDelete}  // sẽ tự fallback deleteId nếu không truyền id
+          message="Bạn có muốn xóa bộ thẻ này không?"
         />
       )}
+
       {showEdit && selectedUser && (
         <Edit
           user={selectedUser}
@@ -131,11 +175,9 @@ const MainContentQLBT = ({ Data }) => {
         <ExportModal
           isOpen={exportModal}
           onClose={() => setExportModal(false)}
-          onExport={(data) => {
-            console.log("Dữ liệu xuất:", data);
-          }}
-          filteredData={data}
-          title="Xuất thông tin người dùng"
+          onExport={(rows) => console.log("Dữ liệu export:", rows)}
+          filteredData={filteredData}
+          title="Xuất danh sách bộ thẻ"
           columns={ColumsBoThe}
           showAvatar={false}
         />

@@ -1,17 +1,17 @@
 .footer {
-  background: #ffffff; /* nền trắng */
-  color: #000000;      /* chữ đen mặc định */
+  background: #f3f4f6; /* nền xám nhạt */
+  color: #000000;
   padding: 40px 20px 20px;
   font-family: "Segoe UI", sans-serif;
 }
 
 .footer-container {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  max-width: 1200px;
-  margin: 0 auto;
-  gap: 30px;
+  justify-content: center;   /* căn giữa */
+  align-items: flex-start;
+  gap: 80px;                 /* khoảng cách giữa các cột */
+  max-width: 1000px;
+  margin: 0 auto;            /* căn giữa toàn bộ */
 }
 
 .footer-col {
@@ -22,7 +22,7 @@
 .footer-logo {
   font-size: 22px;
   font-weight: 700;
-  color: #000000; /* logo cũng đen */
+  color: #3b82f6; /* logo xanh */
   margin-bottom: 10px;
 }
 
@@ -50,18 +50,28 @@
 }
 
 .footer-col ul li a:hover {
-  color: #3b82f6; /* xanh khi hover */
+  color: #3b82f6;
 }
 
+.footer-col p a {
+  color: #000000;
+  text-decoration: none;
+}
+.footer-col p a:hover {
+  color: #3b82f6;
+}
+
+.social-icons {
+  margin-top: 10px;
+}
 .social-icons a {
-  color: #000000;  /* icon đen */
+  color: #000000;
   margin-right: 12px;
   font-size: 18px;
   transition: color .2s;
 }
-
 .social-icons a:hover {
-  color: #3b82f6; /* xanh khi hover */
+  color: #3b82f6;
 }
 
 .footer-bottom {
@@ -69,7 +79,13 @@
   padding-top: 12px;
   text-align: center;
   font-size: 14px;
-  color: #000000;
+  border-top: 1px solid #d1d5db;
+  color: #6b7280;
+}
+.footer,
+.footer p,
+.footer a {
+  color: #000; /* chữ đen */
 }
 
 /* Responsive */
@@ -77,8 +93,6 @@
   .footer-container {
     flex-direction: column;
     text-align: center;
-  }
-  .social-icons {
-    margin-top: 10px;
+    gap: 30px;
   }
 }

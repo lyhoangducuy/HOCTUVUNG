@@ -4,23 +4,37 @@ export default function ChiTietLopModal({ open, lop, onClose, onSave }) {
   if (!open || !lop) return null;
 
   const [form, setForm] = useState({
-    tenLop: "",
-    tenTruong: "",
-    tenQuocGia: "",
-    tenThanhPho: "",
+    tenKhoaHoc: "",
     moTa: "",
+    kienThucText: "", // nhập bằng dấu phẩy hoặc xuống dòng
   });
+
+  // helpers
+  const parseTags = (txt) =>
+    Array.from(
+      new Set(
+        (txt || "")
+          .split(/[\n,]+/g)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map((s) => s.toLowerCase())
+      )
+    );
+
+  const readJSON = (k, fb) => {
+    try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? fb; }
+    catch { return fb; }
+  };
+  const writeJSON = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const getAnyId = (x) => x?.idKhoaHoc ?? x?.idLop ?? x?.id ?? x?.maLop ?? null;
 
   // nạp dữ liệu ban đầu mỗi khi mở modal
   useEffect(() => {
     if (!open) return;
-    setForm({
-      tenLop: lop.tenLop || "",
-      tenTruong: lop.tenTruong || "",
-      tenQuocGia: lop.tenQuocGia || "",
-      tenThanhPho: lop.tenThanhPho || "",
-      moTa: lop.moTa || "",
-    });
+    const tenKhoaHoc = lop.tenKhoaHoc ?? lop.tenLop ?? "";
+    const moTa = lop.moTa ?? "";
+    const kienThucText = Array.isArray(lop.kienThuc) ? lop.kienThuc.join(", ") : "";
+    setForm({ tenKhoaHoc, moTa, kienThucText });
   }, [open, lop]);
 
   const onChange = (e) => {
@@ -28,98 +42,102 @@ export default function ChiTietLopModal({ open, lop, onClose, onSave }) {
     setForm((s) => ({ ...s, [name]: value }));
   };
 
-  const getLopId = (x) => x?.idLop ?? x?.id ?? x?.maLop ?? null;
-
-  // Fallback lưu localStorage (nếu không truyền onSave)
+  // Lưu: ưu tiên ghi vào 'khoaHoc', đồng thời cập nhật 'lop' (legacy) để tương thích
   const fallbackSaveToLocalStorage = (next) => {
-    try {
-      const keys = ["class", "classes", "lop"];
-      const id = getLopId(next);
-      if (!id) return;
+    const id = getAnyId(next);
+    if (!id) return;
 
-      for (const k of keys) {
-        const arr = JSON.parse(localStorage.getItem(k) || "[]");
-        if (Array.isArray(arr) && arr.length) {
-          const idx = arr.findIndex(
-            (it) => String(getLopId(it)) === String(id)
-          );
-          if (idx > -1) {
-            arr[idx] = { ...arr[idx], ...next };
-            localStorage.setItem(k, JSON.stringify(arr));
-          }
+    // 1) cập nhật 'khoaHoc'
+    {
+      const arr = readJSON("khoaHoc", []);
+      const idx = arr.findIndex((it) => String(getAnyId(it)) === String(id));
+      if (idx > -1) arr[idx] = { ...arr[idx], ...next };
+      else arr.push(next);
+      writeJSON("khoaHoc", arr);
+    }
+
+    // 2) cập nhật 'lop' (legacy) nếu tồn tại để không phá phần cũ
+    {
+      const arr = readJSON("lop", []);
+      if (Array.isArray(arr) && arr.length) {
+        const idx = arr.findIndex((it) => String(getAnyId(it)) === String(id));
+        if (idx > -1) {
+          arr[idx] = {
+            ...arr[idx],
+            // giữ đồng bộ name cũ để phần legacy còn dùng được
+            tenLop: next.tenKhoaHoc,
+            moTa: next.moTa,
+            boTheIds: next.boTheIds,
+            folderIds: next.folderIds,
+            thanhVienIds: next.thanhVienIds,
+            kienThuc: next.kienThuc,
+          };
+          writeJSON("lop", arr);
         }
       }
-    } catch {}
+    }
   };
 
   const handleSave = () => {
-    const trimmed = Object.fromEntries(
-      Object.entries(form).map(([k, v]) => [k, String(v || "").trim()])
-    );
-    const next = { ...lop, ...trimmed };
+    const tenKhoaHoc = String(form.tenKhoaHoc || "").trim();
+    const moTa = String(form.moTa || "").trim();
+    const kienThuc = parseTags(form.kienThucText);
+
+    // dựng object theo schema mới, kèm field cũ để tương thích
+    const next = {
+      ...lop,
+      idKhoaHoc: lop.idKhoaHoc ?? getAnyId(lop) ?? Date.now(),
+      tenKhoaHoc,
+      moTa,
+      kienThuc,
+      boTheIds: Array.isArray(lop.boTheIds) ? lop.boTheIds : [],
+      folderIds: Array.isArray(lop.folderIds) ? lop.folderIds : [],
+      thanhVienIds: Array.isArray(lop.thanhVienIds) ? lop.thanhVienIds : [],
+      // giữ tên cũ cho phần còn dùng 'lop'
+      tenLop: tenKhoaHoc,
+    };
+
     if (typeof onSave === "function") onSave(next);
     else fallbackSaveToLocalStorage(next);
+
     onClose?.();
   };
 
-  // Hiển thị số liệu (nếu cần)
+  // Số liệu hiển thị
   const soBoThe = Array.isArray(lop.boTheIds) ? lop.boTheIds.length : (Number.isFinite(lop?.soBoThe) ? lop.soBoThe : 0);
+  const soFolder = Array.isArray(lop.folderIds) ? lop.folderIds.length : (Number.isFinite(lop?.soFolder) ? lop.soFolder : 0);
   const soThanhVien = Array.isArray(lop.thanhVienIds) ? lop.thanhVienIds.length : (Number.isFinite(lop?.soThanhVien) ? lop.soThanhVien : 0);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="modal-header">
-          <h3>Thông tin lớp</h3>
+          <h3>Thông tin khóa học</h3>
           <button className="modal-close" onClick={onClose} aria-label="Đóng">✕</button>
         </div>
 
         <div className="modal-body">
           <div className="info-row">
-            <span className="label">Tên lớp:</span>
+            <span className="label">Tên khóa học:</span>
             <input
-              name="tenLop"
+              name="tenKhoaHoc"
               type="text"
-              value={form.tenLop}
+              value={form.tenKhoaHoc}
               onChange={onChange}
               className="input"
-              placeholder="Nhập tên lớp"
+              placeholder="Nhập tên khóa học"
             />
           </div>
 
           <div className="info-row">
-            <span className="label">Trường:</span>
-            <input
-              name="tenTruong"
-              type="text"
-              value={form.tenTruong}
+            <span className="label">Kỹ năng/Chủ đề (kiến thức):</span>
+            <textarea
+              name="kienThucText"
+              rows={2}
+              value={form.kienThucText}
               onChange={onChange}
-              className="input"
-              placeholder="Nhập tên trường"
-            />
-          </div>
-
-          <div className="info-row">
-            <span className="label">Quốc gia:</span>
-            <input
-              name="tenQuocGia"
-              type="text"
-              value={form.tenQuocGia}
-              onChange={onChange}
-              className="input"
-              placeholder="Nhập quốc gia"
-            />
-          </div>
-
-          <div className="info-row">
-            <span className="label">Thành phố:</span>
-            <input
-              name="tenThanhPho"
-              type="text"
-              value={form.tenThanhPho}
-              onChange={onChange}
-              className="input"
-              placeholder="Nhập thành phố"
+              className="textarea"
+              placeholder="Ví dụ: it, tiếng nhật, tiếng anh…"
             />
           </div>
 
@@ -131,7 +149,7 @@ export default function ChiTietLopModal({ open, lop, onClose, onSave }) {
               value={form.moTa}
               onChange={onChange}
               className="textarea"
-              placeholder="Mô tả ngắn về lớp…"
+              placeholder="Mô tả ngắn về khóa học…"
             />
           </div>
 

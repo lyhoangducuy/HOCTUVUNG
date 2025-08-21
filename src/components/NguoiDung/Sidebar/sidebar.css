@@ -1,277 +1,27 @@
-
-.sidebar_container {
-  width: 240px;
+/* ===== Container ===== */
+.sidebar_container{
+  width: 260px;
   height: 80vh;
-  padding: 20px 16px;
-  background-color: #fff;
-  border-right: 1px solid #e0e0e0;
-  font-family: 'Arial', sans-serif;
-  font-size: 15px;
-  color: #000;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
   margin-left: 18px;
-   
-}
-
-
-
-.icon {
-  font-size: 24px;
-  color: #000;
-  transition: color 0.2s, transform 0.2s;
-}
-
-
-
-.sidebar_top > div {
-  display: flex;
-  align-items: center;
-  padding: 8px 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 6px;
-  gap:20px
-}
-
-.sidebar_top > div:hover {
-  background-color: #f2f2f2;
-}
-
-
-.divider {
-  height: 1px;
-  background-color: #ccc;
-  margin: 8px 0;
-}
-.sidebar_center > div {
-  display: flex;
-  align-items: center;
-  padding: 8px 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 6px;
-  gap:20px
-}
-
-.sidebar_center h3 {
-  margin-bottom: 8px;
-  font-weight: 600;
-  font-size: 15px;
-}
-.folder-item {
-  display: flex;
-  align-items: center;
-  font-weight: 500;
-  gap: 20px; 
-  padding: 8px 12px;
-  font-size: 16px;
-  color: #2d2d2d;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.25s ease, color 0.25s ease;
-}
-
-.folder-item:hover {
-  background-color: #f6f7fb;
-}
-
-.folder-item .icon-book {
-  font-size: 16px;
-  color: #ffffff;
-}
-
-
-.create_folder {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 8px 4px;
-  border-radius: 6px;
-  transition: background-color 0.2s;
-}
-
-.create_folder:hover {
-  background-color: #f2f2f2;
-}
-
-
-.sidebar_bottom h3 {
-  margin-bottom: 8px;
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.sidebar_bottom > div {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 8px 4px;
-  border-radius: 6px;
-  transition: background-color 0.2s;
-   gap:20px
-}
-
-.sidebar_bottom > div:hover {
-  background-color: #f2f2f2;
-}
-/* ===== Notification (Thông báo) ===== */
-.noti-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  padding: 8px 4px;
-  border-radius: 6px;
-  transition: background-color 0.2s ease;
-}
-
-.noti-wrapper:hover {
-  background-color: #f2f2f2;
-}
-
-.noti-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  line-height: 1;
-  position: relative;
-}
-
-/* Badge số thông báo (nếu dùng) */
-.noti-badge {
-  position: absolute;
-  top: -6px;
-  right: -10px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: #ef4444;
-  color: #fff;
-  font-size: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-}
-
-/* Dropdown */
-.noti-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  width: 280px;
-  max-height: 360px;
-  overflow-y: auto;
+  padding: 16px;
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.08),
-    0 2px 6px rgba(0, 0, 0, 0.04);
-  padding: 10px;
-  z-index: 20;
-  animation: noti-fade-in 120ms ease-out;
-}
-
-/* Mũi tên nhỏ */
-.noti-dropdown::before {
-  content: "";
-  position: absolute;
-  top: -6px;
-  left: 16px;
-  width: 12px;
-  height: 12px;
-  background: #fff;
-  border-left: 1px solid #e5e7eb;
-  border-top: 1px solid #e5e7eb;
-  transform: rotate(45deg);
-}
-
-/* Item */
-.noti-item {
-  display: grid;
-  grid-template-rows: auto auto;
-  row-gap: 4px;
-  padding: 10px;
-  border-radius: 8px;
-  transition: background-color 0.18s ease;
-}
-
-.noti-item + .noti-item {
-  margin-top: 6px;
-}
-
-.noti-item:hover {
-  background: #f6f7fb;
-}
-
-.noti-title {
-  font-size: 14px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   color: #111827;
-  font-weight: 600;
-}
-
-.noti-time {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-/* Scrollbar tinh gọn (WebKit) */
-.noti-dropdown::-webkit-scrollbar {
-  width: 8px;
-}
-.noti-dropdown::-webkit-scrollbar-thumb {
-  background: #e5e7eb;
-  border-radius: 8px;
-}
-.noti-dropdown::-webkit-scrollbar-thumb:hover {
-  background: #d1d5db;
-}
-
-/* Hiệu ứng */
-@keyframes noti-fade-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Dark mode (nếu dùng class .dark cho body/app) */
-.dark .noti-dropdown {
-  background: #0f172a;
-  border-color: #1e293b;
-  box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.5),
-    0 2px 6px rgba(0, 0, 0, 0.3);
-}
-.dark .noti-dropdown::before {
-  background: #0f172a;
-  border-color: #1e293b;
-}
-.dark .noti-item:hover {
-  background: #0b1222;
-}
-.dark .noti-title {
-  color: #e5e7eb;
-}
-.dark .noti-time {
-  color: #9ca3af;
-}
-/* Trạng thái mặc định */
-.sidebar_container{
-  width: 260px;               /* hoặc width cũ của bạn */
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
   transition: transform .25s ease;
   will-change: transform;
 }
 
-/* Khi đóng */
+/* Đóng/mở */
 .sidebar_container.is-closed{
-  transform: translateX(-110%); /* trượt hẳn ra ngoài trái */
+  transform: translateX(-110%);
 }
 
-/* (Tuỳ chọn) trên mobile, sidebar overlay */
 @media (max-width: 768px){
   .sidebar_container{
     position: fixed;
@@ -279,3 +29,156 @@
     z-index: 1000;
   }
 }
+
+/* ===== Common ===== */
+.icon{
+  font-size: 18px;
+  color: #374151;
+  transition: transform .15s ease, color .15s ease;
+}
+
+.divider{
+  height: 1px;
+  background: #e5e7eb;
+  margin: 4px 0;
+}
+
+/* ===== Groups ===== */
+.sidebar_top,
+.sidebar_center,
+.sidebar_bottom{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ===== Item/link ===== */
+.sidebar_top > div,
+.sidebar_center > div,
+.sidebar_bottom > div,
+.create_folder,
+.noti-wrapper{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color .15s ease, transform .08s ease;
+  user-select: none;
+}
+
+.sidebar_top > div:hover,
+.sidebar_center > div:hover,
+.sidebar_bottom > div:hover,
+.create_folder:hover,
+.noti-wrapper:hover{
+  background: #f8fafc;
+}
+
+.sidebar_top > div:active,
+.sidebar_center > div:active,
+.sidebar_bottom > div:active{
+  transform: translateY(1px);
+}
+
+.sidebar_center h3,
+.sidebar_bottom h3{
+  margin: 6px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+/* ===== Prime badge (★) ===== */
+.prime-badge{
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 3px 8px;
+  line-height: 1;
+}
+
+/* ===== Notification ===== */
+.noti-wrapper{ position: relative; }
+.noti-trigger{ display: inline-flex; align-items: center; gap: 10px; }
+
+.noti-dropdown{
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 280px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+  z-index: 20;
+  animation: noti-fade-in 120ms ease-out;
+}
+
+.noti-dropdown::before{
+  content: "";
+  position: absolute;
+  top: -6px; left: 16px;
+  width: 12px; height: 12px;
+  background: #fff;
+  border-left: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
+  transform: rotate(45deg);
+}
+
+.noti-item{
+  display: grid;
+  row-gap: 4px;
+  padding: 10px;
+  border-radius: 10px;
+  transition: background-color .15s ease;
+}
+
+.noti-item + .noti-item{ margin-top: 6px; }
+.noti-item:hover{ background: #f8fafc; }
+
+.noti-title{ font-size: 14px; font-weight: 600; color: #111827; }
+.noti-time{ font-size: 12px; color: #6b7280; }
+
+/* Scrollbar gọn */
+.noti-dropdown::-webkit-scrollbar{ width: 8px; }
+.noti-dropdown::-webkit-scrollbar-thumb{ background: #e5e7eb; border-radius: 8px; }
+.noti-dropdown::-webkit-scrollbar-thumb:hover{ background: #d1d5db; }
+
+@keyframes noti-fade-in{
+  from{ opacity: 0; transform: translateY(-4px); }
+  to  { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Folder item (nếu dùng sau) ===== */
+.folder-item{
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 14px; color: #1f2937; font-weight: 500;
+  cursor: pointer; transition: background .15s ease;
+}
+.folder-item:hover{ background: #f8fafc; }
+
+/* Chỉ áp cho prime-badge ở khu vực video của sidebar */
+.sidebar_center .prime-badge{
+  position: static !important;   /* bỏ absolute từ header */
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+
+  margin-left: auto;             /* đẩy sao về mép phải của dòng */
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  line-height: 1;              /* cam đậm */
+}
+

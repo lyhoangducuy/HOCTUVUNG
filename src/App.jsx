@@ -38,7 +38,9 @@ import SuaBoThe from "./pages/NguoiDung/HocBoThe/SuaBoThe/SuaBoThe";
 import Landingpage from "./pages/Auth/LandingPage/Landingpage";
 import Traphi from "./pages/NguoiDung/TraPhi/Traphi";
 import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTRaPhi";
-
+import TrangTimKiem from "./pages/NguoiDung/TrangTimKiem/TrangTimKiem";
+import SettingAdmin from "./pages/Admin/Setting/Setting";
+import YeuCauTraPhi from "./router/phanQuyenTraPhi";
 
 export default function App() {
   return (
@@ -49,15 +51,16 @@ export default function App() {
         <Route path="/dang-ky" element={<DangKy />} />
         <Route path="/quen-mat-khau" element={<QuenMatKhau />} />
         <Route path="/landingpage" element={<Landingpage />} />
-       
+
       </Route>
       <Route element={<YeuCauDangNhap />}>
+
+        {/* Giảng viên / Học viên / Admin đã đăng nhập */}
         <Route
           element={
             <DangNhapTheoRole allowed={["GIANG_VIEN", "HOC_VIEN", "ADMIN"]} />
           }
         >
-          {/* Giảng viên */}
           <Route element={<NguoiDungLayout />}>
             <Route path="/giangvien" element={<TrangChu />} />
             <Route path="/hocvien" element={<TrangChu />} />
@@ -69,13 +72,18 @@ export default function App() {
             <Route path="/newBoThe" element={<NewBoThe />} />
             <Route path="/lop/:id" element={<Lop />} />
             <Route path="/thuviencuatoi" element={<ThuVienCuaToi />} />
-            <Route path="/video" element={<VideoLibrary/>} />
-            <Route path="/video/:id" element={<Video />} />
             <Route path="/setting" element={<Setting />} />
             <Route path="/suabothe/:id" element={<SuaBoThe />} />
+            <Route path="/timkiem/:id" element={<TrangTimKiem />} />
 
+            {/* 🔒 Chỉ người có gói trả phí còn hiệu lực mới truy cập được Video */}
+            <Route element={<YeuCauTraPhi />}>
+              <Route path="/video" element={<VideoLibrary />} />
+              <Route path="/video/:id" element={<Video />} />
+            </Route>
           </Route>
         </Route>
+
         <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN", "ADMIN"]} />}>
           <Route element={<NguoiDungLayout />}>
             <Route path="/newclass" element={<Newclass />} />
@@ -86,6 +94,7 @@ export default function App() {
         <Route element={<DangNhapTheoRole allowed={["ADMIN"]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<TrangChuAdmin />} />
+            <Route path="/admin/setting" element={<SettingAdmin />} />
             <Route path="/admin/quan-ly-user" element={<QuanLyUser />} />
             <Route path="/admin/thong-ke" element={<ThongKeAdmin />} />
             <Route path="/admin/quan-ly-tra-phi" element={<QuanLyTraPhi />} />

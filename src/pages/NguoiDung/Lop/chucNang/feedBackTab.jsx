@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-export default function FeedbackTab({ idLop }) {
+export default function FeedbackTab({ idKhoaHoc }) {
   const [feedbacks, setFeedbacks] = useState([]);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -21,31 +21,33 @@ export default function FeedbackTab({ idLop }) {
     }
   }, []);
 
-  const lop = useMemo(() => {
+  // Lấy khóa học hiện tại theo idKhoaHoc
+  const khoaHoc = useMemo(() => {
     try {
-      const ds = JSON.parse(localStorage.getItem("lop") || "[]");
-      return ds.find((l) => String(l.idLop) === String(idLop)) || null;
+      const ds = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
+      return ds.find((k) => String(k.idKhoaHoc) === String(idKhoaHoc)) || null;
     } catch {
       return null;
     }
-  }, [idLop]);
+  }, [idKhoaHoc]);
 
+  // Vai trò của user hiện tại
   const role = useMemo(() => {
     if (!session) return null;
     const u = dsNguoiDung.find((x) => x.idNguoiDung === session.idNguoiDung);
     return u?.vaiTro || null;
   }, [session, dsNguoiDung]);
 
-  // check có phải thành viên không
+  // Có phải thành viên khóa học không
   const laThanhVien = useMemo(() => {
-    return lop?.thanhVienIds?.includes(session?.idNguoiDung);
-  }, [lop, session]);
+    return khoaHoc?.thanhVienIds?.includes(session?.idNguoiDung);
+  }, [khoaHoc, session]);
 
-  // load feedback
+  // Load feedback cho khóa học
   useEffect(() => {
     const all = JSON.parse(localStorage.getItem("feedback") || "[]");
-    setFeedbacks(all.filter((f) => String(f.idLop) === String(idLop)));
-  }, [idLop]);
+    setFeedbacks(all.filter((f) => String(f.idKhoaHoc) === String(idKhoaHoc)));
+  }, [idKhoaHoc]);
 
   const themFeedback = (e) => {
     e.preventDefault();
@@ -56,30 +58,27 @@ export default function FeedbackTab({ idLop }) {
     }
 
     const fb = {
-      idLop,
+      idKhoaHoc,
       idNguoiDung: session.idNguoiDung,
       rating,
-      comment,
+      comment: (comment || "").trim(),
       ngay: new Date().toISOString(),
     };
 
     const all = JSON.parse(localStorage.getItem("feedback") || "[]");
 
-    // tránh cho 1 user đánh giá nhiều lần: ghi đè nếu đã có
+    // Mỗi user chỉ 1 feedback / khóa học: ghi đè nếu đã có
     const idx = all.findIndex(
       (f) =>
-        String(f.idLop) === String(idLop) &&
+        String(f.idKhoaHoc) === String(idKhoaHoc) &&
         String(f.idNguoiDung) === String(session.idNguoiDung)
     );
-    if (idx > -1) {
-      all[idx] = fb;
-    } else {
-      all.push(fb);
-    }
+    if (idx > -1) all[idx] = fb;
+    else all.push(fb);
 
     localStorage.setItem("feedback", JSON.stringify(all));
 
-    setFeedbacks(all.filter((f) => String(f.idLop) === String(idLop)));
+    setFeedbacks(all.filter((f) => String(f.idKhoaHoc) === String(idKhoaHoc)));
     setRating(0);
     setComment("");
   };
@@ -88,7 +87,7 @@ export default function FeedbackTab({ idLop }) {
     <div className="tab-content">
       <h3>Feedback ({feedbacks.length})</h3>
 
-      {/* Chỉ HOC_VIEN và là thành viên lớp mới có form feedback */}
+      {/* Chỉ HOC_VIEN và là thành viên khóa học mới có form feedback */}
       {role === "HOC_VIEN" && laThanhVien && (
         <form onSubmit={themFeedback} style={{ margin: "12px 0" }}>
           <div style={{ marginBottom: 8 }}>

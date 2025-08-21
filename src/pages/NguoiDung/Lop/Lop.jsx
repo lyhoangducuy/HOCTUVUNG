@@ -13,27 +13,34 @@ import ChonBoThe from "./chucNang/chonBoThe";
 import FeedbackTab from "./chucNang/feedBackTab";
 
 export default function Lop() {
-  const { id } = useParams();
+  const { id } = useParams(); // idKhoaHoc từ route /lop/:id
   const navigate = useNavigate();
 
-  const [chiTietLop, setChiTietLop] = useState(null);
+  const [chiTietKhoaHoc, setChiTietKhoaHoc] = useState(null);
   const [hienDropdown, setHienDropdown] = useState(false);
   const [tabDangChon, setTabDangChon] = useState("thuVien");
 
   const [hienMenu3Cham, setHienMenu3Cham] = useState(false);
   const nutMenuRef = useRef(null);
 
-  const [moChiTietLop, setMoChiTietLop] = useState(false);
+  const [moChiTietKhoaHoc, setMoChiTietKhoaHoc] = useState(false);
   const [moChonBoThe, setMoChonBoThe] = useState(false);
 
-  // nạp lớp theo id từ localStorage
+  // nạp khóa học theo id từ localStorage.khoaHoc
   useEffect(() => {
-    const dsLop = JSON.parse(localStorage.getItem("lop") || "[]");
-    const lopTimThay = dsLop.find((item) => String(item.idLop) === String(id));
-    if (lopTimThay && !Array.isArray(lopTimThay.thanhVienIds)) {
-      lopTimThay.thanhVienIds = [];
+    try {
+      const dsKH = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
+      const khTimThay = dsKH.find((item) => String(item.idKhoaHoc) === String(id));
+      if (khTimThay) {
+        if (!Array.isArray(khTimThay.thanhVienIds)) khTimThay.thanhVienIds = [];
+        if (!Array.isArray(khTimThay.boTheIds)) khTimThay.boTheIds = [];
+        if (!Array.isArray(khTimThay.folderIds)) khTimThay.folderIds = [];
+        if (!Array.isArray(khTimThay.kienThuc)) khTimThay.kienThuc = [];
+      }
+      setChiTietKhoaHoc(khTimThay || null);
+    } catch {
+      setChiTietKhoaHoc(null);
     }
-    setChiTietLop(lopTimThay || null);
   }, [id]);
 
   const doiTrangThaiDropdown = () => setHienDropdown((prev) => !prev);
@@ -45,7 +52,7 @@ export default function Lop() {
       return [];
     }
   }, []);
-  // thêm vào ngay dưới const dsNguoiDung = useMemo(...)
+
   const session = useMemo(() => {
     try {
       return JSON.parse(sessionStorage.getItem("session") || "null");
@@ -54,46 +61,43 @@ export default function Lop() {
     }
   }, []);
 
-
   const thanhVien = useMemo(() => {
-    if (!chiTietLop?.thanhVienIds?.length) return [];
-    return chiTietLop.thanhVienIds
+    if (!chiTietKhoaHoc?.thanhVienIds?.length) return [];
+    return chiTietKhoaHoc.thanhVienIds
       .map((uid) => dsNguoiDung.find((u) => u.idNguoiDung === uid))
       .filter(Boolean);
-  }, [chiTietLop, dsNguoiDung]);
+  }, [chiTietKhoaHoc, dsNguoiDung]);
 
-  const moHopThoaiChiTiet = () => setMoChiTietLop(true);
+  const moHopThoaiChiTiet = () => setMoChiTietKhoaHoc(true);
 
-  const xoaLop = () => {
-    if (!chiTietLop) return;
-    const xacNhan = window.confirm(`Bạn chắc chắn muốn xoá lớp "${chiTietLop.tenLop}"?`);
+  const xoaKhoaHoc = () => {
+    if (!chiTietKhoaHoc) return;
+    const xacNhan = window.confirm(`Bạn chắc chắn muốn xoá khóa học "${chiTietKhoaHoc.tenKhoaHoc || ""}"?`);
     if (!xacNhan) return;
 
-    const ds = JSON.parse(localStorage.getItem("lop") || "[]");
-    const dsMoi = ds.filter((l) => String(l.idLop) !== String(chiTietLop.idLop));
-    localStorage.setItem("lop", JSON.stringify(dsMoi));
+    const ds = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
+    const dsMoi = ds.filter((k) => String(k.idKhoaHoc) !== String(chiTietKhoaHoc.idKhoaHoc));
+    localStorage.setItem("khoaHoc", JSON.stringify(dsMoi));
 
-    alert("Đã xoá lớp.");
+    alert("Đã xoá khóa học.");
     navigate("/giangvien");
   };
 
   // ✅ lưu thay đổi từ modal vào localStorage + state
-  const luuChiTietLop = (lopDaSua) => {
+  const luuChiTietKhoaHoc = (khDaSua) => {
     try {
-      const ds = JSON.parse(localStorage.getItem("lop") || "[]");
-      const idx = ds.findIndex((l) => String(l.idLop) === String(lopDaSua?.idLop));
+      const ds = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
+      const idx = ds.findIndex((k) => String(k.idKhoaHoc) === String(khDaSua?.idKhoaHoc));
       if (idx > -1) {
-        ds[idx] = { ...ds[idx], ...lopDaSua };
-      } else if (lopDaSua) {
-        ds.push(lopDaSua); // phòng khi chưa có, sẽ thêm mới
+        ds[idx] = { ...ds[idx], ...khDaSua };
+      } else if (khDaSua) {
+        ds.push(khDaSua);
       }
-      localStorage.setItem("lop", JSON.stringify(ds));
-      // đồng bộ lại state hiển thị
-      setChiTietLop(idx > -1 ? ds[idx] : lopDaSua);
+      localStorage.setItem("khoaHoc", JSON.stringify(ds));
+      setChiTietKhoaHoc(idx > -1 ? ds[idx] : khDaSua);
     } catch (e) {
-      console.error("Không thể lưu lớp vào localStorage:", e);
-      // vẫn cập nhật state để UI phản ánh
-      setChiTietLop(lopDaSua);
+      console.error("Không thể lưu khóa học vào localStorage:", e);
+      setChiTietKhoaHoc(khDaSua);
     }
   };
 
@@ -110,8 +114,8 @@ export default function Lop() {
         </div>
 
         <div className="ten-lop">
-          <h1>{chiTietLop?.tenLop || "Lớp học"}</h1>
-          <h3>{chiTietLop?.tenTruong || ""}</h3>
+          <h1>{chiTietKhoaHoc?.tenKhoaHoc || "Khóa học"}</h1>
+          {/* BỎ dòng tên trường */}
         </div>
 
         <div className="header-actions">
@@ -149,11 +153,10 @@ export default function Lop() {
               anchorRef={nutMenuRef}
               onClose={() => setHienMenu3Cham(false)}
               onViewDetail={moHopThoaiChiTiet}
-              onDelete={xoaLop}
-              idLop={chiTietLop?.idLop}
-              isOwner={chiTietLop?.idNguoiDung === session?.idNguoiDung}
+              onDelete={xoaKhoaHoc}
+              idKhoaHoc={chiTietKhoaHoc?.idKhoaHoc}
+              isOwner={chiTietKhoaHoc?.idNguoiDung === session?.idNguoiDung}
             />
-
           </div>
         </div>
       </div>
@@ -164,10 +167,10 @@ export default function Lop() {
             className={`tab-item ${tabDangChon === "thuVien" ? "active" : ""}`}
             onClick={() => setTabDangChon("thuVien")}
           >
-            Thư viện lớp học
+            Thư viện khóa học
           </button>
 
-          {chiTietLop?.idNguoiDung === session?.idNguoiDung && (
+          {chiTietKhoaHoc?.idNguoiDung === session?.idNguoiDung && (
             <button
               className={`tab-item ${tabDangChon === "thanhVien" ? "active" : ""}`}
               onClick={() => setTabDangChon("thanhVien")}
@@ -184,26 +187,25 @@ export default function Lop() {
           </button>
         </div>
 
-
-        {tabDangChon === "thuVien" && chiTietLop && (
+        {tabDangChon === "thuVien" && chiTietKhoaHoc && (
           <div className="tab-content">
             <ThuVienLop
-              lop={chiTietLop}
-              onCapNhat={(lopMoi) => setChiTietLop(lopMoi)}
+              khoaHoc={chiTietKhoaHoc}
+              onCapNhat={(khMoi) => setChiTietKhoaHoc(khMoi)}
             />
           </div>
         )}
-        {tabDangChon === "feedback" && chiTietLop && (
-          <FeedbackTab idLop={chiTietLop.idLop} />
-        )}
 
+        {tabDangChon === "feedback" && chiTietKhoaHoc && (
+          <FeedbackTab idKhoaHoc={chiTietKhoaHoc.idKhoaHoc} />
+        )}
 
         {tabDangChon === "thanhVien" && (
           <div className="tab-content" style={{ display: "block" }}>
-            {chiTietLop && (
+            {chiTietKhoaHoc && (
               <MoiThanhVien
-                idLop={chiTietLop.idLop}
-                onCapNhat={(lopMoi) => setChiTietLop(lopMoi)}
+                idKhoaHoc={chiTietKhoaHoc.idKhoaHoc}
+                onCapNhat={(khMoi) => setChiTietKhoaHoc(khMoi)}
               />
             )}
 
@@ -223,23 +225,22 @@ export default function Lop() {
             </div>
           </div>
         )}
-
       </div>
 
-      {/* Modal chi tiết lớp — ✅ truyền onSave để lưu localStorage */}
+      {/* Modal chi tiết khóa học — ✅ truyền onSave để lưu localStorage */}
       <ChiTietLopModal
-        open={moChiTietLop}
-        lop={chiTietLop}
-        onClose={() => setMoChiTietLop(false)}
-        onSave={luuChiTietLop}
+        open={moChiTietKhoaHoc}
+        lop={chiTietKhoaHoc}
+        onClose={() => setMoChiTietKhoaHoc(false)}
+        onSave={luuChiTietKhoaHoc}
       />
 
       {/* Modal chọn bộ thẻ */}
-      {moChonBoThe && chiTietLop && (
+      {moChonBoThe && chiTietKhoaHoc && (
         <ChonBoThe
-          idLop={chiTietLop.idLop}
+          idKhoaHoc={chiTietKhoaHoc.idKhoaHoc}
           onDong={() => setMoChonBoThe(false)}
-          onCapNhat={(lopMoi) => setChiTietLop(lopMoi)}
+          onCapNhat={(khMoi) => setChiTietKhoaHoc(khMoi)}
         />
       )}
     </>

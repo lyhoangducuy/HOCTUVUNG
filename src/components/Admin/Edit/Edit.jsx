@@ -9,18 +9,12 @@ const Edit = ({
   Colums,
   showAvatar,
 }) => {
-  const [formData, setFormData] = useState({
-    ...user,
-  });
-
+  const [formData, setFormData] = useState({ ...user });
   const fileInputRef = useRef(null);
 
   const handleInputChange = (key) => (e) => {
     const value = e.target.value;
-    setFormData((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSave = () => {
@@ -29,35 +23,38 @@ const Edit = ({
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
-      console.log("File selected:", file.name);
       const reader = new FileReader();
-      reader.onload = (e) => {
-        console.log("Image loaded successfully");
-        setFormData((prev) => ({
-          ...prev,
-          image: e.target.result,
-        }));
+      reader.onload = (ev) => {
+        setFormData((prev) => ({ ...prev, image: ev.target.result }));
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleAvatarClick = () => {
-    if (isEditMode) {
-      fileInputRef.current?.click();
-    }
+    if (isEditMode) fileInputRef.current?.click();
   };
+
+  // ===== Helpers cho select mặc định =====
+  const defaultRoleOptions = [
+    { value: "HOC_VIEN", label: "Học viên" },
+    { value: "GIANG_VIEN", label: "Giảng viên" },
+    { value: "ADMIN", label: "Admin" },
+  ];
+  const defaultStatusOptions = [
+    { value: "Đang hoạt động", label: "Đang hoạt động" },
+    { value: "Hết hạn", label: "Hết hạn" },
+    { value: "Đã hủy", label: "Đã hủy" },
+  ];
 
   return (
     <div className="user-detail-modal-overlay">
       <div className="user-detail-modal">
         <div className="user-detail-modal-header">
           <h2>Thông tin chi tiết</h2>
-          <button className="modal-close-btn" onClick={onClose}>
-            ×
-          </button>
+          <button className="modal-close-btn" onClick={onClose}>×</button>
         </div>
 
         <div className="user-detail-modal-content">
@@ -66,16 +63,12 @@ const Edit = ({
               <div className="user-avatar">
                 <div className="avatar-placeholder" onClick={handleAvatarClick}>
                   {formData.image ? (
-                    <img
-                      src={formData.image}
-                      alt="Avatar"
-                      className="avatar-image"
-                    />
+                    <img src={formData.image} alt="Avatar" className="avatar-image" />
                   ) : (
                     <div className="avatar-icon">👤</div>
                   )}
-                  {isEditMode && <div className="avatar-edit-icon">+</div>}
                 </div>
+                {isEditMode && <div className="avatar-edit-icon">+</div>}
               </div>
               <input
                 type="file"
@@ -89,35 +82,40 @@ const Edit = ({
 
           <div className="user-info-section">
             {Colums.map((item, index) => {
+              const val = formData[item.key] ?? "";
+
+              // 1) ROLE: nếu có options thì dùng options; nếu không thì dùng mặc định
               if (item.key === "role") {
+                const opts = Array.isArray(item.options) ? item.options : defaultRoleOptions;
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
                     {isEditMode ? (
                       <select
-                        name="role"
-                        value={formData[item.key]}
+                        value={val}
                         onChange={handleInputChange(item.key)}
                         className="edit-input"
                       >
-                        <option value="Student">Student</option>
-                        <option value="Teacher">Teacher</option>
-                        <option value="Admin">Admin</option>
+                        {opts.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
                       </select>
                     ) : (
-                      <span>{formData[item.key]}</span>
+                      <span>{val}</span>
                     )}
                   </div>
                 );
-              } else if (item.key === "password") {
+              }
+
+              // 2) PASSWORD: giữ nguyên hành vi
+              if (item.key === "password") {
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
                     {isEditMode ? (
                       <input
                         type="password"
-                        name={item.key}
-                        value={formData[item.key]}
+                        value={val}
                         onChange={handleInputChange(item.key)}
                         className="edit-input"
                       />
@@ -126,63 +124,86 @@ const Edit = ({
                     )}
                   </div>
                 );
-              }  else if (item.key==="status"){
-                return (
-                  <div key={index} className="info-row">
-                      <label>{item.name}</label>
-                      {isEditMode ? (
-                          <select 
-                          name="stastus"
-                          value={formData[item.key]}
-                          onChange={handleInputChange(item.key)}
-                          className="edit-input"
-                          >
-                            <option value="Đang hoạt động">Đang hoạt động</option>
-                            <option value="Hết hạn">Hết hạn</option>
-                            <option value="Đã hủy">Đã hủy</option>
-
-                          </select>
-                      ):(
-                        <span>{formData[item.key]}</span>
-                      )}
-
-                  </div>
-                )
-
               }
-            else {
+
+              // 3) STATUS: nếu có options thì dùng; nếu không thì dùng mặc định
+              if (item.key === "status") {
+                const opts = Array.isArray(item.options) ? item.options : defaultStatusOptions;
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
                     {isEditMode ? (
-                      <input
-                        type="text"
-                        name={item.key}
-                        value={formData[item.key]}
+                      <select
+                        value={val}
                         onChange={handleInputChange(item.key)}
                         className="edit-input"
-                      />
+                      >
+                        {opts.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
                     ) : (
-                      <span>{formData[item.key]}</span>
+                      <span>{val}</span>
                     )}
                   </div>
                 );
               }
+
+              // 4) GENERIC SELECT: nếu cột có item.options => render <select>
+              if (Array.isArray(item.options)) {
+                return (
+                  <div key={index} className="info-row">
+                    <label>{item.name}</label>
+                    {isEditMode ? (
+                      <select
+                        value={val}
+                        onChange={handleInputChange(item.key)}
+                        className="edit-input"
+                      >
+                        <option value="">-- chọn --</option>
+                        {item.options.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      // hiển thị label tương ứng khi ở chế độ xem
+                      <span>
+                        {(() => {
+                          const found = item.options.find((o) => String(o.value) === String(val));
+                          return found ? found.label : val;
+                        })()}
+                      </span>
+                    )}
+                  </div>
+                );
+              }
+
+              // 5) Mặc định: input text như cũ
+              return (
+                <div key={index} className="info-row">
+                  <label>{item.name}</label>
+                  {isEditMode ? (
+                    <input
+                      type="text"
+                      value={val}
+                      onChange={handleInputChange(item.key)}
+                      className="edit-input"
+                    />
+                  ) : (
+                    <span>{val}</span>
+                  )}
+                </div>
+              );
             })}
           </div>
         </div>
+
         <div className="user-detail-modal-actions">
-          <button className="btn-cancel" onClick={onClose}>
-            Đóng
-          </button>
+          <button className="btn-cancel" onClick={onClose}>Đóng</button>
           {isEditMode ? (
-            <button className="btn-save" onClick={handleSave}>
-              Lưu
-            </button>
+            <button className="btn-save" onClick={handleSave}>Lưu</button>
           ) : (
-            <button className="btn-edit" onClick={() => onSave(user, true)}>
-              Chỉnh sửa
-            </button>
+            <button className="btn-edit" onClick={() => onSave(user, true)}>Chỉnh sửa</button>
           )}
         </div>
       </div>

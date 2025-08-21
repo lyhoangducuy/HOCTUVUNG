@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 /**
- * Menu dấu ba chấm cho trang Lớp
+ * Menu dấu ba chấm cho trang Khóa học
  * props:
  * - open: boolean
  * - anchorRef: ref tới nút "..."
  * - onClose: () => void
  * - onViewDetail: () => void
  * - onDelete: () => void
- * - isOwner: boolean (chỉ chủ lớp mới thấy nút sửa/xoá)
- * - idLop: string (id lớp hiện tại để lưu feedback)
+ * - isOwner: boolean (chỉ chủ khóa học mới thấy nút sửa/xoá)
+ * - idKhoaHoc: string | number (id khóa học để lưu feedback & kiểm tra thành viên)
  */
 export default function LopMenu({
   open,
@@ -18,7 +18,7 @@ export default function LopMenu({
   onViewDetail,
   onDelete,
   isOwner = false,
-  idLop,
+  idKhoaHoc,
 }) {
   const menuRef = useRef(null);
   const [rating, setRating] = useState(0);
@@ -41,14 +41,15 @@ export default function LopMenu({
     }
   }, []);
 
-  const lop = useMemo(() => {
+  // khóa học hiện tại
+  const khoaHoc = useMemo(() => {
     try {
-      const ds = JSON.parse(localStorage.getItem("lop") || "[]");
-      return ds.find((l) => String(l.idLop) === String(idLop)) || null;
+      const ds = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
+      return ds.find((l) => String(l.idKhoaHoc) === String(idKhoaHoc)) || null;
     } catch {
       return null;
     }
-  }, [idLop]);
+  }, [idKhoaHoc]);
 
   const role = useMemo(() => {
     if (!session) return null;
@@ -56,8 +57,8 @@ export default function LopMenu({
     return u?.vaiTro || null;
   }, [session, dsNguoiDung]);
 
-  // chỉ true nếu user nằm trong danh sách thành viên của lớp
-  const laThanhVien = lop?.thanhVienIds?.includes(session?.idNguoiDung);
+  // chỉ true nếu user nằm trong danh sách thành viên của khóa học
+  const laThanhVien = !!khoaHoc?.thanhVienIds?.includes(session?.idNguoiDung);
 
   // click outside để đóng menu
   useEffect(() => {
@@ -85,17 +86,17 @@ export default function LopMenu({
     }
 
     const fb = {
-      idLop,
+      idKhoaHoc,
       idNguoiDung: session.idNguoiDung,
       rating,
-      comment,
+      comment: (comment || "").trim(),
       ngay: new Date().toISOString(),
     };
 
     const all = JSON.parse(localStorage.getItem("feedback") || "[]");
     const idx = all.findIndex(
       (f) =>
-        String(f.idLop) === String(idLop) &&
+        String(f.idKhoaHoc) === String(idKhoaHoc) &&
         String(f.idNguoiDung) === String(session.idNguoiDung)
     );
     if (idx > -1) {
@@ -122,7 +123,7 @@ export default function LopMenu({
               onClose?.();
             }}
           >
-            Xem chi tiết lớp hoặc sửa
+            Xem chi tiết khóa học hoặc sửa
           </button>
 
           <button
@@ -132,7 +133,7 @@ export default function LopMenu({
               onClose?.();
             }}
           >
-            Xoá lớp
+            Xoá khóa học
           </button>
         </>
       )}
@@ -142,7 +143,7 @@ export default function LopMenu({
           onSubmit={themFeedback}
           style={{ padding: 10, borderTop: "1px solid #eee" }}
         >
-          <div style={{ marginBottom: 6, fontWeight: 600 }}>Đánh giá lớp</div>
+          <div style={{ marginBottom: 6, fontWeight: 600 }}>Đánh giá khóa học</div>
           <div style={{ marginBottom: 6 }}>
             {[1, 2, 3, 4, 5].map((star) => (
               <span

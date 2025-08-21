@@ -1,83 +1,103 @@
+// src/components/Sidebar/Sidebar.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faHouse,
-  faFolderOpen,
-  faBell,
-  faPlus,
-  faClone,
-  faBook,
-  faVideo,
-} from "@fortawesome/free-solid-svg-icons";
+import { faHouse, faFolderOpen, faBell, faVideo } from "@fortawesome/free-solid-svg-icons";
 import "./sidebar.css";
 import { useNavigate } from "react-router-dom";
 
+/* ===== Helpers ===== */
+const readJSON = (k, def = []) => {
+  try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? def; }
+  catch { return def; }
+};
+const parseVNDate = (dmy) => {
+  if (!dmy) return null;
+  const [d, m, y] = dmy.split("/").map(Number);
+  return y ? new Date(y, (m || 1) - 1, d || 1) : null;
+};
+// ✅ Chỉ tính prime nếu: chưa bị hủy + còn hạn
+const hasActiveSub = (userId) => {
+  const list = readJSON("goiTraPhiCuaNguoiDung", []);
+  const today = new Date();
+  return list.some((s) =>
+    s.idNguoiDung === userId &&
+    s.status !== "Đã hủy" &&
+    parseVNDate(s.NgayKetThuc) >= today
+  );
+};
+
 function Sidebar() {
   const navigate = useNavigate();
-  const [moSidebar, setMoSidebar] = useState(true); // <-- trạng thái mở/đóng
+
+  const [open, setOpen] = useState(true);
   const [prime, setPrime] = useState(false);
 
-  const loaddata = () => {
-    const folder = JSON.parse(localStorage.getItem("thuMuc") || "[]");
-    // sửa typo 'lenght' -> 'length' và set luôn mảng
+  const [showNoti, setShowNoti] = useState(false);
+  const notiRef = useRef(null);
 
-  };
-
+  // load user + prime; lắng nghe thay đổi
   useEffect(() => {
-    loaddata();
-    window.addEventListener("foldersUpdated", loaddata);
+    const loadPrime = () => {
+      const ss = JSON.parse(sessionStorage.getItem("session") || "null");
+      if (!ss?.idNguoiDung) { setPrime(false); return; }
+      setPrime(hasActiveSub(ss.idNguoiDung));
+    };
 
-    // nghe sự kiện toggle sidebar từ Header
-    const toggle = () => setMoSidebar((v) => !v);
-    window.addEventListener("sidebar:toggle", toggle);
-    const session = JSON.parse(sessionStorage.getItem("session") || "null");
-    if (!session?.idNguoiDung) return;
+    loadPrime();
 
-    const ds = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-    const found = ds.find((u) => u.idNguoiDung === session.idNguoiDung) || null;
-    setPrime(found?.isPrime === true);
+    const onToggle = () => setOpen(v => !v);
+    const onStorage = (e) => {
+      if (e.key === "goiTraPhiCuaNguoiDung") loadPrime();
+    };
+    const onSubChanged = () => loadPrime(); // Traphi phát sự kiện này khi đăng ký/hủy
+
+    window.addEventListener("sidebar:toggle", onToggle);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("subscriptionChanged", onSubChanged);
+
     return () => {
-      window.removeEventListener("foldersUpdated", loaddata);
-      window.removeEventListener("sidebar:toggle", toggle);
+      window.removeEventListener("sidebar:toggle", onToggle);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("subscriptionChanged", onSubChanged);
     };
   }, []);
 
-
-  const notiRef = useRef(null);
-  const [showNoti, setShowNoti] = useState(false);
-
+  // đóng dropdown thông báo khi click ra ngoài
   useEffect(() => {
-    function handleClickOutside(e) {
-      if (notiRef.current && !notiRef.current.contains(e.target)) {
-        setShowNoti(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    const outside = (e) => {
+      if (notiRef.current && !notiRef.current.contains(e.target)) setShowNoti(false);
+    };
+    document.addEventListener("mousedown", outside);
+    return () => document.removeEventListener("mousedown", outside);
   }, []);
 
+  const gotoVideo = () => {
+    if (!prime) {
+      alert("Bạn cần nâng cấp tài khoản để dùng chức năng Video.");
+      navigate("/tra-phi");
+      return;
+    }
+    navigate("/video");
+  };
+
   return (
-    <div className={`sidebar_container ${moSidebar ? "" : "is-closed"}`}>
+    <div className={`sidebar_container ${open ? "" : "is-closed"}`}>
       <div className="sidebar_top">
         <div onClick={() => navigate("/giangvien")}>
           <FontAwesomeIcon icon={faHouse} className="icon" />
           Trang chủ
         </div>
+
         <div onClick={() => navigate("/thuviencuatoi")}>
           <FontAwesomeIcon icon={faFolderOpen} className="icon" />
           Thư viện của tôi
         </div>
 
-        <div
-          ref={notiRef}
-          className="noti-wrapper"
-          onClick={() => setShowNoti((v) => !v)}
-        >
+        <div ref={notiRef} className="noti-wrapper" onClick={() => setShowNoti(v => !v)}>
           <span className="noti-trigger">
             <FontAwesomeIcon icon={faBell} className="icon" />
             Thông báo
           </span>
-
           {showNoti && (
             <div className="noti-dropdown">
               <div className="noti-item" onClick={() => setShowNoti(false)}>
@@ -92,21 +112,15 @@ function Sidebar() {
       <div className="divider" />
 
       <div className="sidebar_center">
-        <div onClick={() => navigate('/video')} style={{ cursor: 'pointer', color: '#2563eb', marginTop: 6 }}>
-          <FontAwesomeIcon icon={faVideo} />
-          Học Tự Vựng Qua Video
+        <div onClick={gotoVideo}>
+          <FontAwesomeIcon icon={faVideo} className="icon" />
+          Học qua Video
+          {/* ⭐ Hiện sao khi CHƯA prime */}
+          {!prime && <span className="prime-badge" title="Nâng cấp để mở khóa">★</span>}
         </div>
       </div>
 
       <div className="divider" />
-
-      <div className="sidebar_bottom">
-        <h3>Bắt đầu</h3>
-        <div>
-          <FontAwesomeIcon icon={faClone} className="icon" />
-          Flashcards
-        </div>
-      </div>
     </div>
   );
 }

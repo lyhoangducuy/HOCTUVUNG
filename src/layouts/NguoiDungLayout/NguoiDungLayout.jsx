@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import "./NguoiDungLayout.css";
 import Header from "../../components/NguoiDung/Header/Header";
 import Sidebar from "../../components/NguoiDung/Sidebar/Sidebar";
+import Footer from "../../components/Auth/Footer/Footer";
 
 export default function NguoiDungLayout() {
   return (
@@ -16,6 +17,7 @@ export default function NguoiDungLayout() {
           <Outlet />
         </div>
       </div>
+      <Footer/>
     </div>
   );
 }
