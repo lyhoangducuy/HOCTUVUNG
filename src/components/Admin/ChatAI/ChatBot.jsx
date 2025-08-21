@@ -4,7 +4,7 @@ export async function fetchVocabulary(topic, count = 10) {
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
-      Authorization: "Bearer ", // chỉ dùng local
+      Authorization: "Bearer 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", // chỉ dùng local
       "Content-Type": "application/json",
     },
     body: JSON.stringify({

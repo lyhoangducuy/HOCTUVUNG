@@ -19,10 +19,8 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
     () => (Array.isArray(Data) ? Data.slice(startIndex, endIndex) : []),
     [Data, startIndex, endIndex]
   );
-
-  const handlePrev = () => currentPage > 1 && setCurrentPage(currentPage - 1);
-  const handleNext = () =>
-    currentPage < totalPages && setCurrentPage(currentPage + 1);
+  const handlePrev = () => setCurrentPage((p) => Math.max(1, p - 1));
+  const handleNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
 
   const handleInputChange = (e) => {
     const value = Number(e.target.value);
@@ -76,9 +74,15 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
                           key={idx}
                           className={act.class}
                           style={act.style}
-                          // ✅ LUÔN bọc trong arrow để KHÔNG gọi khi render
-                          onClick={() => act.onClick?.(item.id, item)}
                           title={act.title || ""}
+                          onClick={() => {
+                            // Hỗ trợ cả 2 dạng:
+                            // 1) (id,item)=>handleXxx(id,item)
+                            // 2) (id,item)=>()=>handleXxx(id,item)
+                            const ret = act.onClick?.(item.id, item);
+                            if (typeof ret === "function") ret();
+                          }}
+                          aria-label={act.ariaLabel || act.name}
                         >
                           {act.name}
                         </button>
