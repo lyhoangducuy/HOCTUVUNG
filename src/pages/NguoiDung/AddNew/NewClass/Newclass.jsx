@@ -10,54 +10,56 @@ function Newclass() {
     formState: { errors },
   } = useForm();
 
+  // tách danh sách "kienThuc" từ input (phân tách bởi dấu phẩy hoặc xuống dòng)
+  const parseTags = (txt) =>
+    (txt || "")
+      .split(/[\n,]+/g)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
   const onSubmit = (data) => {
-    const dataLocal = JSON.parse(localStorage.getItem("lop")) || [];
-    const list = Array.isArray(dataLocal) ? dataLocal : [dataLocal];
+    const list = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
 
-    const idLop = Math.floor(Math.random() * 1000000);
+    const idKhoaHoc = Date.now(); // id đơn giản, duy nhất theo thời gian
+    const session = JSON.parse(sessionStorage.getItem("session") || "null");
+    const idNguoiDung = session?.idNguoiDung || null;
 
-    const session= JSON.parse( sessionStorage.getItem("session"));
-    const idNguoiDung = session.idNguoiDung;
-
-    const newClass = {
-      idLop,
-      idNguoiDung,
-      ...data,
-      boTheIds: [],   // danh sách ID bộ thẻ
+    const newCourse = {
+      idKhoaHoc,
+      idNguoiDung: idNguoiDung,
+      tenKhoaHoc: data.tenKhoaHoc,
+      moTa: data.moTa || "",
+      kienThuc: parseTags(data.kienThuc),
+      boTheIds: [],
       folderIds: [],
-      thanhVienIds:[]   // danh sách ID folder
+      thanhVienIds: [],
     };
 
-    list.push(newClass);
-    localStorage.setItem("lop", JSON.stringify(list));
-    navigate("/lop/" + idLop);
+    list.push(newCourse);
+    localStorage.setItem("khoaHoc", JSON.stringify(list));
+
+    // vẫn dùng route /lop/:id đang có sẵn trong app để hiển thị chi tiết
+    navigate("/lop/" + idKhoaHoc);
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <h2 className="tittle">Nhập thông tin lớp học</h2>
+      <h2 className="tittle">Nhập thông tin khóa học</h2>
 
-      <label>Tên lớp học</label>
+      <label>Tên khóa học</label>
       <input
-        {...register("tenLop", { required: "vui long nhap ten lop" })}
+        {...register("tenKhoaHoc", { required: "Vui lòng nhập tên khóa học" })}
       />
-      {errors.tenLop && (
-        <p style={{ color: "red" }}>{errors.tenLop.message}</p>
+      {errors.tenKhoaHoc && (
+        <p style={{ color: "red" }}>{errors.tenKhoaHoc.message}</p>
       )}
 
-      <label>Quốc Gia</label>
-      <input {...register("tenQuocGia", { required: "vui long nhap quoc gia" })} />
-      {errors.tenQuocGia && (
-        <p style={{ color: "red" }}>{errors.tenQuocGia.message}</p>
-      )}
-
-      <label>Thành Phố</label>
-      <input {...register("tenThanhPho", { required: "vui long nhap thanh pho " })} />
-      {errors.tenThanhPho && <p style={{ color: "red" }}>{errors.tenThanhPho.message}</p>}
-
-      <label>Tên Trường Học</label>
-      <input {...register("tenTruong", { required: "vui long nhap truong" })} />
-      {errors.tenTruong && <p style={{ color: "red" }}>{errors.tenTruong.message}</p>}
+      <label>Kỹ năng/Chủ đề (kiến thức)</label>
+      <textarea
+        rows={3}
+        placeholder="Ví dụ: it, tiếng nhật, tiếng anh..."
+        {...register("kienThuc")}
+      />
 
       <label>Mô tả</label>
       <input {...register("moTa")} />

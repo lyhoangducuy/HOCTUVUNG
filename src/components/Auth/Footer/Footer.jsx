@@ -6,15 +6,17 @@ export default function Footer() {
     <footer className="footer">
       <div className="footer-container">
         
-        {/* Cột 1: Logo / mô tả */}
+        {/* Logo + mô tả */}
         <div className="footer-col">
           <h2 className="footer-logo">HOCTUVUNG</h2>
-          <p>Nền tảng học từ vựng thông minh dành cho sinh viên và người đi làm.</p>
+          <p>
+            Nền tảng học từ vựng thông minh dành cho sinh viên và người đi làm.
+          </p>
         </div>
 
-        {/* Cột 2: Liên kết nhanh */}
+        {/* Liên kết nhanh */}
         <div className="footer-col">
-          <h4>Liên kết</h4>
+          <h4>Liên kết nhanh</h4>
           <ul>
             <li><a href="/landingpage">Trang chủ</a></li>
             <li><a href="/landingpage">Giới thiệu</a></li>
@@ -23,11 +25,11 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Cột 3: Liên hệ */}
+        {/* Thông tin liên hệ */}
         <div className="footer-col">
           <h4>Liên hệ</h4>
-          <p>Email: support@hoctuvung.com</p>
-          <p>Điện thoại: +84 123 456 789</p>
+          <p>Email: <a href="mailto:support@hoctuvung.com">support@hoctuvung.com</a></p>
+          <p>Điện thoại: <a href="tel:+84123456789">+84 123 456 789</a></p>
           <div className="social-icons">
             <a href="#"><i className="fab fa-facebook"></i></a>
             <a href="#"><i className="fab fa-youtube"></i></a>
@@ -36,8 +38,9 @@ export default function Footer() {
         </div>
       </div>
 
+      {/* Bản quyền */}
       <div className="footer-bottom">
-        <p>© 2023 HOCTUVUNG. All rights reserved.</p>
+        <p>© 2025 HOCTUVUNG. All rights reserved.</p>
       </div>
     </footer>
   );

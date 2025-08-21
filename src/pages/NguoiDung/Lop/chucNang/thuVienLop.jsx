@@ -2,20 +2,23 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import "./ThuVienLop.css";
 
-export default function ThuVienLop({ lop, onCapNhat }) {
+export default function ThuVienLop({ khoaHoc, onCapNhat }) {
   const navigate = useNavigate();
-  if (!lop) return <div className="tvl-empty">Không tìm thấy lớp.</div>;
+
+  if (!khoaHoc) return <div className="tvl-empty">Không tìm thấy khóa học.</div>;
 
   // Lấy session (người dùng hiện tại)
   const session = JSON.parse(sessionStorage.getItem("session") || "null");
-  const isOwner = session?.idNguoiDung && String(session.idNguoiDung) === String(lop.idNguoiDung);
+  const isOwner =
+    !!session?.idNguoiDung &&
+    String(session.idNguoiDung) === String(khoaHoc.idNguoiDung);
 
   // Lấy dữ liệu cần thiết
-  const boTheIds = Array.isArray(lop.boTheIds) ? lop.boTheIds : [];
+  const boTheIds = Array.isArray(khoaHoc.boTheIds) ? khoaHoc.boTheIds : [];
   const allBoThe = JSON.parse(localStorage.getItem("boThe") || "[]");
   const dsNguoiDung = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
 
-  // Ghép bộ thẻ trong lớp + thông tin người tạo (theo idNguoiDung)
+  // Ghép bộ thẻ trong khóa học + thông tin người tạo (theo idNguoiDung)
   const boTheHienThi = boTheIds
     .map((id) => allBoThe.find((b) => String(b.idBoThe) === String(id)))
     .filter(Boolean)
@@ -31,25 +34,25 @@ export default function ThuVienLop({ lop, onCapNhat }) {
 
   const xemBoThe = (id) => navigate(`/flashcard/${id}`);
 
-  // ✅ Chỉ chủ lớp mới gỡ được
-  const goBoTheKhoiLop = (bt) => {
-    if (!isOwner) return; // chặn nếu không phải chủ lớp
+  // ✅ Chỉ chủ khóa học mới gỡ được
+  const goBoTheKhoiKhoaHoc = (bt) => {
+    if (!isOwner) return;
 
     const ten = bt.tenBoThe || `Bộ thẻ #${bt.idBoThe}`;
-    const ok = window.confirm(`Gỡ "${ten}" khỏi lớp?`);
+    const ok = window.confirm(`Gỡ "${ten}" khỏi khóa học?`);
     if (!ok) return;
 
-    const dsLop = JSON.parse(localStorage.getItem("lop") || "[]");
-    const idx = dsLop.findIndex((l) => String(l.idLop) === String(lop.idLop));
+    const dsKH = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
+    const idx = dsKH.findIndex((k) => String(k.idKhoaHoc) === String(khoaHoc.idKhoaHoc));
     if (idx === -1) return;
 
-    const cu = Array.isArray(dsLop[idx].boTheIds) ? dsLop[idx].boTheIds : [];
-    dsLop[idx] = {
-      ...dsLop[idx],
+    const cu = Array.isArray(dsKH[idx].boTheIds) ? dsKH[idx].boTheIds : [];
+    dsKH[idx] = {
+      ...dsKH[idx],
       boTheIds: cu.filter((x) => String(x) !== String(bt.idBoThe)),
     };
-    localStorage.setItem("lop", JSON.stringify(dsLop));
-    onCapNhat && onCapNhat(dsLop[idx]); // Cập nhật lại UI ở cha
+    localStorage.setItem("khoaHoc", JSON.stringify(dsKH));
+    onCapNhat && onCapNhat(dsKH[idx]); // Cập nhật lại UI ở cha
   };
 
   if (boTheHienThi.length === 0) {
@@ -79,8 +82,8 @@ export default function ThuVienLop({ lop, onCapNhat }) {
               Học
             </button>
             {isOwner && (
-              <button className="tvl-btn tvl-btn--danger" onClick={() => goBoTheKhoiLop(bt)}>
-                Gỡ khỏi lớp
+              <button className="tvl-btn tvl-btn--danger" onClick={() => goBoTheKhoiKhoaHoc(bt)}>
+                Gỡ khỏi khóa học
               </button>
             )}
           </div>

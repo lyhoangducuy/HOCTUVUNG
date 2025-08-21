@@ -23,7 +23,7 @@ const timUserTheoToken = (token, ds) => {
   ) || null;
 };
 
-export default function moiThanhVien({ idLop, onCapNhat }) {
+export default function moiThanhVien({ idKhoaHoc, onCapNhat }) {
   const [textMoi, setTextMoi] = useState("");
   const [thongBao, setThongBao] = useState("");
 
@@ -48,28 +48,28 @@ export default function moiThanhVien({ idLop, onCapNhat }) {
       return;
     }
 
-    // -> cập nhật vào lớp
-    const dsLop = docJSON("lop", []);
-    const i = dsLop.findIndex(l => String(l.idLop) === String(idLop));
+    // -> cập nhật vào khóa học
+    const dsKH = docJSON("khoaHoc", []);
+    const i = dsKH.findIndex(kh => String(kh.idKhoaHoc) === String(idKhoaHoc));
     if (i === -1) {
-      setThongBao("Không tìm thấy lớp.");
+      setThongBao("Không tìm thấy khóa học.");
       return;
     }
 
-    const lop = { ...dsLop[i] };
-    const cu = Array.isArray(lop.thanhVienIds) ? lop.thanhVienIds : [];
+    const kh = { ...dsKH[i] };
+    const cu = Array.isArray(kh.thanhVienIds) ? kh.thanhVienIds : [];
     const uniq = Array.from(new Set([...cu, ...idsMoi]));
     const soMoiThem = uniq.length - cu.length;
 
-    lop.thanhVienIds = uniq;
-    dsLop[i] = lop;
-    ghiJSON("lop", dsLop);
+    kh.thanhVienIds = uniq;
+    dsKH[i] = kh;
+    ghiJSON("khoaHoc", dsKH);
 
     setTextMoi("");
-    setThongBao(soMoiThem > 0 ? `Đã thêm ${soMoiThem} thành viên mới.` : "Tất cả đã có trong lớp.");
+    setThongBao(soMoiThem > 0 ? `Đã thêm ${soMoiThem} thành viên mới.` : "Tất cả đã có trong khóa học.");
 
     // báo ngược lên parent nếu cần
-    onCapNhat?.(lop);
+    onCapNhat?.(kh);
   };
 
   return (

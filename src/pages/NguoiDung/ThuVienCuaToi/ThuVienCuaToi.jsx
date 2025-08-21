@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import "./ThuVienCuaToi.css";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 function ThuVienCuaToi() {
   const [cardLib, setCardLib] = useState([]);
   const [actionTab, setActionTab] = useState("boThe");
-  const [lopList, setLopList] = useState([]);
+  const [khoaHocList, setKhoaHocList] = useState([]);
   const navigate = useNavigate();
 
   const dsNguoiDung = useMemo(() => {
@@ -15,19 +15,30 @@ function ThuVienCuaToi() {
       return [];
     }
   }, []);
+
   useEffect(() => {
-    const myCard = JSON.parse(localStorage.getItem("boThe")) || [];
-    const myClass = JSON.parse(localStorage.getItem("lop")) || [];
-    setLopList(myClass);
-    setCardLib(myCard);
+    const myCard = JSON.parse(localStorage.getItem("boThe") || "[]");
+    const myCourses = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
+    setCardLib(Array.isArray(myCard) ? myCard : []);
+    setKhoaHocList(Array.isArray(myCourses) ? myCourses : []);
   }, []);
 
   const handleStudy = (id) => {
     navigate(`/flashcard/${id}`);
   };
-  const handleLop = (id) => {
+
+  const handleKhoaHoc = (id) => {
+    // vẫn dùng route /lop/:id để hiển thị chi tiết (phần chi tiết đã đọc từ khoaHoc)
     navigate(`/lop/${id}`);
   };
+
+  const session = useMemo(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("session") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
 
   return (
     <div className="myLib-container">
@@ -41,17 +52,16 @@ function ThuVienCuaToi() {
           Bộ Thẻ
         </li>
         <li
-          className={`lib-item ${actionTab === "lop" ? "active" : ""}`}
-          onClick={() => setActionTab("lop")}
+          className={`lib-item ${actionTab === "khoaHoc" ? "active" : ""}`}
+          onClick={() => setActionTab("khoaHoc")}
         >
-          Lớp Học
+          Khóa học
         </li>
       </ul>
 
       {actionTab === "boThe" && (
         <div className="myLibCard">
           {cardLib.map((item) => {
-            // 👉 Lấy người tạo bộ thẻ dựa vào idNguoiDung của item
             const nguoiTao = dsNguoiDung.find(
               (u) => String(u.idNguoiDung) === String(item.idNguoiDung)
             );
@@ -65,7 +75,7 @@ function ThuVienCuaToi() {
                 onClick={() => handleStudy(item.idBoThe)}
               >
                 <div className="mini-title">{item?.tenBoThe || "Không tên"}</div>
-                <div className="mini-sub">{item.soTu ?? 0} thẻ</div>
+                <div className="mini-sub">{item.soTu ?? (item.danhSachThe?.length || 0)} thẻ</div>
                 <div className="mini-meta">
                   <div
                     className="mini-avatar"
@@ -92,22 +102,14 @@ function ThuVienCuaToi() {
         </div>
       )}
 
-
-      {actionTab === "lop" && (
+      {actionTab === "khoaHoc" && (
         <div className="myLop">
-          {lopList
+          {khoaHocList
             .filter((item) => {
-              try {
-                const session = JSON.parse(sessionStorage.getItem("session") || "null");
-                if (!session?.idNguoiDung) return false;
-                // ✅ Hiển thị nếu user là thành viên hoặc là chủ lớp
-                return (
-                  (item.thanhVienIds || []).includes(session.idNguoiDung) ||
-                  String(item.idNguoiDung) === String(session.idNguoiDung)
-                );
-              } catch {
-                return false;
-              }
+              if (!session?.idNguoiDung) return false;
+              const isOwner = String(item.idNguoiDung) === String(session.idNguoiDung);
+              const isMember = (item.thanhVienIds || []).includes(session.idNguoiDung);
+              return isOwner || isMember;
             })
             .map((item) => {
               const nguoiTao = dsNguoiDung.find(
@@ -118,12 +120,14 @@ function ThuVienCuaToi() {
 
               return (
                 <div
-                  key={item.idLop}
+                  key={item.idKhoaHoc}
                   className="mini-card"
-                  onClick={() => handleLop(item.idLop)}
+                  onClick={() => handleKhoaHoc(item.idKhoaHoc)}
                 >
-                  <div className="mini-title">{item?.tenLop || "Lớp học"}</div>
-                  <div className="mini-sub">{item?.tenTruong || ""}</div>
+                  <div className="mini-title">{item?.tenKhoaHoc || "Khóa học"}</div>
+                  <div className="mini-sub">
+                    {(item.boTheIds?.length || 0)} bộ thẻ • {(item.thanhVienIds?.length || 0)} thành viên
+                  </div>
 
                   <div className="mini-meta">
                     <div
@@ -138,27 +142,24 @@ function ThuVienCuaToi() {
                       className="btn ghost"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleLop(item.idLop);
+                        handleKhoaHoc(item.idKhoaHoc);
                       }}
                     >
-                      Vào lớp
+                      Vào khóa học
                     </button>
                   </div>
                 </div>
               );
             })}
-          {lopList.filter((item) => {
-            const session = JSON.parse(sessionStorage.getItem("session") || "{}");
-            return (
-              (item.thanhVienIds || []).includes(session.idNguoiDung) ||
-              String(item.idNguoiDung) === String(session.idNguoiDung)
-            );
-          }).length === 0 && <p className="emty">Không có lớp nào cả</p>}
+
+          {khoaHocList.filter((item) => {
+            if (!session?.idNguoiDung) return false;
+            const isOwner = String(item.idNguoiDung) === String(session.idNguoiDung);
+            const isMember = (item.thanhVienIds || []).includes(session.idNguoiDung);
+            return isOwner || isMember;
+          }).length === 0 && <p className="emty">Không có khóa học nào cả</p>}
         </div>
       )}
-
-
-
     </div>
   );
 }

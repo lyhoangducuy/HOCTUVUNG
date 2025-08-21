@@ -5,73 +5,77 @@ import "./header.css";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-/* Helpers an toàn */
-const readJSON = (key, fallback) => {
-  try { const v = JSON.parse(localStorage.getItem(key) || "null"); return v ?? fallback; }
-  catch { return fallback; }
+/* helpers   */
+const readJSON = (key, fallback = []) => {
+  try {
+    const v = JSON.parse(localStorage.getItem(key) || "null");
+    return v ?? fallback;
+  } catch {
+    return fallback;
+  }
 };
 const parseVNDate = (dmy) => {
-  if (!dmy || typeof dmy !== "string") return null;
+  if (!dmy || typeof dmy !== "string") return null;            // "dd/mm/yyyy"
   const [d, m, y] = dmy.split("/").map(Number);
   if (!d || !m || !y) return null;
   return new Date(y, m - 1, d);
 };
-// ✅ Prime khi: đúng user + chưa "Đã hủy" + còn hạn
-const checkPrime = (userId) => {
+// Prime: đúng user + chưa "Đã hủy" + còn hạn
+const isPrime = (userId) => {
   const list = readJSON("goiTraPhiCuaNguoiDung", []);
   const today = new Date();
-  return list.some((s) => {
-    if (s.idNguoiDung !== userId) return false;
-    if (s.status === "Đã hủy") return false;
-    const end = parseVNDate(s.NgayKetThuc);
+  return list.some((p) => {
+    if (p.idNguoiDung !== userId) return false;
+    if (p.status === "Đã hủy") return false;
+    const end = parseVNDate(p.NgayKetThuc);
     return end && end >= today;
   });
 };
 
 export default function Header() {
   const navigate = useNavigate();
+
+  // refs để đóng popup khi click ra ngoài
   const menuRef = useRef(null);
   const plusRef = useRef(null);
   const searchRef = useRef(null);
 
+  // user + prime
   const [user, setUser] = useState(null);
   const [prime, setPrime] = useState(false);
 
+  // UI state
   const [showMenu, setShowMenu] = useState(false);
   const [showPlus, setShowPlus] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
 
+  // Search state
   const [keyword, setKeyword] = useState("");
-  const [resCard, setResCard] = useState([]);
-  const [resClass, setResClass] = useState([]);
+  const [resCards, setResCards] = useState([]);      // bộ thẻ
+  const [resCourses, setResCourses] = useState([]);  // khóa học
 
-  // Nạp user + prime (tự reload khi storage hoặc app bắn event)
+  /*  1) Nạp user + prime  */
   useEffect(() => {
     const load = () => {
       const ss = JSON.parse(sessionStorage.getItem("session") || "null");
       if (!ss?.idNguoiDung) { setUser(null); setPrime(false); return; }
-      const ds = readJSON("nguoiDung", []);
-      const u = ds.find((x) => x.idNguoiDung === ss.idNguoiDung) || null;
+      const users = readJSON("nguoiDung", []);
+      const u = users.find(x => x.idNguoiDung === ss.idNguoiDung) || null;
       setUser(u);
-      setPrime(checkPrime(ss.idNguoiDung));
+      setPrime(isPrime(ss.idNguoiDung));
     };
-
     load();
-    const onStorage = (e) => { if (!e || !e.key || ["nguoiDung","goiTraPhiCuaNguoiDung"].includes(e.key)) load(); };
-    const onSubChanged = () => load();   // từ Traphi: đăng ký/hủy
-    const onDangKy = () => load();       // alias nếu bạn dispatch "dangkytraphi"
 
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("subscriptionChanged", onSubChanged);
-    window.addEventListener("dangkytraphi", onDangKy);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("subscriptionChanged", onSubChanged);
-      window.removeEventListener("dangkytraphi", onDangKy);
+    // Nếu dữ liệu đổi từ tab khác -> cập nhật
+    const onStorage = (e) => {
+      if (!e || !e.key) return;
+      if (["nguoiDung", "goiTraPhiCuaNguoiDung"].includes(e.key)) load();
     };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  // Đóng popup khi click ra ngoài
+  /*2) Đóng popup khi click ra ngoài*/
   useEffect(() => {
     const outside = (e) => {
       if (plusRef.current && !plusRef.current.contains(e.target)) setShowPlus(false);
@@ -82,17 +86,33 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", outside);
   }, []);
 
-  // Search
+  /*  3) Tìm kiếm nhanh (boThe + khoaHoc)
+     - Đơn giản: match theo tên (và với khóa học, có match thêm tag "kienThuc")
+  */
   const doSearch = (q) => {
     setKeyword(q);
-    if (!q.trim()) { setResCard([]); setResClass([]); return; }
-    const ql = q.toLowerCase();
-    const cards = readJSON("boThe", []).filter((x) => x.tenBoThe?.toLowerCase().includes(ql));
-    const classes = readJSON("lop", []).filter((x) => x.tenLop?.toLowerCase().includes(ql));
-    setResCard(cards); setResClass(classes);
+    const query = q.trim().toLowerCase();
+    if (!query) { setResCards([]); setResCourses([]); return; }
+
+    const cards = readJSON("boThe", []).filter(
+      (x) => (x.tenBoThe || "").toLowerCase().includes(query)
+    );
+
+    const courses = readJSON("khoaHoc", []).filter((k) => {
+      const byName = (k.tenKhoaHoc || "").toLowerCase().includes(query);
+      const byTag  = Array.isArray(k.kienThuc) && k.kienThuc.some(t => String(t).toLowerCase().includes(query));
+      return byName || byTag;
+    });
+
+    setResCards(cards);
+    setResCourses(courses);
   };
 
-  const logout = () => { sessionStorage.clear(); navigate("/", { replace: true }); };
+  /* 4) Logout  */
+  const logout = () => {
+    sessionStorage.clear();
+    navigate("/", { replace: true });
+  };
 
   const avatarSrc = user?.anhDaiDien || "";
   const displayName = user?.tenNguoiDung || "Người dùng";
@@ -102,36 +122,63 @@ export default function Header() {
       {/* Left */}
       <div className="left-section">
         <FontAwesomeIcon icon={faBars} className="icon menu-icon" />
-        <FontAwesomeIcon icon={faBookOpen} className="icon book-icon" onClick={() => navigate("/giangvien")} />
+        <FontAwesomeIcon
+          icon={faBookOpen}
+          className="icon book-icon"
+          onClick={() => navigate("/giangvien")}
+        />
       </div>
 
       {/* Search */}
       <div className="search-section" ref={searchRef}>
         <input
-          type="search" placeholder="Tìm kiếm" className="search-input" value={keyword}
+          type="search"
+          placeholder="Tìm kiếm"
+          className="search-input"
+          value={keyword}
           onChange={(e) => { doSearch(e.target.value); setShowSearch(true); }}
           onFocus={() => setShowSearch(true)}
-          onKeyDown={(e) => { if (e.key === "Enter") navigate(`/timkiem/${encodeURIComponent(keyword)}`); }}
+          onKeyDown={(e) => { if (e.key === "Enter") navigate(`/timkiem/${keyword}`); }}
         />
+
         {showSearch && keyword && (
           <div className="search-result">
-            {resCard.length === 0 && resClass.length === 0 && <p className="empty">Không tìm thấy kết quả</p>}
-            {resCard.length > 0 && (
+            {resCards.length === 0 && resCourses.length === 0 && (
+              <p className="empty">Không tìm thấy kết quả</p>
+            )}
+
+            {resCards.length > 0 && (
               <div className="result-group">
                 <h4>Bộ thẻ</h4>
-                {resCard.map((item) => (
-                  <div key={item.idBoThe} className="result-item" onClick={() => { navigate(`/flashcard/${item.idBoThe}`); setShowSearch(false); setKeyword(""); }}>
+                {resCards.map((item) => (
+                  <div
+                    key={item.idBoThe}
+                    className="result-item"
+                    onClick={() => {
+                      navigate(`/flashcard/${item.idBoThe}`);
+                      setShowSearch(false); setKeyword("");
+                    }}
+                  >
                     📑 {item.tenBoThe}
                   </div>
                 ))}
               </div>
             )}
-            {resClass.length > 0 && (
+
+            {resCourses.length > 0 && (
               <div className="result-group">
-                <h4>Lớp học</h4>
-                {resClass.map((item) => (
-                  <div key={item.idLop} className="result-item" onClick={() => { navigate(`/lop/${item.idLop}`); setShowSearch(false); setKeyword(""); }}>
-                    🏫 {item.tenLop}
+                <h4>Khóa học</h4>
+                {resCourses.map((item) => (
+                  <div
+                    key={item.idKhoaHoc}
+                    className="result-item"
+                    onClick={() => {
+                      // vẫn dùng /lop/:id để vào trang chi tiết (component đã đọc từ "khoaHoc")
+                      navigate(`/lop/${item.idKhoaHoc}`);
+                      setShowSearch(false); setKeyword("");
+                    }}
+                  >
+                    🏫 {item.tenKhoaHoc}
                   </div>
                 ))}
               </div>
@@ -144,32 +191,42 @@ export default function Header() {
       <div className="right-section">
         {/* Plus */}
         <div className="plus-container" ref={plusRef}>
-          <FontAwesomeIcon icon={faCirclePlus} className="icon plus-icon" onClick={() => setShowPlus(v => !v)} />
+          <FontAwesomeIcon
+            icon={faCirclePlus}
+            className="icon plus-icon"
+            onClick={() => setShowPlus((v) => !v)}
+          />
           {showPlus && (
             <div className="plus">
               <div className="plus-item" onClick={() => { navigate("/newBoThe"); setShowPlus(false); }}>
-                <FontAwesomeIcon icon={faClone} /><span>Bộ thẻ mới</span>
+                <FontAwesomeIcon icon={faClone} />
+                <span>Bộ thẻ mới</span>
               </div>
               <div className="plus-item" onClick={() => { navigate("/newfolder"); setShowPlus(false); }}>
-                <FontAwesomeIcon icon={faFolderOpen} /><span>Thư mục mới</span>
+                <FontAwesomeIcon icon={faFolderOpen} />
+                <span>Thư mục mới</span>
               </div>
               {user?.vaiTro === "GIANG_VIEN" && (
                 <div className="plus-item" onClick={() => { navigate("/newclass"); setShowPlus(false); }}>
-                  <FontAwesomeIcon icon={faBookOpen} /><span>Lớp học mới</span>
+                  <FontAwesomeIcon icon={faBookOpen} />
+                  <span>Khóa học mới</span>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>Nâng cấp tài khoản</button>
+        <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
+          Nâng cấp tài khoản
+        </button>
 
         {/* Account */}
         <div className="inforContainer" ref={menuRef}>
-          <div className="avatar-wrapper" onClick={() => setShowMenu(v => !v)}>
+          <div className="avatar-wrapper" onClick={() => setShowMenu((v) => !v)}>
             {avatarSrc
               ? <img src={avatarSrc} alt="avatar" className="avatar" />
-              : <div className="avatar avatar-fallback">{(displayName || "U").charAt(0).toUpperCase()}</div>}
+              : <div className="avatar avatar-fallback">{(displayName || "U").charAt(0).toUpperCase()}</div>
+            }
             {prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
           </div>
 
@@ -179,7 +236,8 @@ export default function Header() {
                 <div className="avatar-wrapper">
                   {avatarSrc
                     ? <img src={avatarSrc} alt="avatar" className="avatar" />
-                    : <div className="avatar avatar-fallback">{(displayName || "U").charAt(0).toUpperCase()}</div>}
+                    : <div className="avatar avatar-fallback">{(displayName || "U").charAt(0).toUpperCase()}</div>
+                  }
                   {prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
                 </div>
                 <h2 className="tittle">{displayName}</h2>
@@ -193,7 +251,6 @@ export default function Header() {
               </div>
 
               <div className="divide" />
-
               <div className="loggout" onClick={logout}>Đăng xuất</div>
             </div>
           )}
