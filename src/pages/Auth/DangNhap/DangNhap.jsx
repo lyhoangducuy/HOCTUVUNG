@@ -95,7 +95,7 @@ export default function DangNhap() {
           <form onSubmit={handleSubmit(onSubmit)} className="login-form">
             <label>Email</label>
             <input
-              type="email"
+              type="text"
               {...register("email")}
               className={errors.email ? "error" : ""}
             />

@@ -100,7 +100,7 @@ function DangKy() {
           <form onSubmit={handleSubmit(onSubmit)} className="signup-form">
             <label>Email</label>
             <input
-              type="email"
+              type="text"
               {...register("email")}
               className={errors.email ? "error" : ""}
             />
