@@ -71,8 +71,12 @@ export default function Header() {
       if (!e || !e.key) return;
       if (["nguoiDung", "goiTraPhiCuaNguoiDung"].includes(e.key)) load();
     };
+    const onDangKy =()=> load();
+    window.addEventListener("subscriptionChanged",onDangKy);
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    return () =>{window.removeEventListener("storage", onStorage);
+      window.removeEventListener("subscriptionChanged",onDangKy);
+    } 
   }, []);
 
   /*2) Đóng popup khi click ra ngoài*/
