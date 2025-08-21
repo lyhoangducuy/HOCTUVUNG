@@ -7,7 +7,7 @@ import HocBoThe_Header from "../../../../components/HocBoThe/HocBoThe_Header";
 
 export default function FlashCard() {
   const { id } = useParams();
-  const [pack, setPack] = useState(null);            // bộ thẻ đã chọn
+  const [pack, setPack] = useState(null); // bộ thẻ đã chọn
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [flip, setFlip] = useState(false);
 
@@ -15,7 +15,7 @@ export default function FlashCard() {
     try {
       const list = JSON.parse(localStorage.getItem("boThe") || "[]");
       const selected = Array.isArray(list)
-        ? list.find(x => String(x.idBoThe) === String(id))
+        ? list.find((x) => String(x.idBoThe) === String(id))
         : null;
 
       setPack(selected || null);
@@ -31,14 +31,14 @@ export default function FlashCard() {
 
   const handleNext = () => {
     if (currentCardIndex < cards.length - 1) {
-      setCurrentCardIndex(i => i + 1);
+      setCurrentCardIndex((i) => i + 1);
       setFlip(false);
     }
   };
 
   const handlePrev = () => {
     if (currentCardIndex > 0) {
-      setCurrentCardIndex(i => i - 1);
+      setCurrentCardIndex((i) => i - 1);
       setFlip(false);
     }
   };
@@ -54,15 +54,29 @@ export default function FlashCard() {
 
         <div className="study">
           {currentCard ? (
-            <div className={`card ${flip ? "flipped" : ""}`} onClick={() => setFlip(f => !f)}>
-              <h3 className="word">{flip ? currentCard.nghia : currentCard.tu}</h3>
+            <div
+              className={`card ${flip ? "flipped" : ""}`}
+              onClick={() => setFlip(!flip)}
+            >
+              <div className="card-inner">
+                <div className="card-front">
+                  <h3 className="word">{currentCard.tu}</h3>
+                </div>
+                <div className="card-back">
+                  <h3 className="word">{currentCard.nghia}</h3>
+                </div>
+              </div>
             </div>
           ) : (
             <p>Không có thẻ nào trong bộ này.</p>
           )}
 
           <div className="btn-group">
-            <button className="left" onClick={handlePrev} disabled={currentCardIndex === 0}>
+            <button
+              className="left"
+              onClick={handlePrev}
+              disabled={currentCardIndex === 0}
+            >
               <FontAwesomeIcon icon={faArrowLeft} />
             </button>
             <span>
