@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Search from "../../../../components/Admin/Search/Search";
 import Delete from "../../../../components/Admin/Delete/Delete";
 import Edit from "../../../../components/Admin/Edit/Edit";
-import ExportModal from "../../../../components/ExportModal/ExportModal";
+import ExportModal from "../../../../components/Admin/ExportModal/ExportModal";
 import "./MainConTentQLL.css";
 const MainConTentQLL = ({ Data }) => {
   const ColumsBoThe = [

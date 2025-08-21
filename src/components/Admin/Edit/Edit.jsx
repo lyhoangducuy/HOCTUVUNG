@@ -90,7 +90,15 @@ const Edit = ({
 
           <div className="user-info-section">
             {Colums.map((item, index) => {
-              if (item.key === "role") {
+              if (/^id/i.test(item.key)) {
+                return (
+                  <div key={index} className="info-row">
+                    <label>{item.name}</label>
+                    <span>{formData[item.key]}</span>
+                  </div>
+                );
+              }
+              else if (item.key === "role") {
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
@@ -110,7 +118,8 @@ const Edit = ({
                     )}
                   </div>
                 );
-              } else if (item.key === "password") {
+              } 
+              else if (item.key === "password") {
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
