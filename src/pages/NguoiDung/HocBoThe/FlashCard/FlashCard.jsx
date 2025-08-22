@@ -61,9 +61,11 @@ export default function FlashCard() {
               <div className="card-inner">
                 <div className="card-front">
                   <h3 className="word">{currentCard.tu}</h3>
+                  <div className="acction">Hãy bấm để lật</div>
                 </div>
                 <div className="card-back">
                   <h3 className="word">{currentCard.nghia}</h3>
+                  <div className="acction">Hãy bấm để lật</div>
                 </div>
               </div>
             </div>

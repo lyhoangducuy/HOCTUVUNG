@@ -120,3 +120,45 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+.acction {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--primary);
+  text-align: center;
+
+  padding: 10px 0;
+  background: rgba(37, 99, 235, 0.08); /* nền xanh nhạt trong suốt */
+  border-top: 1px solid rgba(37, 99, 235, 0.2);
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+
+  
+  opacity: 0.9;
+  transition: all 0.3s ease;
+}
+
+/* Hover vào thẻ thì thanh hint sáng hơn */
+.card:hover .acction {
+  background: rgba(37, 99, 235, 0.15);
+  border-top-color: rgba(37, 99, 235, 0.4);
+  opacity: 1;
+}
+
+/* Hiệu ứng nhấp nháy nhè nhẹ */
+@keyframes pulseHint {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.acction {
+  animation: pulseHint 2.2s infinite;
+}
