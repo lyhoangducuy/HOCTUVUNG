@@ -24,10 +24,16 @@ function TracNghiem() {
   const [step, setStep] = useState(0);
   const [correct, setCorrect] = useState(false);
   const [choice, setChoice] = useState(false);
+  const [indexQuestion, setIndexQuestion] = useState([]);
 
   const getrandomQuetion = () => {
     const index = Math.floor(Math.random() * danhsachthe.length);
-    return danhsachthe[index];
+    if (indexQuestion.length === danhsachthe.length) return null;
+    if (indexQuestion.findIndex((item) => item === index) === -1) {
+      setIndexQuestion((pre) => [...pre, index]);
+      return danhsachthe[index];
+    }
+    return getrandomQuetion();
   };
 
   const getwrongAnswer = (answer) => {
@@ -44,44 +50,26 @@ function TracNghiem() {
 
   const generateQuestion = () => {
     const question = getrandomQuetion();
+    if (!question) return;
     const wrongs = getwrongAnswer(question);
     const allOptions = [...wrongs, question.nghia];
     const shuffled = allOptions.sort(() => 0.5 - Math.random());
     setCurrentQuestion(question);
     setOptions(shuffled);
   };
-  const nextQuestion = () => {
-    if (step < danhsachthe.length - 1) {
-      setStep((prev) => prev + 1);
-    }
-  };
-
-  const prevQuestion = () => {
-    if (step > 0) {
-      setStep((prev) => prev - 1);
-    }
-  };
   const handleAnswer = (item) => {
     setChoice(true);
-    setTimeout(() => {
-      setChoice(false);
-    }, 1500);
-    if (item === currentQuestion?.nghia) {
-      setCorrect(true);
+    setTimeout(() => setChoice(false), 1500);
 
-      if (step < danhsachthe.length - 1) {
-        setStep((prev) => prev + 1);
-      }
-    } else {
-      setCorrect(false);
+    const isCorrect = item === currentQuestion?.nghia;
+    setCorrect(isCorrect);
 
-      if (step < danhsachthe.length - 1) {
-        setTimeout(() => {
-          setStep((prev) => prev + 1);
-        }, 1000);
-      }
-    }
+    setStep((prev) => {
+      if (prev < danhsachthe.length - 1) return prev + 1;
+      return prev;
+    });
   };
+
   useEffect(() => {
     const list = JSON.parse(localStorage.getItem("boThe") || "[]");
     const selected = Array.isArray(list)
@@ -126,19 +114,10 @@ function TracNghiem() {
               </div>
             }
           </div>
-          {choice && (correct ? <p>ĐÚNG</p> : <p>SAI</p>)}
-
-          <div className="btn-group">
-            <div className="left" onClick={() => prevQuestion()}>
-              <FontAwesomeIcon icon={faArrowLeft} />
-            </div>
-            <span>
-              {step + 1}/{danhsachthe?.length}
-            </span>
-            <div className="right" onClick={() => nextQuestion()}>
-              <FontAwesomeIcon icon={faArrowRight} />
-            </div>
-          </div>
+          {choice && (correct ?
+            
+            <p>ĐÚNG</p> : <p>SAI Đáp án đúng là {`${currentQuestion.nghia}`}</p>)}
+          {`${step+1}/${danhsachthe.length}`}
         </div>
       </div>
     </div>
