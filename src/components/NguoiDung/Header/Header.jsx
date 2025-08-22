@@ -2,7 +2,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBars,
   faBookOpen,
-  faSearch,
   faCirclePlus,
   faGear,
   faFolderOpen,
@@ -11,6 +10,7 @@ import {
 import "./header.css";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import AIButton from "../../Admin/AIButton/AIButton";
 
 function Header() {
   const [show, setShow] = useState(false);
@@ -22,6 +22,9 @@ function Header() {
   const [ketQuaLop, setKetQuaLop] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const [prime, setPrime] = useState(false);
+
+  const [chatPro, setChatPro] = useState(false);
+  
 
   const menuRef = useRef(null);
   const plusRef = useRef(null);
@@ -43,7 +46,7 @@ function Header() {
       setNguoiDungHienTai(null);
     }
   }, []);
-console.log(prime);
+
 // ---- Nạp user từ session + tính prime: chỉ cần có bản ghi còn hạn trong goiTraPhiCuaNguoiDung
 useEffect(() => {
   const parseVnDate = (dmy) => {
@@ -143,6 +146,37 @@ useEffect(() => {
     setKetQuaBoThe(boTheFilter);
     setKetQuaLop(lopFilter);
   };
+  useEffect(() => {
+    const parseVnDate = (dmy) => {
+      if (!dmy) return null;
+      const [d, m, y] = dmy.split("/").map(Number);
+      return new Date(y, (m || 1) - 1, d || 1);
+    };
+  
+    const compute = () => {
+      try {
+        const session = JSON.parse(sessionStorage.getItem("session") || "null");
+        const list = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
+        const today = new Date();
+        const ok = list.some(
+          (s) =>
+            s.idNguoiDung === session?.idNguoiDung &&
+            parseVnDate(s.NgayKetThuc) &&
+            parseVnDate(s.NgayKetThuc) >= today
+        );
+        setChatPro(ok);
+      } catch {
+        setChatPro(false);
+      }
+    };
+  
+    compute();
+    const onStorage = (e) => {
+      if (e.key === "goiTraPhiCuaNguoiDung") compute();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   return (
     <div className="header-container">
@@ -307,6 +341,7 @@ useEffect(() => {
           )}
         </div>
       </div>
+      {chatPro && <AIButton />}
     </div>
   );
 }

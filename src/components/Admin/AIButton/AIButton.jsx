@@ -123,10 +123,18 @@ const handleSubmitCreate = async (e) => {
   const onCancel = () => {
     setPreviewOpen(false); // đóng, KHÔNG lưu
   };
+  const [user, setUser] = useState(null);
+  useEffect (() => {
+    const session = JSON.parse(sessionStorage.getItem("session") || "null");
+    if(session !== null){
+      setUser(session)
+    }
+  },[]);
+ 
   
   const onOkSave = () => {
-    const session = JSON.parse(sessionStorage.getItem("session") || "null");
-    const userCreated = session?.idNguoiDung;
+    
+    const userCreated = user?.idNguoiDung;
   
     // Lọc thẻ hợp lệ
     const valid = previewList
@@ -160,6 +168,7 @@ const handleSubmitCreate = async (e) => {
     alert("Đã lưu bộ thẻ: " + previewTopic);
   };
 
+ 
   return (
     <div className="ai-button-container" ref={menuRef}>
       <button
@@ -174,10 +183,14 @@ const handleSubmitCreate = async (e) => {
           <div className={`ai-item${loading ? " disabled" : ""}`} onClick={!loading ? openCreateForm : undefined}>
               {loading ? "Đang tạo..." : "Tạo bộ thẻ theo chủ đề"}
           </div>
-          <div className="ai-item" onClick={addFakeUsers}>
+          {user.vaiTro === "ADMIN" && (
+            <div className="ai-item" onClick={addFakeUsers}>
             Thêm người dùng ảo
           </div>
-        </div>
+             
+          )
+          } 
+          </div>
       )}
       {showForm && (
         <div className="create-form-modal">
