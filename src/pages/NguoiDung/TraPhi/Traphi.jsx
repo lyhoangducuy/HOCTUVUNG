@@ -5,7 +5,7 @@ import "./Traphi.css";
 
 /* -------- Helpers -------- */
 const VN = "vi-VN";
-const genSubId = () => "SUB_" + Date.now();
+const genId = (p) => `${p}_${Date.now()}`;
 
 const addDays = (date, days) => {
   const d = new Date(date);
@@ -54,6 +54,7 @@ function Traphi() {
     const g = Number(gia || 0);
     const gg = Math.min(100, Math.max(0, Number(giamGia || 0)));
     return Math.max(0, Math.round(g * (1 - gg / 100)));
+    // Lưu ý: nếu muốn làm tròn theo tiền (đ) thì giữ nguyên .toLocaleString ở UI
   };
 
   // Tải dữ liệu + xác định gói active (bỏ qua gói status = "Đã hủy")
@@ -79,16 +80,13 @@ function Traphi() {
     const today = new Date();
     const activeOnes = mySubs.filter((s) => {
       const end = parseVN(s.NgayKetThuc);
-      const isCanceled = s.status === "Đã hủy";           // <-- chỉ khác ở đây
+      const isCanceled = s.status === "Đã hủy";
       return !isCanceled && end && end >= today;
     });
 
     if (activeOnes.length > 0) {
-      const chosen = activeOnes.sort((a, b) => {
-        const ea = parseVN(a.NgayKetThuc);
-        const eb = parseVN(b.NgayKetThuc);
-        return eb - ea;
-      })[0];
+      const chosen = activeOnes
+        .sort((a, b) => (parseVN(b.NgayKetThuc) ?? 0) - (parseVN(a.NgayKetThuc) ?? 0))[0];
       setActiveSub(chosen);
     } else {
       setActiveSub(null);
@@ -106,48 +104,34 @@ function Traphi() {
 
   const hasActiveSub = !!activeSub;
 
-  // Đăng ký gói (set status = "Đang hoạt động")
+  // Tạo đơn hàng (pending) và chuyển đến trang Checkout
   const handleSub = (pack) => {
     if (!currentUser) return;
     if (hasActiveSub) {
       alert("Bạn đã có gói đang hoạt động. Hãy hủy hoặc chờ hết hạn mới đăng ký gói khác.");
       return;
     }
-    const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
-    const ngayBatDau = new Date();
-    const ngayKetThuc = addDays(ngayBatDau, pack.thoiHan);
 
-    const newSub = {
-      idGTPCND: genSubId(),
+    const giaSauGiam = calcDiscounted(pack.giaGoi, pack.giamGia);
+
+    const orders = JSON.parse(localStorage.getItem("donHangTraPhi") || "[]");
+    const order = {
+      idDonHang: genId("ORDER"),
       idNguoiDung: currentUser.idNguoiDung,
       idGoi: pack.idGoi,
-      NgayBatDau: toVN(ngayBatDau),
-      NgayKetThuc: toVN(ngayKetThuc),
-      status: "Đang hoạt động", // <-- thêm trạng thái
+      tenGoi: pack.tenGoi,
+      giaGoc: Number(pack.giaGoi || 0),
+      giamGia: Number(pack.giamGia || 0),
+      soTienThanhToan: giaSauGiam,
+      thoiHanNgay: Number(pack.thoiHan || 0),
+      trangThai: "pending", // pending | paid | canceled
+      createdAt: new Date().toISOString(),
     };
+    orders.push(order);
+    localStorage.setItem("donHangTraPhi", JSON.stringify(orders));
 
-    subs.push(newSub);
-    localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(subs));
-    setActiveSub(newSub);
-    window.dispatchEvent(new Event("subscriptionChanged"));
-    alert("Đăng ký thành công!");
-  };
-
-  // Hủy gói: CHỈ đổi status = "Đã hủy", KHÔNG xoá record
-  const handleCancel = () => {
-    if (!currentUser) return;
-    if (!activeSub) {
-      alert("Bạn chưa có gói đang hoạt động để hủy.");
-      return;
-    }
-    const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
-    const next = subs.map((s) =>
-      s.idGTPCND === activeSub.idGTPCND ? { ...s, status: "Đã hủy" } : s
-    );
-    localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(next));
-    setActiveSub(null); // để UI hết "đang hoạt động"
-    alert("Đã hủy gói thành công!");
-    window.dispatchEvent(new Event("subscriptionChanged"));
+    // Điều hướng sang Checkout, mang theo orderId
+    navigate("/checkout", { state: { orderId: order.idDonHang } });
   };
 
   // Hiển thị info gói đang active
@@ -171,7 +155,20 @@ function Traphi() {
                 <strong>{activeSub.NgayKetThuc}</strong>
               </div>
             </div>
-            <Button variant="cancel" onClick={handleCancel}>
+            <Button variant="cancel" onClick={() => {
+              if (!currentUser || !activeSub) {
+                alert("Bạn chưa có gói đang hoạt động để hủy.");
+                return;
+              }
+              const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
+              const next = subs.map((s) =>
+                s.idGTPCND === activeSub.idGTPCND ? { ...s, status: "Đã hủy" } : s
+              );
+              localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(next));
+              setActiveSub(null);
+              alert("Đã hủy gói thành công!");
+              window.dispatchEvent(new Event("subscriptionChanged"));
+            }}>
               Hủy gói hiện tại
             </Button>
           </div>
