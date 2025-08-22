@@ -58,14 +58,7 @@ export default function DangNhap() {
     sessionStorage.setItem("session", JSON.stringify(sessionUser));
 
     // Điều hướng theo vai trò
-    const next =
-      found.vaiTro === "GIANG_VIEN"
-        ? "/giangvien"
-        : found.vaiTro === "ADMIN"
-        ? "/admin"
-        : "/hocvien";
-
-    navigate(next);
+    navigate("/trangchu");
   };
 
   return (

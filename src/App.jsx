@@ -25,9 +25,9 @@ import MatchGame from "./pages/NguoiDung/HocBoThe/MatchGame";
 import Video from "./pages/NguoiDung/HocBoThe/Video/Video";
 import VideoLibrary from "./pages/NguoiDung/HocBoThe/Video/VideoLibrary";
 
-import Newclass from "./pages/NguoiDung/AddNew/NewClass/Newclass";
+import NewKhoaHoc from "./pages/NguoiDung/AddNew/NewKhoaHoc/NewKhoaHoc";
 import NewBoThe from "./pages/NguoiDung/AddNew/NewBoThe/NewBoThe";
-import Lop from "./pages/NguoiDung/Lop/Lop";
+import KhoaHoc from "./pages/NguoiDung/KhoaHoc/KhoaHoc";
 import ThuVienCuaToi from "./pages/NguoiDung/ThuVienCuaToi/ThuVienCuaToi";
 
 import QuanLyUser from "./pages/Admin/QuanLyUser/QuanLyUser";
@@ -50,7 +50,7 @@ export default function App() {
     <Routes>
       {/* Đăng nhập */}
       <Route element={<AuthLayout />}>
-        <Route path="/" element={<DangNhap />} />
+        <Route path="/dang-nhap" element={<DangNhap />} />
         <Route path="/dang-ky" element={<DangKy />} />
         <Route path="/quen-mat-khau" element={<QuenMatKhau />} />
         <Route path="/landingpage" element={<Landingpage />} />
@@ -65,15 +65,14 @@ export default function App() {
           }
         >
           <Route element={<NguoiDungLayout />}>
-            <Route path="/giangvien" element={<TrangChu />} />
-            <Route path="/hocvien" element={<TrangChu />} />
+            <Route path="/trangchu" element={<TrangChu />} />
             <Route path="/tra-phi" element={<Traphi />} />
             <Route path="/flashcard/:id" element={<FlashCard />} />
             <Route path="/tracnghiem/:id" element={<TracNghiem />} />
             <Route path="/test/:id" element={<Test />} />
             <Route path="/game/:id" element={<MatchGame />} />
             <Route path="/newBoThe" element={<NewBoThe />} />
-            <Route path="/lop/:id" element={<Lop />} />
+            <Route path="/khoaHoc/:id" element={<KhoaHoc />} />
             <Route path="/thuviencuatoi" element={<ThuVienCuaToi />} />
             <Route path="/setting" element={<Setting />} />
             <Route path="/suabothe/:id" element={<SuaBoThe />} />
@@ -91,7 +90,7 @@ export default function App() {
 
         <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN", "ADMIN"]} />}>
           <Route element={<NguoiDungLayout />}>
-            <Route path="/newclass" element={<Newclass />} />
+            <Route path="/newKhoaHoc" element={<NewKhoaHoc />} />
           </Route>
         </Route>
 

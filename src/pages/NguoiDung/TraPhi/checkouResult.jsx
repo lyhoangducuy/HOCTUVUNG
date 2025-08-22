@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Button from "../../../components/inputs/Button";
 
 const VN = "vi-VN";
 const toVN = (date) => new Date(date).toLocaleDateString(VN);
@@ -9,7 +10,7 @@ const addDays = (date, days) => {
   return d;
 };
 
-// (tuỳ chọn) map mã phản hồi VNPay -> thông báo dễ đọc
+// Map mã phản hồi VNPay -> thông điệp
 const RESP_TEXT = {
   "00": "Giao dịch thành công",
   "07": "Trừ tiền thành công. Giao dịch nghi ngờ (liên hệ ngân hàng)",
@@ -28,85 +29,201 @@ const RESP_TEXT = {
 export default function CheckoutResult() {
   const navigate = useNavigate();
 
+  // UI state
+  const [status, setStatus] = useState("processing"); // 'success' | 'fail' | 'error' | 'processing'
+  const [summary, setSummary] = useState({
+    orderId: "",
+    responseCode: "",
+    message: "",
+    amount: 0,
+    paidAt: "",
+  });
+
+  // Format số tiền đẹp hơn
+  const amountText = useMemo(
+    () => (summary.amount ? Number(summary.amount).toLocaleString(VN) + " đ" : "—"),
+    [summary.amount]
+  );
+
   useEffect(() => {
-    // Lấy tham số VNPay trả về trên URL
     const p = new URLSearchParams(window.location.search);
     const responseCode = p.get("vnp_ResponseCode"); // "00" = thành công
-    const orderId = p.get("vnp_TxnRef");            // chính là id đơn bạn đã gửi
+    const orderId = p.get("vnp_TxnRef");            // id đơn
     const amount = Number(p.get("vnp_Amount") || 0) / 100; // VNPay trả *100
-    // (tuỳ chọn) nếu cần xem thêm:
-    // const bankCode = p.get("vnp_BankCode");
-    // const bankTranNo = p.get("vnp_BankTranNo");
-    // const payDate = p.get("vnp_PayDate");
 
+    // Thiếu mã đơn: hiển thị lỗi
     if (!orderId) {
-      alert("Thiếu mã đơn hàng (vnp_TxnRef).");
-      navigate("/traphi");
+      setStatus("error");
+      setSummary({
+        orderId: "",
+        responseCode: "",
+        message: "Thiếu mã đơn hàng (vnp_TxnRef).",
+        amount: 0,
+        paidAt: "",
+      });
       return;
     }
 
-    // Tải danh sách đơn trong localStorage
+    // Lấy đơn trong localStorage
     const orders = JSON.parse(localStorage.getItem("donHangTraPhi") || "[]");
     const idx = orders.findIndex((o) => String(o.idDonHang) === String(orderId));
 
     if (idx === -1) {
-      alert("Không tìm thấy đơn hàng tương ứng.");
-      navigate("/traphi");
+      setStatus("error");
+      setSummary({
+        orderId,
+        responseCode: responseCode || "",
+        message: "Không tìm thấy đơn hàng tương ứng.",
+        amount,
+        paidAt: "",
+      });
       return;
     }
 
-    // (khuyến nghị) so khớp số tiền để tránh tamper
+    // So khớp số tiền (khuyến nghị)
     const expected = Number(orders[idx].soTienThanhToan || 0);
     const moneyOK = expected > 0 ? amount === expected : true;
 
-    if (responseCode === "00" && moneyOK) {
-      // Cập nhật đơn "paid"
-      orders[idx] = {
-        ...orders[idx],
-        trangThai: "paid",
-        paidAt: new Date().toISOString(),
-        soTienThanhToanThucTe: amount,
-      };
-      localStorage.setItem("donHangTraPhi", JSON.stringify(orders));
+    // Idempotency: nếu đã paid/canceled rồi thì không tạo lại subscription
+    const alreadyPaid = orders[idx].trangThai === "paid";
 
-      // Kích hoạt gói (subscription)
-      const currentUser = JSON.parse(sessionStorage.getItem("session") || "null");
-      if (currentUser) {
-        const sub = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
-        const now = new Date();
-        const end = addDays(now, orders[idx].thoiHanNgay);
-        sub.push({
-          idGTPCND: `SUB_${Date.now()}`,
-          idNguoiDung: currentUser.idNguoiDung,
-          idGoi: orders[idx].idGoi,
-          NgayBatDau: toVN(now),
-          NgayKetThuc: toVN(end),
-          status: "Đang hoạt động",
-        });
-        localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(sub));
+    if (responseCode === "00" && moneyOK) {
+      // Chỉ cập nhật nếu chưa paid
+      if (!alreadyPaid) {
+        orders[idx] = {
+          ...orders[idx],
+          trangThai: "paid",
+          paidAt: new Date().toISOString(),
+          soTienThanhToanThucTe: amount,
+        };
+        localStorage.setItem("donHangTraPhi", JSON.stringify(orders));
+
+        // Kích hoạt gói (subscription)
+        const currentUser = JSON.parse(sessionStorage.getItem("session") || "null");
+        if (currentUser) {
+          const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
+          const now = new Date();
+          const end = addDays(now, orders[idx].thoiHanNgay);
+          // Tránh tạo trùng sub cơ bản: kiểm tra đã có sub active cùng user + gói chưa
+          const hasSameActive = subs.some(
+            (s) =>
+              s.idNguoiDung === currentUser.idNguoiDung &&
+              s.idGoi === orders[idx].idGoi &&
+              s.status === "Đang hoạt động"
+          );
+          if (!hasSameActive) {
+            subs.push({
+              idGTPCND: `SUB_${Date.now()}`,
+              idNguoiDung: currentUser.idNguoiDung,
+              idGoi: orders[idx].idGoi,
+              NgayBatDau: toVN(now),
+              NgayKetThuc: toVN(end),
+              status: "Đang hoạt động",
+            });
+            localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(subs));
+          }
+        }
+        // thông báo UI khác có thể lắng nghe
+        window.dispatchEvent(new Event("subscriptionChanged"));
       }
 
-      window.dispatchEvent(new Event("subscriptionChanged"));
-      alert(RESP_TEXT["00"] || "Thanh toán VNPay thành công. Gói đã kích hoạt.");
+      setStatus("success");
+      setSummary({
+        orderId,
+        responseCode: "00",
+        message: RESP_TEXT["00"] || "Thanh toán thành công. Gói đã kích hoạt.",
+        amount,
+        paidAt: new Date().toISOString(),
+      });
     } else {
-      // Coi là thất bại / huỷ
-      orders[idx] = {
-        ...orders[idx],
-        trangThai: "canceled",
-        canceledAt: new Date().toISOString(),
-      };
-      localStorage.setItem("donHangTraPhi", JSON.stringify(orders));
+      // Cập nhật canceled (trừ khi đã paid trước đó)
+      if (!alreadyPaid) {
+        orders[idx] = {
+          ...orders[idx],
+          trangThai: "canceled",
+          canceledAt: new Date().toISOString(),
+        };
+        localStorage.setItem("donHangTraPhi", JSON.stringify(orders));
+      }
 
-      const msg =
-        RESP_TEXT[responseCode || ""] ||
-        "Thanh toán không thành công hoặc bị hủy.";
-      alert(msg);
+      setStatus("fail");
+      setSummary({
+        orderId,
+        responseCode: responseCode || "",
+        message:
+          RESP_TEXT[responseCode || ""] ||
+          "Thanh toán không thành công hoặc đã bị hủy.",
+        amount,
+        paidAt: "",
+      });
     }
+  }, []);
 
-    // Quay lại trang Trả phí
-    navigate("/traphi");
-  }, [navigate]);
+  // UI hiển thị theo trạng thái
+  const isSuccess = status === "success";
+  const isFail = status === "fail";
+  const isError = status === "error";
+  const isProcessing = status === "processing";
 
-  // Không cần UI, auto xử lý & chuyển trang
-  return null;
+  return (
+    <div style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
+      <div
+        style={{
+          border: "1px solid #e5e7eb",
+          borderRadius: 16,
+          padding: 24,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
+        }}
+      >
+        {/* Header */}
+        <div style={{ marginBottom: 16 }}>
+          {isProcessing && <h2>Đang xử lý giao dịch…</h2>}
+          {isSuccess && <h2 style={{ color: "#059669" }}>Thanh toán thành công</h2>}
+          {isFail && <h2 style={{ color: "#dc2626" }}>Thanh toán không thành công</h2>}
+          {isError && <h2 style={{ color: "#dc2626" }}>Có lỗi xảy ra</h2>}
+
+          {!isProcessing && (
+            <p style={{ marginTop: 8, opacity: 0.85 }}>{summary.message}</p>
+          )}
+        </div>
+
+        {/* Details */}
+        {!isProcessing && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "160px 1fr",
+              rowGap: 8,
+              columnGap: 12,
+              marginBottom: 20,
+            }}
+          >
+            <div style={{ opacity: 0.7 }}>Mã đơn</div>
+            <div><strong>{summary.orderId || "—"}</strong></div>
+
+            <div style={{ opacity: 0.7 }}>Số tiền</div>
+            <div>{amountText}</div>
+
+            <div style={{ opacity: 0.7 }}>Mã phản hồi</div>
+            <div>{summary.responseCode || "—"}</div>
+
+            {summary.paidAt ? (
+              <>
+                <div style={{ opacity: 0.7 }}>Thời gian</div>
+                <div>{toVN(summary.paidAt)}</div>
+              </>
+            ) : null}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <Button onClick={() => navigate("/trangchu")}>Về trang chủ</Button>
+          <Button variant="secondary" onClick={() => navigate("/tra-phi")}>
+            Về gói trả phí
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }
