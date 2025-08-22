@@ -39,7 +39,7 @@ function Newclass() {
     localStorage.setItem("khoaHoc", JSON.stringify(list));
 
     // vẫn dùng route /lop/:id đang có sẵn trong app để hiển thị chi tiết
-    navigate("/lop/" + idKhoaHoc);
+    navigate("/khoaHoc/" + idKhoaHoc);
   };
 
   return (
@@ -68,7 +68,7 @@ function Newclass() {
         <button
           type="button"
           className="btn-close"
-          onClick={() => navigate("/giangvien")}
+          onClick={() => navigate("/trangchu")}
         >
           Đóng
         </button>

@@ -211,8 +211,8 @@ export default function Header() {
                 <FontAwesomeIcon icon={faFolderOpen} />
                 <span>Thư mục mới</span>
               </div>
-              {user?.vaiTro === "GIANG_VIEN" && (
-                <div className="plus-item" onClick={() => { navigate("/newclass"); setShowPlus(false); }}>
+              {user?.vaiTro === "GIANG_VIEN" || user?.vaiTro === "ADMIN" && (
+                <div className="plus-item" onClick={() => { navigate("/newKhoaHoc"); setShowPlus(false); }}>
                   <FontAwesomeIcon icon={faBookOpen} />
                   <span>Khóa học mới</span>
                 </div>

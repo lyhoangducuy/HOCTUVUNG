@@ -29,7 +29,7 @@ function ThuVienCuaToi() {
 
   const handleKhoaHoc = (id) => {
     // vẫn dùng route /lop/:id để hiển thị chi tiết (phần chi tiết đã đọc từ khoaHoc)
-    navigate(`/lop/${id}`);
+    navigate(`/khoaHoc/${id}`);
   };
 
   const session = useMemo(() => {
