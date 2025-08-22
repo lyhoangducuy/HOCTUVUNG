@@ -1,6 +1,6 @@
 // src/components/Header/Header.jsx
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faBookOpen, faCirclePlus, faGear, faFolderOpen, faClone } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faBookOpen, faCirclePlus, faGear, faFolderOpen, faClone, faReceipt } from "@fortawesome/free-solid-svg-icons";
 import "./header.css";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -71,12 +71,13 @@ export default function Header() {
       if (!e || !e.key) return;
       if (["nguoiDung", "goiTraPhiCuaNguoiDung"].includes(e.key)) load();
     };
-    const onDangKy =()=> load();
-    window.addEventListener("subscriptionChanged",onDangKy);
+    const onDangKy = () => load();
+    window.addEventListener("subscriptionChanged", onDangKy);
     window.addEventListener("storage", onStorage);
-    return () =>{window.removeEventListener("storage", onStorage);
-      window.removeEventListener("subscriptionChanged",onDangKy);
-    } 
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("subscriptionChanged", onDangKy);
+    }
   }, []);
 
   /*2) Đóng popup khi click ra ngoài*/
@@ -104,7 +105,7 @@ export default function Header() {
 
     const courses = readJSON("khoaHoc", []).filter((k) => {
       const byName = (k.tenKhoaHoc || "").toLowerCase().includes(query);
-      const byTag  = Array.isArray(k.kienThuc) && k.kienThuc.some(t => String(t).toLowerCase().includes(query));
+      const byTag = Array.isArray(k.kienThuc) && k.kienThuc.some(t => String(t).toLowerCase().includes(query));
       return byName || byTag;
     });
 
@@ -129,7 +130,7 @@ export default function Header() {
         <FontAwesomeIcon
           icon={faBookOpen}
           className="icon book-icon"
-          onClick={() => navigate("/giangvien")}
+          onClick={() => navigate("/trangchu")}
         />
       </div>
 
@@ -252,6 +253,11 @@ export default function Header() {
               <div className="confirg" onClick={() => { setShowMenu(false); navigate("/setting"); }}>
                 <FontAwesomeIcon icon={faGear} className="icon icon-setting" />
                 <span className="confirg-text">Cài đặt</span>
+              </div>
+              <div className="divide" />
+              <div className="confirg" onClick={() => { setShowMenu(false); navigate("/lichSuThanhToan"); }}>
+                <FontAwesomeIcon icon={faReceipt} className="icon icon-setting" />
+                <span className="confirg-text">Lịch sử thanh toán</span>
               </div>
 
               <div className="divide" />

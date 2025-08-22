@@ -41,8 +41,9 @@ import QuanLyTraPhi from "./pages/Admin/QuanLyTraPhi/QuanLyTRaPhi";
 import TrangTimKiem from "./pages/NguoiDung/TrangTimKiem/TrangTimKiem";
 import SettingAdmin from "./pages/Admin/Setting/Setting";
 import YeuCauTraPhi from "./router/phanQuyenTraPhi";
-import Checkout from "./pages/NguoiDung/TraPhi/checkout";
-import CheckoutResult from "./pages/NguoiDung/TraPhi/checkouResult";
+import Checkout from "./pages/NguoiDung/Checkout/checkout";
+import CheckoutResult from "./pages/NguoiDung/Checkout/checkoutResult";
+import LichSuThanhToan from "./pages/NguoiDung/TraPhi/lichSuThanhToan";
 
 
 export default function App() {
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="/timkiem/:id" element={<TrangTimKiem />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/checkout/result" element={<CheckoutResult />} />
+            <Route path="/lichSuThanhToan" element={<LichSuThanhToan />}/>
 
             {/* 🔒 Chỉ người có gói trả phí còn hiệu lực mới truy cập được Video */}
             <Route element={<YeuCauTraPhi />}>

@@ -1,0 +1,86 @@
+/* ==== Container ==== */
+/* Kế thừa font từ body/trang Gói trả phí */
+.cr-container {
+  max-width: 720px;
+  margin: 40px auto;
+  padding: 16px;
+  font-family: inherit; /* <-- kế thừa, không ép font riêng */
+}
+
+/* ==== Card ==== */
+.cr-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  background: #ffffff;
+}
+
+/* ==== Header ==== */
+.cr-header { 
+  margin-bottom: 16px; 
+  text-align: center; 
+}
+
+.cr-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.cr-title--success { color: #059669; }
+.cr-title--fail { color: #dc2626; }
+
+/* ==== Details ==== */
+.cr-details {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  row-gap: 8px;
+  column-gap: 12px;
+  margin-bottom: 20px;
+  font-size: 15px;
+}
+
+.cr-label { opacity: 0.7; }
+.cr-value { font-weight: 500; }
+
+/* ==== Actions (2 nút nhỏ, bằng nhau) ==== */
+.cr-actions {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+/* Nếu Button render <button> */
+.cr-actions button {
+  flex: 1;              /* chia đều chiều rộng */
+  min-width: 120px;     /* nhỏ gọn hơn */
+  height: 36px;         /* thấp gọn */
+  font-size: 14px;      /* chữ nhỏ gọn */
+  padding: 6px 10px;
+  text-align: center;
+}
+
+/* Fallback: nếu Button là thẻ khác */
+.cr-actions > * {
+  flex: 1;
+  min-width: 120px;
+}
+.cr-actions > * > * {
+  width: 100%;
+  height: 36px;
+  font-size: 14px;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==== Responsive ==== */
+@media (max-width: 480px) {
+  .cr-details { grid-template-columns: 1fr; }
+  .cr-actions { flex-direction: column; }
+  .cr-actions button,
+  .cr-actions > * { min-width: 100%; }
+}

@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import Button from "../../../components/inputs/Button";
+import "./checkout.css";
 
 const VN = "vi-VN";
 const toVN = (date) => new Date(date).toLocaleDateString(VN);
-const addDays = (date, days) => {
-  const d = new Date(date);
-  d.setDate(d.getDate() + Number(days || 0));
-  return d;
-};
 
 // (khuyến nghị) làm sạch orderId để khớp vnp_TxnRef
 const safeId = (s) => String(s).replace(/[^0-9a-zA-Z_-]/g, "").slice(0, 34);
@@ -52,8 +50,9 @@ export default function Checkout() {
 
     // đảm bảo idDonHang an toàn trước khi gửi cho VNPay
     if (found.idDonHang !== safeId(found.idDonHang)) {
-      found.idDonHang = safeId(found.idDonHang);
-      const idx = orders.findIndex((o) => o.idDonHang === stateOrderId);
+      const cleaned = safeId(found.idDonHang);
+      const idx = orders.findIndex((o) => o.idDonHang === found.idDonHang);
+      found = { ...found, idDonHang: cleaned };
       if (idx !== -1) {
         orders[idx] = found;
         localStorage.setItem("donHangTraPhi", JSON.stringify(orders));
@@ -78,7 +77,7 @@ export default function Checkout() {
         body: JSON.stringify({
           amount: Number(order.soTienThanhToan), // VND; backend sẽ *100
           orderId: order.idDonHang,              // vnp_TxnRef
-          // bankCode: "VNBANK",                  // tùy chọn
+          // bankCode: "VNBANK", // tùy chọn
         }),
       });
       const data = await resp.json();
@@ -98,44 +97,54 @@ export default function Checkout() {
   if (!order) return null;
 
   return (
-    <div style={{ maxWidth: 720, margin: "30px auto", padding: 16 }}>
-      <h2>Checkout</h2>
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, marginTop: 12 }}>
-        <div style={{ marginBottom: 8 }}>
-          <strong>Gói:</strong> {order.tenGoi}
-        </div>
-        <div style={{ marginBottom: 8 }}>
-          <strong>Thời hạn:</strong> {order.thoiHanNgay} ngày
-        </div>
-        <div style={{ marginBottom: 8 }}>
-          <strong>Thanh toán:</strong> {priceText}
-          {order.giamGia > 0 ? (
-            <small style={{ marginLeft: 8, opacity: 0.8 }}>(đã áp dụng -{order.giamGia}%)</small>
-          ) : null}
-        </div>
-        <div style={{ marginBottom: 8 }}>
-          <strong>Mã đơn:</strong> {order.idDonHang}
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <strong>Trạng thái:</strong> {order.trangThai}
-        </div>
-
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Button onClick={payWithVNPay} disabled={paying}>
-            {paying ? "Đang chuyển tới VNPay..." : "Thanh toán VNPay"}
-          </Button>
-
-          {/* Giữ nút mock nếu muốn test nhanh offline */}
-          {/* <Button onClick={handleMockPaySuccess}>Giả lập thanh toán thành công</Button>
-          <Button variant="cancel" onClick={handleMockPayFail}>Giả lập thất bại / Hủy</Button> */}
-
-          <Button variant="secondary" onClick={() => navigate(-1)}>Quay lại</Button>
-        </div>
+    <div className="checkout-container">
+      <div className="back" onClick={() => navigate(-1)}>
+        <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
+        <span>Quay lại</span>
       </div>
 
-      <p style={{ marginTop: 16, opacity: 0.8 }}>
-        Sau khi thanh toán xong, VNPay sẽ chuyển bạn về <code>/checkout/result</code>.
-      </p>
+      <h2 className="checkout-title">Checkout</h2>
+
+      <div className="checkout-card">
+        <div className="row">
+          <span className="label">Gói:</span>
+          <span className="value">{order.tenGoi}</span>
+        </div>
+
+        <div className="row">
+          <span className="label">Thời hạn:</span>
+          <span className="value">{order.thoiHanNgay} ngày</span>
+        </div>
+
+        <div className="row">
+          <span className="label">Thanh toán:</span>
+          <span className="value">
+            {priceText}
+            {order.giamGia > 0 && (
+              <small className="muted"> (đã áp dụng -{order.giamGia}%)</small>
+            )}
+          </span>
+        </div>
+
+        <div className="row">
+          <span className="label">Mã đơn:</span>
+          <span className="value code">{order.idDonHang}</span>
+        </div>
+
+        <div className="row">
+          <span className="label">Trạng thái:</span>
+          <span className="value status">
+            {order.trangThai === "pending" ? "Đang chờ" :
+             order.trangThai === "paid" ? "Đã thanh toán" : "Đã hủy"}
+          </span>
+        </div>
+
+        <div className="checkout-actions">
+          <Button onClick={payWithVNPay} disabled={paying}>
+            {paying ? "Đang chuyển tới VNPay..." : "Thanh toán"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

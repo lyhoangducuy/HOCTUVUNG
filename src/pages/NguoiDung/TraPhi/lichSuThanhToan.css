@@ -1,0 +1,137 @@
+/* Container */
+.ph-container {
+  max-width: 1000px;
+  margin: 32px auto;
+  padding: 0 16px;
+}
+
+.ph-title {
+  margin-bottom: 8px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* Summary cards */
+.ph-summary {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.ph-card {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px;
+  min-width: 220px;
+  background: #fff;
+}
+
+.ph-card__label {
+  opacity: 0.7;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.ph-card__value {
+  font-weight: 600;
+}
+
+/* Empty state */
+.ph-empty {
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  background: #fff;
+}
+
+.ph-empty__actions {
+  margin-top: 12px;
+}
+
+/* Table */
+.ph-table-wrap {
+  overflow-x: auto;
+}
+
+.ph-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ph-table thead th {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid #eee;
+  font-weight: 600;
+  background: #fafafa;
+  white-space: nowrap;
+}
+
+.ph-table tbody td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: top;
+}
+
+.ph-table tbody tr:hover {
+  background: #fafafa;
+}
+
+/* Columns */
+.ph-code {
+  font-family: "Inter", "Roboto", "Noto Sans", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  white-space: nowrap;
+}
+
+.ph-pack-name {
+  font-weight: 600;
+}
+
+.ph-pack-term,
+.ph-discount {
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+/* Badge */
+.ph-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ph-badge.is-paid {
+  color: #065f46;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.ph-badge.is-pending {
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.ph-badge.is-canceled {
+  color: #991b1b;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+/* Actions */
+.ph-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .ph-card { min-width: 160px; }
+  .ph-title { font-size: 20px; }
+}

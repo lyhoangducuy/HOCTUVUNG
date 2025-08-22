@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/inputs/Button";
+import "./CheckoutResult.css";
 
 const VN = "vi-VN";
 const toVN = (date) => new Date(date).toLocaleDateString(VN);
@@ -26,7 +27,7 @@ const RESP_TEXT = {
   "99": "Lỗi khác",
 };
 
-export default function CheckoutResult() {
+export default function checkoutResult() {
   const navigate = useNavigate();
 
   // UI state
@@ -39,7 +40,6 @@ export default function CheckoutResult() {
     paidAt: "",
   });
 
-  // Format số tiền đẹp hơn
   const amountText = useMemo(
     () => (summary.amount ? Number(summary.amount).toLocaleString(VN) + " đ" : "—"),
     [summary.amount]
@@ -51,7 +51,6 @@ export default function CheckoutResult() {
     const orderId = p.get("vnp_TxnRef");            // id đơn
     const amount = Number(p.get("vnp_Amount") || 0) / 100; // VNPay trả *100
 
-    // Thiếu mã đơn: hiển thị lỗi
     if (!orderId) {
       setStatus("error");
       setSummary({
@@ -64,7 +63,6 @@ export default function CheckoutResult() {
       return;
     }
 
-    // Lấy đơn trong localStorage
     const orders = JSON.parse(localStorage.getItem("donHangTraPhi") || "[]");
     const idx = orders.findIndex((o) => String(o.idDonHang) === String(orderId));
 
@@ -80,15 +78,12 @@ export default function CheckoutResult() {
       return;
     }
 
-    // So khớp số tiền (khuyến nghị)
     const expected = Number(orders[idx].soTienThanhToan || 0);
     const moneyOK = expected > 0 ? amount === expected : true;
 
-    // Idempotency: nếu đã paid/canceled rồi thì không tạo lại subscription
     const alreadyPaid = orders[idx].trangThai === "paid";
 
     if (responseCode === "00" && moneyOK) {
-      // Chỉ cập nhật nếu chưa paid
       if (!alreadyPaid) {
         orders[idx] = {
           ...orders[idx],
@@ -98,13 +93,11 @@ export default function CheckoutResult() {
         };
         localStorage.setItem("donHangTraPhi", JSON.stringify(orders));
 
-        // Kích hoạt gói (subscription)
         const currentUser = JSON.parse(sessionStorage.getItem("session") || "null");
         if (currentUser) {
           const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
           const now = new Date();
           const end = addDays(now, orders[idx].thoiHanNgay);
-          // Tránh tạo trùng sub cơ bản: kiểm tra đã có sub active cùng user + gói chưa
           const hasSameActive = subs.some(
             (s) =>
               s.idNguoiDung === currentUser.idNguoiDung &&
@@ -123,7 +116,6 @@ export default function CheckoutResult() {
             localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(subs));
           }
         }
-        // thông báo UI khác có thể lắng nghe
         window.dispatchEvent(new Event("subscriptionChanged"));
       }
 
@@ -136,7 +128,6 @@ export default function CheckoutResult() {
         paidAt: new Date().toISOString(),
       });
     } else {
-      // Cập nhật canceled (trừ khi đã paid trước đó)
       if (!alreadyPaid) {
         orders[idx] = {
           ...orders[idx],
@@ -159,68 +150,49 @@ export default function CheckoutResult() {
     }
   }, []);
 
-  // UI hiển thị theo trạng thái
   const isSuccess = status === "success";
   const isFail = status === "fail";
   const isError = status === "error";
   const isProcessing = status === "processing";
 
   return (
-    <div style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
-      <div
-        style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: 16,
-          padding: 24,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
-        }}
-      >
+    <div className="cr-container">
+      <div className="cr-card">
         {/* Header */}
-        <div style={{ marginBottom: 16 }}>
-          {isProcessing && <h2>Đang xử lý giao dịch…</h2>}
-          {isSuccess && <h2 style={{ color: "#059669" }}>Thanh toán thành công</h2>}
-          {isFail && <h2 style={{ color: "#dc2626" }}>Thanh toán không thành công</h2>}
-          {isError && <h2 style={{ color: "#dc2626" }}>Có lỗi xảy ra</h2>}
+        <div className="cr-header">
+          {isProcessing && <h2 className="cr-title">Đang xử lý giao dịch…</h2>}
+          {isSuccess && <h2 className="cr-title cr-title--success">Thanh toán thành công</h2>}
+          {isFail && <h2 className="cr-title cr-title--fail">Thanh toán không thành công</h2>}
+          {isError && <h2 className="cr-title cr-title--fail">Có lỗi xảy ra</h2>}
 
-          {!isProcessing && (
-            <p style={{ marginTop: 8, opacity: 0.85 }}>{summary.message}</p>
-          )}
         </div>
 
         {/* Details */}
         {!isProcessing && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "160px 1fr",
-              rowGap: 8,
-              columnGap: 12,
-              marginBottom: 20,
-            }}
-          >
-            <div style={{ opacity: 0.7 }}>Mã đơn</div>
-            <div><strong>{summary.orderId || "—"}</strong></div>
+          <div className="cr-details">
+            <div className="cr-label">Mã đơn</div>
+            <div className="cr-value"><strong>{summary.orderId || "—"}</strong></div>
 
-            <div style={{ opacity: 0.7 }}>Số tiền</div>
-            <div>{amountText}</div>
+            <div className="cr-label">Số tiền</div>
+            <div className="cr-value">{amountText}</div>
 
-            <div style={{ opacity: 0.7 }}>Mã phản hồi</div>
-            <div>{summary.responseCode || "—"}</div>
+            <div className="cr-label">Lý do</div>
+            <div className="cr-value">{summary.message || "—"}</div>
 
             {summary.paidAt ? (
               <>
-                <div style={{ opacity: 0.7 }}>Thời gian</div>
-                <div>{toVN(summary.paidAt)}</div>
+                <div className="cr-label">Thời gian</div>
+                <div className="cr-value">{toVN(summary.paidAt)}</div>
               </>
             ) : null}
           </div>
         )}
 
         {/* Actions */}
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Button onClick={() => navigate("/trangchu")}>Về trang chủ</Button>
+        <div className="cr-actions">
+          <Button variant="secondary" onClick={() => navigate("/trangchu")}>Quay lại trang chủ</Button>
           <Button variant="secondary" onClick={() => navigate("/tra-phi")}>
-            Về gói trả phí
+            Mua gói trả phí mới
           </Button>
         </div>
       </div>

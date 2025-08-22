@@ -83,7 +83,7 @@ function Sidebar() {
   return (
     <div className={`sidebar_container ${open ? "" : "is-closed"}`}>
       <div className="sidebar_top">
-        <div onClick={() => navigate("/giangvien")}>
+        <div onClick={() => navigate("/trangchu")}>
           <FontAwesomeIcon icon={faHouse} className="icon" />
           Trang chủ
         </div>
