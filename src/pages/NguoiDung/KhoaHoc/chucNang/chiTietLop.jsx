@@ -1,15 +1,23 @@
 import React, { useEffect, useState } from "react";
+import "./chiTietLop.css";
 
-export default function ChiTietLopModal({ open, lop, onClose, onSave }) {
+export default function ChiTietLopModal({
+  open,
+  lop,
+  onClose,
+  onSave,          // optional: nếu không truyền, sẽ tự lưu vào localStorage
+  isEditMode = false, // optional: mở modal là edit luôn
+}) {
   if (!open || !lop) return null;
 
   const [form, setForm] = useState({
     tenKhoaHoc: "",
     moTa: "",
-    kienThucText: "", // nhập bằng dấu phẩy hoặc xuống dòng
+    kienThucText: "",
   });
+  const [isEditing, setIsEditing] = useState(!!isEditMode);
 
-  // helpers
+  // ===== Helpers =====
   const parseTags = (txt) =>
     Array.from(
       new Set(
@@ -22,27 +30,32 @@ export default function ChiTietLopModal({ open, lop, onClose, onSave }) {
     );
 
   const readJSON = (k, fb) => {
-    try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? fb; }
-    catch { return fb; }
+    try {
+      const v = JSON.parse(localStorage.getItem(k) || "null");
+      return v ?? fb;
+    } catch {
+      return fb;
+    }
   };
   const writeJSON = (k, v) => localStorage.setItem(k, JSON.stringify(v));
   const getAnyId = (x) => x?.idKhoaHoc ?? x?.idLop ?? x?.id ?? x?.maLop ?? null;
 
-  // nạp dữ liệu ban đầu mỗi khi mở modal
+  // đồng bộ prop -> state khi mở modal / đổi lop
   useEffect(() => {
     if (!open) return;
+    setIsEditing(!!isEditMode);
     const tenKhoaHoc = lop.tenKhoaHoc ?? lop.tenLop ?? "";
     const moTa = lop.moTa ?? "";
     const kienThucText = Array.isArray(lop.kienThuc) ? lop.kienThuc.join(", ") : "";
     setForm({ tenKhoaHoc, moTa, kienThucText });
-  }, [open, lop]);
+  }, [open, lop, isEditMode]);
 
   const onChange = (e) => {
     const { name, value } = e.target;
     setForm((s) => ({ ...s, [name]: value }));
   };
 
-  // Lưu: ưu tiên ghi vào 'khoaHoc', đồng thời cập nhật 'lop' (legacy) để tương thích
+  // fallback lưu vào localStorage (khoaHoc + legacy lop)
   const fallbackSaveToLocalStorage = (next) => {
     const id = getAnyId(next);
     if (!id) return;
@@ -56,7 +69,7 @@ export default function ChiTietLopModal({ open, lop, onClose, onSave }) {
       writeJSON("khoaHoc", arr);
     }
 
-    // 2) cập nhật 'lop' (legacy) nếu tồn tại để không phá phần cũ
+    // 2) cập nhật 'lop' (legacy) để không phá phần cũ
     {
       const arr = readJSON("lop", []);
       if (Array.isArray(arr) && arr.length) {
@@ -64,7 +77,6 @@ export default function ChiTietLopModal({ open, lop, onClose, onSave }) {
         if (idx > -1) {
           arr[idx] = {
             ...arr[idx],
-            // giữ đồng bộ name cũ để phần legacy còn dùng được
             tenLop: next.tenKhoaHoc,
             moTa: next.moTa,
             boTheIds: next.boTheIds,
@@ -76,14 +88,20 @@ export default function ChiTietLopModal({ open, lop, onClose, onSave }) {
         }
       }
     }
+
+    // phát sự kiện để các màn khác reload
+    window.dispatchEvent(new Event("khoaHocChanged"));
   };
 
   const handleSave = () => {
     const tenKhoaHoc = String(form.tenKhoaHoc || "").trim();
+    if (!tenKhoaHoc) {
+      alert("Vui lòng nhập tên khóa học.");
+      return;
+    }
     const moTa = String(form.moTa || "").trim();
     const kienThuc = parseTags(form.kienThucText);
 
-    // dựng object theo schema mới, kèm field cũ để tương thích
     const next = {
       ...lop,
       idKhoaHoc: lop.idKhoaHoc ?? getAnyId(lop) ?? Date.now(),
@@ -93,76 +111,127 @@ export default function ChiTietLopModal({ open, lop, onClose, onSave }) {
       boTheIds: Array.isArray(lop.boTheIds) ? lop.boTheIds : [],
       folderIds: Array.isArray(lop.folderIds) ? lop.folderIds : [],
       thanhVienIds: Array.isArray(lop.thanhVienIds) ? lop.thanhVienIds : [],
-      // giữ tên cũ cho phần còn dùng 'lop'
+      // giữ tên cũ cho phần legacy dùng 'tenLop'
       tenLop: tenKhoaHoc,
     };
 
     if (typeof onSave === "function") onSave(next);
     else fallbackSaveToLocalStorage(next);
 
-    onClose?.();
+    // Ở lại modal, chuyển về chế độ xem
+    setIsEditing(false);
   };
 
-  // Số liệu hiển thị
-  const soBoThe = Array.isArray(lop.boTheIds) ? lop.boTheIds.length : (Number.isFinite(lop?.soBoThe) ? lop.soBoThe : 0);
-  const soFolder = Array.isArray(lop.folderIds) ? lop.folderIds.length : (Number.isFinite(lop?.soFolder) ? lop.soFolder : 0);
-  const soThanhVien = Array.isArray(lop.thanhVienIds) ? lop.thanhVienIds.length : (Number.isFinite(lop?.soThanhVien) ? lop.soThanhVien : 0);
+  const soBoThe =
+    Array.isArray(lop.boTheIds) ? lop.boTheIds.length :
+    (Number.isFinite(lop?.soBoThe) ? lop.soBoThe : 0);
+  const soFolder =
+    Array.isArray(lop.folderIds) ? lop.folderIds.length :
+    (Number.isFinite(lop?.soFolder) ? lop.soFolder : 0);
+  const soThanhVien =
+    Array.isArray(lop.thanhVienIds) ? lop.thanhVienIds.length :
+    (Number.isFinite(lop?.soThanhVien) ? lop.soThanhVien : 0);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <div className="modal-header">
+    <div className="ctl-overlay">
+      <div className="ctl-modal" role="dialog" aria-modal="true">
+        {/* Header */}
+        <div className="ctl-header">
           <h3>Thông tin khóa học</h3>
-          <button className="modal-close" onClick={onClose} aria-label="Đóng">✕</button>
+          <button className="ctl-close" onClick={onClose} aria-label="Đóng">×</button>
         </div>
 
-        <div className="modal-body">
-          <div className="info-row">
-            <span className="label">Tên khóa học:</span>
-            <input
-              name="tenKhoaHoc"
-              type="text"
-              value={form.tenKhoaHoc}
-              onChange={onChange}
-              className="input"
-              placeholder="Nhập tên khóa học"
-            />
+        {/* Body */}
+        <div className="ctl-body">
+          {/* Tên khóa học */}
+          <div className="ctl-row">
+            <label className="ctl-label">Tên khóa học</label>
+            {!isEditing ? (
+              <div className="ctl-static">{form.tenKhoaHoc || "—"}</div>
+            ) : (
+              <input
+                name="tenKhoaHoc"
+                type="text"
+                value={form.tenKhoaHoc}
+                onChange={onChange}
+                className="ctl-input"
+                placeholder="Nhập tên khóa học"
+              />
+            )}
           </div>
 
-          <div className="info-row">
-            <span className="label">Kỹ năng/Chủ đề (kiến thức):</span>
-            <textarea
-              name="kienThucText"
-              rows={2}
-              value={form.kienThucText}
-              onChange={onChange}
-              className="textarea"
-              placeholder="Ví dụ: it, tiếng nhật, tiếng anh…"
-            />
+          {/* Kiến thức / Chủ đề */}
+          <div className="ctl-row">
+            <label className="ctl-label">Kỹ năng/Chủ đề (kiến thức)</label>
+            {!isEditing ? (
+              <div className="ctl-static">
+                {Array.isArray(lop.kienThuc) && lop.kienThuc.length > 0 ? (
+                  lop.kienThuc.join(", ")
+                ) : (
+                  "—"
+                )}
+              </div>
+            ) : (
+              <>
+                <textarea
+                  name="kienThucText"
+                  rows={2}
+                  value={form.kienThucText}
+                  onChange={onChange}
+                  className="ctl-textarea"
+                  placeholder="Ví dụ: it, tiếng nhật, tiếng anh… (ngăn cách bằng dấu phẩy hoặc xuống dòng)"
+                />
+                <div className="ctl-hint">
+                  Mẹo: bạn có thể nhập mỗi dòng 1 thẻ hoặc dùng dấu phẩy. Hệ thống tự loại trùng & chuẩn hóa chữ thường.
+                </div>
+              </>
+            )}
           </div>
 
-          <div className="info-row">
-            <span className="label">Mô tả:</span>
-            <textarea
-              name="moTa"
-              rows={3}
-              value={form.moTa}
-              onChange={onChange}
-              className="textarea"
-              placeholder="Mô tả ngắn về khóa học…"
-            />
+          {/* Mô tả */}
+          <div className="ctl-row">
+            <label className="ctl-label">Mô tả</label>
+            {!isEditing ? (
+              <div className="ctl-static">{form.moTa || "—"}</div>
+            ) : (
+              <textarea
+                name="moTa"
+                rows={3}
+                value={form.moTa}
+                onChange={onChange}
+                className="ctl-textarea"
+                placeholder="Mô tả ngắn về khóa học…"
+              />
+            )}
           </div>
 
-          <div className="split" />
+          <div className="ctl-split" />
 
-          <div className="info-row"><span className="label">Bộ thẻ:</span> <span>{soBoThe}</span></div>
-          <div className="info-row"><span className="label">Thư mục:</span> <span>{soFolder}</span></div>
-          <div className="info-row"><span className="label">Thành viên:</span> <span>{soThanhVien}</span></div>
+          {/* Thống kê */}
+          <div className="ctl-stats">
+            <div className="ctl-stat-item">
+              <span className="ctl-stat-label">Bộ thẻ</span>
+              <span className="ctl-stat-value">{soBoThe}</span>
+            </div>
+            <div className="ctl-stat-item">
+              <span className="ctl-stat-label">Thư mục</span>
+              <span className="ctl-stat-value">{soFolder}</span>
+            </div>
+            <div className="ctl-stat-item">
+              <span className="ctl-stat-label">Thành viên</span>
+              <span className="ctl-stat-value">{soThanhVien}</span>
+            </div>
+          </div>
         </div>
 
-        <div className="modal-footer">
-          <button className="btn-secondary" onClick={onClose}>Hủy</button>
-          <button className="btn-primary" onClick={handleSave}>Lưu</button>
+        {/* Footer */}
+        <div className="ctl-footer">
+          <button className="btn-cancel-outline" onClick={onClose}>Đóng</button>
+          {!isEditing ? (
+            <button className="btn-primary" onClick={() => setIsEditing(true)}>Chỉnh sửa</button>
+          ) : (
+            <button className="btn-primary" onClick={handleSave}>Lưu</button>
+          )}
         </div>
       </div>
     </div>

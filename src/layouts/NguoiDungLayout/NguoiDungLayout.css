@@ -1,19 +1,90 @@
-.trangchu-layout-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* ========== RESET ========== */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background:#f8f9fa; }
+
+/* ========== TOKENS ========== */
+:root{
+  --header-h: 64px;   /* chiều cao header */
+  --sidebar-w: 260px; /* chiều rộng sidebar */
+
+  --line: #e5e7eb;
+  --bg: #f8f9fa;
+  --surface: #fff;
 }
 
-.trangchu-layout-main {
+/* ========== LAYOUT KHUNG ========== */
+.trangchu-layout-container{
+  min-height: 100%;
   display: flex;
+  flex-direction: column;
+  /* rất quan trọng: KHÔNG padding để sidebar áp sát mép trái */
+  padding: 0;
+}
+
+/* vùng main chỉ giữ chỗ, không padding/margin trái */
+.trangchu-layout-main{
   flex: 1;
   min-height: 0;
 }
 
-
-
-.trangchu-layout-content {
-  flex: 1;
-  padding: 24px;
-  min-width: 0;
+/* ========== HEADER CỐ ĐỊNH ========== */
+/* Nếu header component của bạn có class khác, đổi lại cho khớp */
+.header-container{
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--header-h);
+  z-index: 1000;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
 }
+
+/* ========== SIDEBAR CỐ ĐỊNH SÁT MÉP TRÁI ========== */
+.trangchu-layout-sidebar{
+  position: fixed;
+  top: var(--header-h);
+  left: 0;                 /* đảm bảo dính sát cạnh trái, không bị “hở” */
+  width: var(--sidebar-w);
+  height: calc(100vh - var(--header-h));
+  overflow: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  z-index: 900;
+  /* KHÔNG margin, KHÔNG padding trái ngoài ý muốn */
+}
+
+/* ========== CONTENT ========== */
+.trangchu-layout-content{
+  min-width: 0;
+  /* chừa chỗ cho sidebar và header */
+  margin-left: var(--sidebar-w);
+  padding: 24px;
+  padding-top: calc(var(--header-h) + 16px);
+  /* nền theo ý: có thể để transparent nếu muốn nhìn thấy bg body */
+  background: transparent;
+}
+
+/* (Tùy chọn) cuộn mượt & ẩn thanh cuộn xấu trên Webkit */
+.trangchu-layout-sidebar::-webkit-scrollbar { width: 8px; }
+.trangchu-layout-sidebar::-webkit-scrollbar-thumb {
+  background: #d1d5db; border-radius: 999px;
+}
+.trangchu-layout-sidebar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+
+@media (max-width: 992px){
+  .trangchu-layout-sidebar{
+    position: static;
+    width: auto;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .trangchu-layout-content{
+    margin-left: 0;
+    padding-top: calc(var(--header-h) + 16px);
+  }
+}
+
