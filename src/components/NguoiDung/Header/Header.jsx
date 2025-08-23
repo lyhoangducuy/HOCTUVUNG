@@ -4,6 +4,7 @@ import { faBars, faBookOpen, faCirclePlus, faGear, faFolderOpen, faClone, faRece
 import "./header.css";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import AIButton from "../../Admin/AIButton/AIButton";
 
 /* helpers   */
 const readJSON = (key, fallback = []) => {
@@ -220,7 +221,7 @@ export default function Header() {
             </div>
           )}
         </div>
-
+          <AIButton/>
         <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
           Nâng cấp tài khoản
         </button>

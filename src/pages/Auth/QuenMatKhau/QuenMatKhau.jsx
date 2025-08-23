@@ -73,7 +73,7 @@ export default function QuenMatKhau() {
                 Mật khẩu của bạn đã được cập nhật. Bây giờ bạn có thể đăng nhập với mật khẩu mới.
               </p>
               <button 
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/dang-nháp")}
                 className="login-btn submit"
               >
                 Đăng nhập ngay
@@ -148,7 +148,7 @@ export default function QuenMatKhau() {
           </form>
 
           <div className="back-to-login">
-            <a onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
+            <a onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
               ← Quay lại đăng nhập
             </a>
           </div>

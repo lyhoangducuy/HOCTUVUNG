@@ -78,7 +78,7 @@ export default function DangNhap() {
             </span>
             <span
               className="active"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/dang-nhap")}
               style={{ cursor: "pointer" }}
             >
               Đăng nhập
