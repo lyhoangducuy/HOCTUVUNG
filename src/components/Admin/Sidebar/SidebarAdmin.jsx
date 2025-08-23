@@ -42,11 +42,11 @@ const SidebarAdmin = () => {
             </a>
           </li>
           <li>
-            <a href="/admin/quan-ly-lop">
+            <a href="/admin/quan-ly-khoa-hoc">
               <span className="sidebar-icon">
                 <FaChalkboardTeacher />
               </span>
-              Quản Lý Lớp Học
+              Quản Lý Khóa Học
             </a>
           </li>
           <li>
