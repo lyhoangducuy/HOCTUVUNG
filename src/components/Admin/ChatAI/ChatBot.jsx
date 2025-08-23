@@ -2,6 +2,7 @@ import React from "react";
 
 export async function fetchVocabulary(topic, count = 10) {
   const apiKey = import.meta.env.VITE_API_CHATBOT_KEY;
+  
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
