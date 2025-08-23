@@ -6,8 +6,7 @@ import Edit from "../../../../components/Admin/Edit/Edit";
 import Add from "../../../../components/Admin/Add/Add";
 import ExportModal from "../../../../components/Admin/ExportModal/ExportModal";
 import "./MainContent.css";
-
-const MainContentQLBT = ({ Data = [] }) => {
+const MainContentQLBT = ({ Data }) => {
   const ColumsBoThe = [
     { name: "ID", key: "id" },
     { name: "Tên bộ thẻ", key: "name" },
@@ -56,14 +55,15 @@ const MainContentQLBT = ({ Data = [] }) => {
 
     // Xoá trong localStorage "boThe" (idBoThe phải trùng với item.id)
     try {
-      const raw = localStorage.getItem("boThe");
-      const list = raw ? JSON.parse(raw) : [];
-      const next = (Array.isArray(list) ? list : []).filter(
-        (bt) => String(bt.idBoThe) !== String(id)
+      const cards = JSON.parse(localStorage.getItem("boThe"));
+
+      const next = (Array.isArray(cards) ? cards : []).filter(
+        (temp) => String(temp.idBoThe) !== String(id)
       );
+
       localStorage.setItem("boThe", JSON.stringify(next));
-    } catch (e) {
-      console.error("Xoá bộ thẻ trong localStorage thất bại:", e);
+    } catch (error) {
+      console.error("xóa bộ thẻ thất bại: ", error);
     }
 
     onClose();
@@ -90,29 +90,29 @@ const MainContentQLBT = ({ Data = [] }) => {
     const updated = data.map((it) =>
       String(it.id) === String(updatedUser.id) ? updatedUser : it
     );
-    setData(updated);
-    setFilteredData(updated);
+    console.log(updatedUser);
 
-    // Đồng bộ localStorage/boThe (map các field phù hợp schema thực tế)
+    setData(updatedData);
     try {
       const raw = localStorage.getItem("boThe");
       const list = raw ? JSON.parse(raw) : [];
       const idx = list.findIndex(
         (c) => String(c.idBoThe) === String(updatedUser.id)
       );
+      console.log(idx);
+
       if (idx !== -1) {
         const cur = { ...list[idx] };
         list[idx] = {
           ...cur,
           tenBoThe: updatedUser.name,
-          // tuỳ schema thật của bạn: soTu hoặc danhSachThe.length
-          soTu: Number(updatedUser.numBer) || cur.soTu || 0,
-          // idNguoiDung / thông tin creator không nhất thiết lưu string "userCreated"
+          userCreated: updatedUser.userCreated,
+          numBer: updatedUser.numBer,
         };
         localStorage.setItem("boThe", JSON.stringify(list));
       }
-    } catch (e) {
-      console.error("Cập nhật bộ thẻ trong localStorage thất bại:", e);
+    } catch (error) {
+      console.error("cập nhật bộ thẻ thất bại ", error);
     }
 
     handleUserDetailClose();

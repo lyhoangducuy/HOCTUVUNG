@@ -82,11 +82,15 @@ const Edit = ({
 
           <div className="user-info-section">
             {Colums.map((item, index) => {
-              const val = formData[item.key] ?? "";
-
-              // 1) ROLE: nếu có options thì dùng options; nếu không thì dùng mặc định
-              if (item.key === "role") {
-                const opts = Array.isArray(item.options) ? item.options : defaultRoleOptions;
+              if (/^id/i.test(item.key)) {
+                return (
+                  <div key={index} className="info-row">
+                    <label>{item.name}</label>
+                    <span>{formData[item.key]}</span>
+                  </div>
+                );
+              }
+              else if (item.key === "role") {
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
@@ -105,10 +109,8 @@ const Edit = ({
                     )}
                   </div>
                 );
-              }
-
-              // 2) PASSWORD: giữ nguyên hành vi
-              if (item.key === "password") {
+              } 
+              else if (item.key === "password") {
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
