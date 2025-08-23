@@ -26,7 +26,7 @@ export default function YeuCauTraPhi() {
 
   // nếu chưa đăng nhập → về trang đăng nhập
   if (!session?.idNguoiDung) {
-    return <Navigate to="/" replace state={{ from: location }} />;
+    return <Navigate to="/dang-nhap" replace state={{ from: location }} />;
   }
 
   // nếu không có gói còn hiệu lực → chuyển tới trang trả phí

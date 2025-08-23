@@ -92,7 +92,7 @@ function DangKy() {
             >
               Đăng ký
             </span>
-            <span onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
+            <span onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
               Đăng nhập
             </span>
           </div>
@@ -100,7 +100,7 @@ function DangKy() {
           <form onSubmit={handleSubmit(onSubmit)} className="signup-form">
             <label>Email</label>
             <input
-              type="email"
+              type="text"
               {...register("email")}
               className={errors.email ? "error" : ""}
             />

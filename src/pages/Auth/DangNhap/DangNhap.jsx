@@ -58,14 +58,10 @@ export default function DangNhap() {
     sessionStorage.setItem("session", JSON.stringify(sessionUser));
 
     // Điều hướng theo vai trò
-    const next =
-      found.vaiTro === "GIANG_VIEN"
-        ? "/giangvien"
-        : found.vaiTro === "ADMIN"
-        ? "/admin"
-        : "/hocvien";
-
-    navigate(next);
+    if (sessionUser.vaiTro==="ADMIN")
+      navigate("/admin")
+    else
+      navigate("/trangchu");
   };
 
   return (
@@ -85,7 +81,7 @@ export default function DangNhap() {
             </span>
             <span
               className="active"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/dang-nhap")}
               style={{ cursor: "pointer" }}
             >
               Đăng nhập
@@ -95,7 +91,7 @@ export default function DangNhap() {
           <form onSubmit={handleSubmit(onSubmit)} className="login-form">
             <label>Email</label>
             <input
-              type="email"
+              type="text"
               {...register("email")}
               className={errors.email ? "error" : ""}
             />

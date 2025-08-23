@@ -1,0 +1,132 @@
+/* ==== Container (đồng bộ font toàn site) ==== */
+.checkout-container {
+  max-width: 780px;            /* to hơn 1 chút */
+  margin: 32px auto;
+  padding: 16px;
+  font-family: inherit;
+}
+
+/* ==== Back link ==== */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #374151;
+  user-select: none;
+  margin-bottom: 10px;
+}
+.back .iconback { font-size: 14px; }
+.back:hover { color: #111827; }
+
+/* ==== Title (đậm & to hơn) ==== */
+.checkout-title {
+  margin: 0 0 16px 0;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+/* ==== Card (đồng bộ tone với PaymentHistory) ==== */
+.checkout-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;               /* to ra nhẹ */
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+}
+
+/* ==== Hàng thông tin ==== */
+.row {
+  display: grid;
+  grid-template-columns: 180px 1fr;  /* label rộng hơn */
+  column-gap: 14px;
+  row-gap: 8px;
+  padding: 10px 0;                   /* cao hơn */
+  border-bottom: 1px solid #f3f4f6;  /* giống table ở lịch sử */
+}
+.row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.label {
+  opacity: .72;
+  font-size: 15px;
+}
+
+.value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.value.code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: #1f2937;
+}
+
+.muted {
+  opacity: .75;
+  margin-left: 6px;
+  font-size: 12px;
+}
+
+/* ==== Trạng thái: badge giống PaymentHistory ==== */
+.value.status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* default (nếu chưa set modifier) */
+.value.status { background: #fef3c7; color: #92400e; }
+
+/* dùng kèm class bổ sung nếu muốn set màu rõ ràng bằng JSX:
+   <span className={`value status status--paid`}>…</span> */
+.value.status.status--paid {
+  color: #065f46;
+  background: rgba(16,185,129,.12);
+}
+.value.status.status--pending {
+  color: #92400e;
+  background: rgba(245,158,11,.12);
+}
+.value.status.status--canceled {
+  color: #991b1b;
+  background: rgba(239,68,68,.12);
+}
+
+/* ==== Hàng nút (để 1 nút chính, to hơn chút) ==== */
+.checkout-actions {
+  display: flex;
+  margin-top: 16px;
+}
+
+.checkout-actions button,
+.checkout-actions > * > * {
+  min-width: 180px;        /* to hơn */
+  height: 40px;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 14px;
+}
+
+/* ==== Responsive ==== */
+@media (max-width: 640px) {
+  .checkout-container { padding: 12px; }
+  .checkout-title { font-size: 22px; }
+  .checkout-card { padding: 16px; }
+  .row { grid-template-columns: 1fr; padding: 8px 0; }
+  .label { font-size: 14px; }
+  .value { font-size: 15px; }
+  .checkout-actions button,
+  .checkout-actions > * > * {
+    width: 100%;
+    min-width: 0;
+  }
+}

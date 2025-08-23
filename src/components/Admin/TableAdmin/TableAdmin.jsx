@@ -9,11 +9,11 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
 
-  // Clamp currentPage khi pageSize/Data thay đổi
+  // Clamp currentPage khi Data/pageSize đổi (tránh tối đa render vòng lặp)
   useEffect(() => {
     const newTotal = Math.max(1, Math.ceil((Data?.length || 0) / pageSize));
-    if (currentPage > newTotal) setCurrentPage(newTotal);
-  }, [Data, pageSize, currentPage]);
+    setCurrentPage((p) => Math.min(p, newTotal));
+  }, [Data, pageSize]);
 
   const pageData = useMemo(
     () => (Array.isArray(Data) ? Data.slice(startIndex, endIndex) : []),
@@ -38,7 +38,7 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
             {Colums.map((col, idx) => (
               <th key={idx}>{col.name}</th>
             ))}
-            {Action && Action.length > 0 && <th>Action</th>}
+            {Action?.length > 0 && <th>Action</th>}
           </tr>
         </thead>
 
@@ -46,7 +46,7 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
           {pageData.length === 0 ? (
             <tr>
               <td
-                colSpan={Colums.length + (Action && Action.length > 0 ? 1 : 0)}
+                colSpan={Colums.length + (Action?.length > 0 ? 1 : 0)}
                 style={{ textAlign: "center", padding: 16, opacity: 0.7 }}
               >
                 Không có dữ liệu
@@ -59,7 +59,7 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
                   <td key={idx}>{item[col.key]}</td>
                 ))}
 
-                {Action && Action.length > 0 && (
+                {Action?.length > 0 && (
                   <td>
                     <div
                       style={{

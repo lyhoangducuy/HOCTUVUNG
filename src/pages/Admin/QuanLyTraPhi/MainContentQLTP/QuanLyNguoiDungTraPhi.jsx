@@ -1,232 +1,293 @@
+// src/pages/Admin/QuanLyTraPhi/QuanLyNguoiDungTraPhi.jsx
+import "./MainConTentQLTP.css";
+import TableAdmin from "../../../../components/Admin/TableAdmin/TableAdmin";
 import { useEffect, useMemo, useState } from "react";
+import Search from "../../../../components/Admin/Search/Search";
+import Delete from "../../../../components/Admin/Delete/Delete";
+import Edit from "../../../../components/Admin/Edit/Edit";
+import Add from "../../../../components/Admin/Add/Add";
+import ExportModal from "../../../../components/ExportModal/ExportModal";
 
-// date helpers
-const addDays = (date, days) => {
-  const d = new Date(date);
-  d.setDate(d.getDate() + Number(days || 0));
-  return d;
+/* ===== Helpers ===== */
+const readJSON = (k, def = []) => {
+  try { const raw = localStorage.getItem(k); const v = raw ? JSON.parse(raw) : def; return Array.isArray(v) ? v : def; }
+  catch { return def; }
 };
-const toVN = (date) => {
-  try { return new Date(date).toLocaleDateString("vi-VN"); }
-  catch { return ""; }
-};
-const parseInputDate = (yyyy_mm_dd) => {
-  // yyyy-mm-dd -> Date
-  if (!yyyy_mm_dd) return new Date();
-  const [y, m, d] = yyyy_mm_dd.split("-").map(Number);
-  return new Date(y, (m || 1) - 1, d || 1);
-};
-const formatInputDate = (date) => {
-  // Date -> yyyy-mm-dd
-  const d = new Date(date);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-};
+const writeJSON = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 const genSubId = () => "SUB_" + Date.now();
 
-export default function QuanLyNguoiDungTraPhi() {
-  const [subs, setSubs] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [packs, setPacks] = useState([]);
+const parseVN = (dmy) => {
+  if (!dmy || typeof dmy !== "string") return null;
+  const [d, m, y] = dmy.split("/").map(Number);
+  if (!d || !m || !y) return null;
+  return new Date(y, (m || 1) - 1, d || 1);
+};
+const fmtVN = (d) => (d instanceof Date ? d.toLocaleDateString("vi-VN") : "");
+const today0 = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); };
 
-  // form
-  const [isEdit, setIsEdit] = useState(false);
-  const [editId, setEditId] = useState("");
-  const [idNguoiDung, setIdNguoiDung] = useState("");
-  const [idGoi, setIdGoi] = useState("");
-  const [startDateStr, setStartDateStr] = useState(formatInputDate(new Date()));
+const buildRows = () => {
+  const subs = readJSON("goiTraPhiCuaNguoiDung", []);
+  const users = readJSON("nguoiDung", []);
+  const packs = readJSON("goiTraPhi", []);
 
-  const reload = () => {
-    const s = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
-    const u = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-    const p = JSON.parse(localStorage.getItem("goiTraPhi") || "[]");
-    setSubs(Array.isArray(s) ? s : []);
-    setUsers(Array.isArray(u) ? u : []);
-    setPacks(Array.isArray(p) ? p : []);
-  };
-  useEffect(() => { reload(); }, []);
+  return subs.map((s) => {
+    const u = users.find((x) => x.idNguoiDung === s.idNguoiDung);
+    const p = packs.find((x) => x.idGoi === s.idGoi);
 
-  const resetForm = () => {
-    setIsEdit(false);
-    setEditId("");
-    setIdNguoiDung("");
-    setIdGoi("");
-    setStartDateStr(formatInputDate(new Date()));
-  };
+    const end = parseVN(s.NgayKetThuc);
+    const status = end && end >= today0() ? "Đang hoạt động" : "Hết hạn";
 
-  const handleAdd = () => {
-    if (!idNguoiDung || !idGoi) return alert("Vui lòng chọn người dùng và gói");
-    const pack = packs.find((x) => x.idGoi === idGoi);
-    if (!pack) return alert("Gói không hợp lệ");
+    return {
+      // hiển thị
+      id: s.idGTPCND,
+      username: u?.tenNguoiDung || `User ${s.idNguoiDung}`,
+      package: p?.tenGoi || s.idGoi,
+      status,
+      created: s.NgayBatDau,
+      endDate: s.NgayKetThuc,
 
-    const start = parseInputDate(startDateStr);
-    const end = addDays(start, Number(pack.thoiHan || 0));
-
-    const newSub = {
-      idGTPCND: genSubId(),
-      idNguoiDung: Number(idNguoiDung),
-      idGoi: idGoi,
-      NgayBatDau: toVN(start),
-      NgayKetThuc: toVN(end),
+      // dữ liệu phụ
+      idNguoiDung: s.idNguoiDung,
+      idGoi: s.idGoi,
     };
-    const next = [...subs, newSub];
-    localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(next));
+  });
+};
+
+export default function QuanLyNguoiDungTraPhi() {
+  /* ===== Cột bảng ===== */
+  const ColumsTable = [
+    { name: "ID", key: "id" },
+    { name: "Tên người dùng", key: "username" },
+    { name: "Gói học", key: "package" },
+    { name: "Trạng thái", key: "status" },
+    { name: "Ngày bắt đầu", key: "created" },
+    { name: "Ngày hết hạn", key: "endDate" },
+  ];
+
+  /* ===== Options cho select (tên gói) ===== */
+  const getPackOptions = () =>
+    readJSON("goiTraPhi", []).map((p) => ({
+      value: String(p.idGoi),
+      label: String(p.tenGoi || p.idGoi), // 👉 hiển thị TÊN GÓI
+      thoiHan: Number(p.thoiHan || 0),
+    }));
+
+  const [packOptions, setPackOptions] = useState(getPackOptions());
+
+  /* ===== Form (Edit/Add) – chỉ sửa/chọn 4 trường ===== */
+  const statusOptions = [
+    { value: "Đang hoạt động", label: "Đang hoạt động" },
+    { value: "Hết hạn", label: "Hết hạn" },
+  ];
+
+  const ColumsFormEdit = useMemo(() => [
+    { name: "Gói học", key: "idGoi", options: packOptions },   // select tên gói
+    { name: "Trạng thái", key: "status", options: statusOptions }, // select
+    { name: "Ngày bắt đầu (dd/mm/yyyy)", key: "NgayBatDau" },
+    { name: "Ngày hết hạn (dd/mm/yyyy)", key: "NgayKetThuc" },
+  ], [packOptions]);
+
+  const ColumsFormAdd = useMemo(() => [
+    { name: "ID người dùng", key: "idNguoiDung" },
+    { name: "Gói học", key: "idGoi", options: packOptions },   // select tên gói
+    { name: "Ngày bắt đầu (dd/mm/yyyy)", key: "NgayBatDau" },
+    { name: "Ngày hết hạn (dd/mm/yyyy) (có thể để trống)", key: "NgayKetThuc" },
+  ], [packOptions]);
+
+  /* ===== State data ===== */
+  const [data, setData] = useState(() => buildRows());
+  const [filteredData, setFilteredData] = useState(data);
+  useEffect(() => setFilteredData(data), [data]);
+
+  /* Dialog states */
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+
+  const [showAddDialog, setShowAddDialog] = useState(false);
+
+  const [showEdit, setShowEdit] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  const [exportModal, setExportModal] = useState(false);
+
+  /* ===== Reload ===== */
+  const reload = () => {
+    setPackOptions(getPackOptions());  // cập nhật list gói mới nhất
+    setData(buildRows());
+  };
+
+  useEffect(() => {
+    // reload khi đổi dữ liệu ở tab khác
+    const onStorage = (e) => {
+      if (["goiTraPhi", "goiTraPhiCuaNguoiDung", "nguoiDung"].includes(e.key)) reload();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  /* ===== Delete ===== */
+  const handleDelete = (id) => { setDeleteId(id); setShowDeleteDialog(true); };
+  const onCloseDelete = () => { setShowDeleteDialog(false); setDeleteId(null); };
+  const onConfirmDelete = (id) => {
+    const prev = readJSON("goiTraPhiCuaNguoiDung", []);
+    const next = prev.filter((x) => String(x.idGTPCND) !== String(id));
+    writeJSON("goiTraPhiCuaNguoiDung", next);
+    onCloseDelete();
     reload();
-    resetForm();
+    window.dispatchEvent(new Event("subscriptionChanged"));
   };
 
-  const handleEditPick = (row) => {
-    setIsEdit(true);
-    setEditId(row.idGTPCND);
-    setIdNguoiDung(row.idNguoiDung);
-    setIdGoi(row.idGoi);
-    // convert dd/mm/yyyy -> yyyy-mm-dd
-    const [d, m, y] = (row.NgayBatDau || "").split("/").map(Number);
-    const iso = y && m && d ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : formatInputDate(new Date());
-    setStartDateStr(iso);
-  };
-
-  const handleSaveEdit = () => {
-    if (!editId) return;
-    if (!idNguoiDung || !idGoi) return alert("Vui lòng chọn người dùng và gói");
-
-    const pack = packs.find((x) => x.idGoi === idGoi);
-    if (!pack) return alert("Gói không hợp lệ");
-
-    const start = parseInputDate(startDateStr);
-    const end = addDays(start, Number(pack.thoiHan || 0));
-
-    const next = subs.map((s) =>
-      s.idGTPCND === editId
-        ? {
-            ...s,
-            idNguoiDung: Number(idNguoiDung),
-            idGoi: idGoi,
-            NgayBatDau: toVN(start),
-            NgayKetThuc: toVN(end),
-          }
-        : s
-    );
-    localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(next));
-    reload();
-    resetForm();
-  };
-
-  const handleDelete = (id) => {
-    if (!window.confirm("Xoá đăng ký này?")) return;
-    const next = subs.filter((s) => s.idGTPCND !== id);
-    localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(next));
-    reload();
-    if (editId === id) resetForm();
-  };
-
-  // join để render bảng
-  const rows = useMemo(() => {
-    const today = new Date();
-    return subs.map((s) => {
-      const u = users.find((x) => x.idNguoiDung === s.idNguoiDung);
-      const p = packs.find((x) => x.idGoi === s.idGoi);
-      // parse end dd/mm/yyyy
-      let status = "Không xác định";
-      try {
-        const [d, m, y] = (s.NgayKetThuc || "").split("/").map(Number);
-        const end = new Date(y, (m || 1) - 1, d || 1);
-        status = end >= today ? "Đang hoạt động" : "Hết hạn";
-      } catch {}
-      return {
-        ...s,
-        tenNguoiDung: u?.tenNguoiDung || `User ${s.idNguoiDung}`,
-        tenGoi: p?.tenGoi || s.idGoi,
-        status,
-      };
+  /* ===== Edit ===== */
+  const handleEdit = (id) => {
+    const row = data.find((x) => String(x.id) === String(id));
+    if (!row) return;
+    setSelectedRow({
+      id: row.id,
+      idNguoiDung: row.idNguoiDung,
+      idGoi: row.idGoi,           // sẽ map lên select theo tên gói
+      status: row.status,         // select
+      NgayBatDau: row.created,
+      NgayKetThuc: row.endDate,
     });
-  }, [subs, users, packs]);
+    setShowEdit(true);
+    setIsEditMode(false);
+  };
+  const handleEditClose = () => { setShowEdit(false); setSelectedRow(null); setIsEditMode(false); };
+
+  const handleEditSave = (payload, isEdit = false) => {
+    if (isEdit) { setIsEditMode(true); return; }
+
+    const id = payload?.id || selectedRow?.id;
+    const idGoi = String(payload?.idGoi || "").trim();
+    const status = String(payload?.status || "");
+    const start = parseVN(payload?.NgayBatDau);
+    let end = parseVN(payload?.NgayKetThuc);
+
+    if (!id || !idGoi || !status || !start || !end) {
+      alert("Nhập đủ: Gói học, Trạng thái, Ngày bắt đầu, Ngày hết hạn.");
+      return;
+    }
+
+    // ép end theo trạng thái nếu cần
+    const t0 = today0();
+    if (status === "Đang hoạt động" && end < t0) end = t0;
+    if (status === "Hết hạn" && end >= t0) { const d = new Date(t0); d.setDate(d.getDate() - 1); end = d; }
+
+    const list = readJSON("goiTraPhiCuaNguoiDung", []);
+    const idx = list.findIndex((x) => String(x.idGTPCND) === String(id));
+    if (idx === -1) { alert("Không tìm thấy bản ghi để sửa."); return; }
+
+    list[idx] = {
+      ...list[idx],
+      idGoi,
+      NgayBatDau: fmtVN(start),
+      NgayKetThuc: fmtVN(end),
+    };
+    writeJSON("goiTraPhiCuaNguoiDung", list);
+
+    handleEditClose();
+    reload();
+    window.dispatchEvent(new Event("subscriptionChanged"));
+  };
+
+  /* ===== Add ===== */
+  const handleAddOpen = () => setShowAddDialog(true);
+  const handleAddClose = () => setShowAddDialog(false);
+
+  const handleAddSave = (row) => {
+    const idNguoiDung = Number(row?.idNguoiDung);
+    const idGoi = String(row?.idGoi || "").trim();
+    const start = parseVN(row?.NgayBatDau);
+    let end = parseVN(row?.NgayKetThuc);
+
+    if (!idNguoiDung || !idGoi || !start) {
+      alert("Nhập: ID người dùng, Gói học, Ngày bắt đầu.");
+      return;
+    }
+
+    // nếu chưa chọn ngày hết hạn -> tự tính theo thoiHan
+    if (!end) {
+      const pack = readJSON("goiTraPhi", []).find((p) => String(p.idGoi) === idGoi);
+      const days = Number(pack?.thoiHan || 0);
+      const e = new Date(start);
+      e.setDate(e.getDate() + days);
+      end = e;
+    }
+
+    const list = readJSON("goiTraPhiCuaNguoiDung", []);
+    list.push({
+      idGTPCND: genSubId(),
+      idNguoiDung,
+      idGoi,
+      NgayBatDau: fmtVN(start),
+      NgayKetThuc: fmtVN(end),
+    });
+    writeJSON("goiTraPhiCuaNguoiDung", list);
+
+    handleAddClose();
+    reload();
+    window.dispatchEvent(new Event("subscriptionChanged"));
+  };
+
+  /* ===== Action ===== */
+  const Action = [
+    { name: "👀", class: "edit-button", style: { cursor: "pointer", marginRight: 8, fontSize: "1.2rem" }, onClick: (id) => () => handleEdit(id) },
+    { name: "🗑️", class: "delete-button", style: { cursor: "pointer", fontSize: "1.2rem" }, onClick: (id) => () => handleDelete(id) },
+  ];
 
   return (
-    <div>
-      {/* Form thêm/sửa */}
-      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr 1fr 1fr" }}>
-        <div>
-          <label>Người dùng</label>
-          <select value={idNguoiDung} onChange={(e) => setIdNguoiDung(e.target.value)}>
-            <option value="">-- chọn --</option>
-            {users.map((u) => (
-              <option key={u.idNguoiDung} value={u.idNguoiDung}>
-                {u.tenNguoiDung} ({u.idNguoiDung})
-              </option>
-            ))}
-          </select>
-        </div>
+    <div className="main-content-admin-user">
+      <h1>Quản Lý Trả Phí (Theo Người Dùng)</h1>
 
-        <div>
-          <label>Gói</label>
-          <select value={idGoi} onChange={(e) => setIdGoi(e.target.value)}>
-            <option value="">-- chọn --</option>
-            {packs.map((p) => (
-              <option key={p.idGoi} value={p.idGoi}>
-                {p.tenGoi} ({p.thoiHan} ngày)
-              </option>
-            ))}
-          </select>
+      <div className="user-actions">
+        <div className="user-actions-buttons">
+          <button className="btn btn-primary" onClick={handleAddOpen}>Thêm</button>
+          <button className="btn btn-secondary" onClick={() => setExportModal(true)}>Xuất</button>
         </div>
-
-        <div>
-          <label>Ngày bắt đầu</label>
-          <input
-            type="date"
-            value={startDateStr}
-            onChange={(e) => setStartDateStr(e.target.value)}
-          />
-        </div>
-
-        <div style={{ alignSelf: "end", display: "flex", gap: 8 }}>
-          {!isEdit ? (
-            <button className="btn btn-primary" onClick={handleAdd}>Thêm đăng ký</button>
-          ) : (
-            <>
-              <button className="btn btn-primary" onClick={handleSaveEdit}>Lưu thay đổi</button>
-              <button className="btn btn-secondary" onClick={resetForm}>Huỷ</button>
-            </>
-          )}
-        </div>
+        <Search Data={data} onResult={setFilteredData} />
       </div>
 
-      {/* Bảng */}
-      <table className="user-table" style={{ marginTop: 20 }}>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Người dùng</th>
-            <th>Gói</th>
-            <th>Trạng thái</th>
-            <th>Ngày bắt đầu</th>
-            <th>Ngày hết hạn</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr><td colSpan={7} style={{ textAlign: "center" }}>Chưa có dữ liệu</td></tr>
-          ) : (
-            rows.map((r) => (
-              <tr key={r.idGTPCND}>
-                <td>{r.idGTPCND}</td>
-                <td>{r.tenNguoiDung} ({r.idNguoiDung})</td>
-                <td>{r.tenGoi}</td>
-                <td>{r.status}</td>
-                <td>{r.NgayBatDau}</td>
-                <td>{r.NgayKetThuc}</td>
-                <td>
-                  <button onClick={() => handleEditPick(r)}>👀</button>{" "}
-                  <button onClick={() => handleDelete(r.idGTPCND)}>🗑️</button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <TableAdmin Colums={ColumsTable} Data={filteredData} Action={Action} />
+
+      {showDeleteDialog && (
+        <Delete
+          id={deleteId}
+          onClose={onCloseDelete}
+          onConfirm={onConfirmDelete}
+          message="Bạn có muốn xóa đăng ký trả phí này không?"
+        />
+      )}
+
+      {showEdit && selectedRow && (
+        <Edit
+          user={selectedRow}
+          onClose={handleEditClose}
+          onSave={handleEditSave}
+          isEditMode={isEditMode}
+          Colums={ColumsFormEdit}    // 👉 có options (tên gói & trạng thái)
+          showAvatar={false}
+        />
+      )}
+
+      {showAddDialog && (
+        <Add
+          onClose={handleAddClose}
+          onSave={handleAddSave}
+          Colums={ColumsFormAdd}     // 👉 có options (tên gói)
+          showAvatar={false}
+        />
+      )}
+
+      {exportModal && (
+        <ExportModal
+          isOpen={exportModal}
+          onClose={() => setExportModal(false)}
+          filteredData={filteredData}
+          title="Xuất danh sách trả phí của người dùng"
+          columns={ColumsTable}
+        />
+      )}
     </div>
   );
 }
