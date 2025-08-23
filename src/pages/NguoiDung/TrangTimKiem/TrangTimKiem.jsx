@@ -123,7 +123,7 @@ export default function TrangTimKiem() {
 
   // điều hướng
   const denHoc = (idBoThe) => navigate(`/flashcard/${idBoThe}`);
-  const denKhoaHoc = (idKhoaHoc) => navigate(`/lop/${idKhoaHoc}`); // trang chi tiết khóa học
+  const denKhoaHoc = (idKhoaHoc) => navigate(`/khoaHoc/${idKhoaHoc}`); // trang chi tiết khóa học
 
   return (
     <div className="search-container">

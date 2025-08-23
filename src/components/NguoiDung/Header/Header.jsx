@@ -117,7 +117,7 @@ export default function Header() {
   /* 4) Logout  */
   const logout = () => {
     sessionStorage.clear();
-    navigate("/", { replace: true });
+    navigate("/dang-nhap", { replace: true });
   };
 
   const avatarSrc = user?.anhDaiDien || "";
@@ -180,7 +180,7 @@ export default function Header() {
                     className="result-item"
                     onClick={() => {
                       // vẫn dùng /lop/:id để vào trang chi tiết (component đã đọc từ "khoaHoc")
-                      navigate(`/lop/${item.idKhoaHoc}`);
+                      navigate(`/khoaHoc/${item.idKhoaHoc}`);
                       setShowSearch(false); setKeyword("");
                     }}
                   >

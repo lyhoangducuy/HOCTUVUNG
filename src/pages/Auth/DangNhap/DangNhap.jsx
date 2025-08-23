@@ -58,7 +58,10 @@ export default function DangNhap() {
     sessionStorage.setItem("session", JSON.stringify(sessionUser));
 
     // Điều hướng theo vai trò
-    navigate("/trangchu");
+    if (sessionUser.vaiTro==="ADMIN")
+      navigate("/admin")
+    else
+      navigate("/trangchu");
   };
 
   return (
