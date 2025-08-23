@@ -1,12 +1,15 @@
 /* ==== Container (đồng bộ font toàn site) ==== */
 .checkout-container {
-  max-width: 780px;            /* to hơn 1 chút */
+  --ck-spaceX: 16px;          /* khoảng đệm ngang của container */
+  max-width: 780px;           /* to hơn 1 chút */
   margin: 32px auto;
-  padding: 16px;
+  padding: 16px var(--ck-spaceX);
   font-family: inherit;
+  background: #fff;
+  color: #111827;
 }
 
-/* ==== Back link ==== */
+/* ==== Back link: sát mép trái (full-bleed) ==== */
 .back {
   display: inline-flex;
   align-items: center;
@@ -15,9 +18,11 @@
   color: #374151;
   user-select: none;
   margin-bottom: 10px;
+
+
 }
 .back .iconback { font-size: 14px; }
-.back:hover { color: #111827; }
+.back:hover { color: #111827; background: #f1f5ff; }
 
 /* ==== Title (đậm & to hơn) ==== */
 .checkout-title {
@@ -27,7 +32,7 @@
   font-weight: 700;
 }
 
-/* ==== Card (đồng bộ tone với PaymentHistory) ==== */
+/* ==== Card (đồng bộ tone với lịch sử thanh toán) ==== */
 .checkout-card {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -53,6 +58,7 @@
 .label {
   opacity: .72;
   font-size: 15px;
+  color: #374151;
 }
 
 .value {
@@ -63,28 +69,34 @@
 
 .value.code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-weight: 600;
+
   letter-spacing: 0.2px;
   color: #1f2937;
+  background: #eef3ff;
+  border: 1px solid #d9e3ff;
+  padding: 4px 8px;
+  border-radius: 8px;
+  width: max-content;
+  justify-self: start;
 }
 
 .muted {
   opacity: .75;
   margin-left: 6px;
   font-size: 12px;
+  color: #6b7280;
 }
 
-/* ==== Trạng thái: badge giống PaymentHistory ==== */
+/* ==== Trạng thái: badge giống lịch sử thanh toán ==== */
 .value.status {
   display: inline-block;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
 
-/* default (nếu chưa set modifier) */
-.value.status { background: #fef3c7; color: #92400e; }
+  background: #fef3c7;  /* default pending */
+  color: #92400e;
+  justify-self: start;
+}
 
 /* dùng kèm class bổ sung nếu muốn set màu rõ ràng bằng JSX:
    <span className={`value status status--paid`}>…</span> */
@@ -101,10 +113,12 @@
   background: rgba(239,68,68,.12);
 }
 
-/* ==== Hàng nút (để 1 nút chính, to hơn chút) ==== */
+/* ==== Hàng nút (1 nút chính, to hơn chút) ==== */
 .checkout-actions {
   display: flex;
   margin-top: 16px;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .checkout-actions button,
@@ -118,12 +132,18 @@
 
 /* ==== Responsive ==== */
 @media (max-width: 640px) {
-  .checkout-container { padding: 12px; }
+  .checkout-container {
+    --ck-spaceX: 12px;      /* container padding nhỏ hơn ở mobile */
+    padding: 12px var(--ck-spaceX);
+  }
   .checkout-title { font-size: 22px; }
   .checkout-card { padding: 16px; }
   .row { grid-template-columns: 1fr; padding: 8px 0; }
   .label { font-size: 14px; }
   .value { font-size: 15px; }
+  .value.code, .value.status { justify-self: start; }
+
+  .checkout-actions { justify-content: stretch; }
   .checkout-actions button,
   .checkout-actions > * > * {
     width: 100%;
