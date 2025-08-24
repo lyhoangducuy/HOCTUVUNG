@@ -97,7 +97,7 @@ export default function Checkout() {
   if (!order) return null;
 
   return (
-    <div className="checkout-container">
+    <>
       <div className="back" onClick={() => navigate(-1)}>
         <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
         <span>Quay lại</span>
@@ -145,6 +145,6 @@ export default function Checkout() {
           </Button>
         </div>
       </div>
-    </div>
+    </>
   );
 }

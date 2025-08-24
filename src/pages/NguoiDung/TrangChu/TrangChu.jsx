@@ -4,10 +4,64 @@ import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import "./TrangChu.css";
 import AIButton from "../../../components/Admin/AIButton/AIButton";
+import { FaRobot } from "react-icons/fa";
 
 export default function TrangChu() {
   const navigate = useNavigate();
   const [dsBoThe, setDsBoThe] = useState([]);
+  const [prime, setPrime] = useState(false); // chỉ prime mới dùng AI thật
+
+  // helpers
+  const parseVNDate = (dmy) => {
+    if (!dmy || typeof dmy !== "string") return null; // "dd/mm/yyyy"
+    const [d, m, y] = dmy.split("/").map(Number);
+    if (!d || !m || !y) return null;
+    return new Date(y, (m || 1) - 1, d || 1);
+  };
+  const hasActiveSub = (userId) => {
+    try {
+      const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
+      const today = new Date();
+      return Array.isArray(subs) && subs.some((s) => {
+        if (String(s.idNguoiDung) !== String(userId)) return false;
+        if (s.status === "Đã hủy") return false;
+        const end = parseVNDate(s.NgayKetThuc);
+        return end && end >= today;
+      });
+    } catch {
+      return false;
+    }
+  };
+
+  // xét prime theo session + localStorage
+  useEffect(() => {
+    const computePrime = () => {
+      try {
+        const ss = JSON.parse(sessionStorage.getItem("session") || "null");
+        if (!ss?.idNguoiDung) {
+          setPrime(false);
+          return;
+        }
+        setPrime(hasActiveSub(ss.idNguoiDung));
+      } catch {
+        setPrime(false);
+      }
+    };
+    computePrime();
+
+    const onStorage = (e) => {
+      if (!e || !e.key) return;
+      if (e.key === "goiTraPhiCuaNguoiDung") computePrime();
+    };
+    const onSubChanged = () => computePrime();
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("subscriptionChanged", onSubChanged);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("subscriptionChanged", onSubChanged);
+    };
+  }, []);
 
   const dsNguoiDung = useMemo(() => {
     try {
@@ -18,23 +72,27 @@ export default function TrangChu() {
   }, []);
 
   useEffect(() => {
-    const luu = JSON.parse(localStorage.getItem("boThe")) || [];
-    setDsBoThe(Array.isArray(luu) ? luu : []);
+    try {
+      const luu = JSON.parse(localStorage.getItem("boThe") || "[]");
+      setDsBoThe(Array.isArray(luu) ? luu : []);
+    } catch {
+      setDsBoThe([]);
+    }
   }, []);
 
   const denHoc = (id) => navigate(`/flashcard/${id}`);
 
-  // Gần đây: lấy tối đa 6 bộ thẻ mới nhất theo id (đơn giản)
+  // Gần đây: tối đa 6 bộ thẻ mới nhất (dựa id)
   const ganDay = useMemo(() => {
     const x = [...dsBoThe];
-    x.sort((a, b) => (b.idBoThe || 0) - (a.idBoThe || 0));
+    x.sort((a, b) => (Number(b.idBoThe) || 0) - (Number(a.idBoThe) || 0));
     return x.slice(0, 6);
   }, [dsBoThe]);
 
-  // Phổ biến: tạm thời cũng hiển thị danh sách (có thể đổi thành top theo soTu)
+  // Phổ biến: top theo số thẻ
   const phoBien = useMemo(() => {
     const x = [...dsBoThe];
-    x.sort((a, b) => (b.soTu || 0) - (a.soTu || 0));
+    x.sort((a, b) => (Number(b.soTu) || 0) - (Number(a.soTu) || 0));
     return x.slice(0, 8);
   }, [dsBoThe]);
 
@@ -46,11 +104,69 @@ export default function TrangChu() {
     return <span className="mini-avatar mini-avatar-fallback">{initial}</span>;
   };
 
+  // === Nút AI cho non-prime: có ngôi sao, click → alert + điều hướng /tra-phi ===
+  const AILockedButton = () => {
+    const onLockedClick = () => {
+      alert("Tính năng AI chỉ dành cho tài khoản trả phí. Vui lòng nâng cấp để sử dụng.");
+      navigate("/tra-phi", { state: { from: "ai" } });
+    };
+    return (
+      <div
+        style={{
+          position: "fixed",
+          right: 16,
+          bottom: 16,
+          zIndex: 1000,
+        }}
+      >
+        <button
+          onClick={onLockedClick}
+          title="Nâng cấp để dùng AI"
+          aria-label="Nâng cấp để dùng AI"
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 999,
+            border: "1px solid #e5e7eb",
+            background: "#ffffff",
+            boxShadow: "0 6px 16px rgba(0,0,0,.12)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            position: "relative",
+          }}
+        >
+          <FaRobot style={{ fontSize: 18, color: "#6b7280" }} />
+          {/* Huy hiệu ngôi sao */}
+          <span
+            style={{
+              position: "absolute",
+              top: -6,
+              right: -6,
+              fontSize: 12,
+              color: "#f59e0b",
+              background: "rgba(245,158,11,.12)",
+              border: "1px solid rgba(245,158,11,.35)",
+              padding: "2px 6px",
+              borderRadius: 999,
+              lineHeight: 1,
+              pointerEvents: "none",
+            }}
+            title="Nâng cấp để mở khóa"
+          >
+            ★
+          </span>
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="home-wrap">
-      <AIButton>
-        
-      </AIButton>
+      {/* AI: nếu prime thì dùng AIButton; chưa prime thì hiện nút có sao, click → alert + /tra-phi */}
+      {prime ? <AIButton /> : <AILockedButton />}
+
       {/* GẦN ĐÂY */}
       <section className="block">
         <div className="block-head">
@@ -127,7 +243,6 @@ export default function TrangChu() {
               );
             })}
           </div>
-
         )}
       </section>
     </div>
