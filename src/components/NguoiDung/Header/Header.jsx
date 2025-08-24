@@ -1,12 +1,20 @@
 // src/components/Header/Header.jsx
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faBookOpen, faCirclePlus, faGear, faFolderOpen, faClone, faReceipt } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBars,
+  faBookOpen,
+  faCirclePlus,
+  faGear,
+  faFolderOpen,
+  faClone,
+  faReceipt,
+} from "@fortawesome/free-solid-svg-icons";
 import "./header.css";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AIButton from "../../Admin/AIButton/AIButton";
 
-/* helpers   */
+/* helpers */
 const readJSON = (key, fallback = []) => {
   try {
     const v = JSON.parse(localStorage.getItem(key) || "null");
@@ -16,7 +24,7 @@ const readJSON = (key, fallback = []) => {
   }
 };
 const parseVNDate = (dmy) => {
-  if (!dmy || typeof dmy !== "string") return null;            // "dd/mm/yyyy"
+  if (!dmy || typeof dmy !== "string") return null; // "dd/mm/yyyy"
   const [d, m, y] = dmy.split("/").map(Number);
   if (!d || !m || !y) return null;
   return new Date(y, m - 1, d);
@@ -37,7 +45,6 @@ export default function Header() {
   const navigate = useNavigate();
 
   const [chatPro, setChatPro] = useState(false);
-  
 
   const menuRef = useRef(null);
   const plusRef = useRef(null);
@@ -54,17 +61,21 @@ export default function Header() {
 
   // Search state
   const [keyword, setKeyword] = useState("");
-  const [resCards, setResCards] = useState([]);      // bộ thẻ
-  const [resCourses, setResCourses] = useState([]);  // khóa học
+  const [resCards, setResCards] = useState([]); // bộ thẻ
+  const [resCourses, setResCourses] = useState([]); // khóa học
 
-  /*  1) Nạp user + prime  */
+  /* 1) Nạp user + prime */
   useEffect(() => {
     const load = () => {
       const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-      if (!ss?.idNguoiDung) { setUser(null); setPrime(false); return; }
+      if (!ss?.idNguoiDung) {
+        setUser(null);
+        setPrime(false);
+        return;
+      }
       const users = readJSON("nguoiDung", []);
-      const u = users.find(x => x.idNguoiDung === ss.idNguoiDung) || null;
-      setUser(u);
+      const u = users.find((x) => String(x.idNguoiDung) === String(ss.idNguoiDung)) || null;
+      setUser(u || ss); // fallback: nếu không có trong local thì dùng session
       setPrime(isPrime(ss.idNguoiDung));
     };
     load();
@@ -80,10 +91,10 @@ export default function Header() {
     return () => {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("subscriptionChanged", onDangKy);
-    }
+    };
   }, []);
 
-  /*2) Đóng popup khi click ra ngoài*/
+  /* 2) Đóng popup khi click ra ngoài */
   useEffect(() => {
     const outside = (e) => {
       if (plusRef.current && !plusRef.current.contains(e.target)) setShowPlus(false);
@@ -94,21 +105,25 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", outside);
   }, []);
 
-  /*  3) Tìm kiếm nhanh (boThe + khoaHoc)
-     - Đơn giản: match theo tên (và với khóa học, có match thêm tag "kienThuc")
-  */
+  /* 3) Tìm kiếm nhanh (boThe + khoaHoc) */
   const doSearch = (q) => {
     setKeyword(q);
     const query = q.trim().toLowerCase();
-    if (!query) { setResCards([]); setResCourses([]); return; }
+    if (!query) {
+      setResCards([]);
+      setResCourses([]);
+      return;
+    }
 
-    const cards = readJSON("boThe", []).filter(
-      (x) => (x.tenBoThe || "").toLowerCase().includes(query)
+    const cards = readJSON("boThe", []).filter((x) =>
+      (x.tenBoThe || "").toLowerCase().includes(query)
     );
 
     const courses = readJSON("khoaHoc", []).filter((k) => {
       const byName = (k.tenKhoaHoc || "").toLowerCase().includes(query);
-      const byTag = Array.isArray(k.kienThuc) && k.kienThuc.some(t => String(t).toLowerCase().includes(query));
+      const byTag =
+        Array.isArray(k.kienThuc) &&
+        k.kienThuc.some((t) => String(t).toLowerCase().includes(query));
       return byName || byTag;
     });
 
@@ -116,43 +131,18 @@ export default function Header() {
     setResCourses(courses);
   };
 
-  /* 4) Logout  */
+  /* 4) Logout */
   const logout = () => {
     sessionStorage.clear();
     navigate("/dang-nhap", { replace: true });
   };
 
-  const avatarSrc = nguoiDungHienTai?.anhDaiDien || "!"; // fallback ảnh
-  const tenNguoiDung = nguoiDungHienTai?.tenNguoiDung || "Người dùng";
+  // avatar & tên hiển thị
+  const avatarSrc = user?.anhDaiDien || "";
+  const displayName = user?.tenNguoiDung || "Người dùng";
 
-  // ---- Xử lý tìm kiếm
-  const handleSearch = (value) => {
-    setKeyword(value);
-    if (!value.trim()) {
-      setKetQuaBoThe([]);
-      setKetQuaLop([]);
-      return;
-    }
-    const boThe = JSON.parse(localStorage.getItem("boThe") || "[]");
-    const lop = JSON.parse(localStorage.getItem("lop") || "[]");
-
-    const boTheFilter = boThe.filter((item) =>
-      item.tenBoThe?.toLowerCase().includes(value.toLowerCase())
-    );
-    const lopFilter = lop.filter((item) =>
-      item.tenLop?.toLowerCase().includes(value.toLowerCase())
-    );
-
-    setKetQuaBoThe(boTheFilter);
-    setKetQuaLop(lopFilter);
-  };
+  /* 5) Tính quyền dùng AI dựa vào gói (Prime) */
   useEffect(() => {
-    const parseVnDate = (dmy) => {
-      if (!dmy) return null;
-      const [d, m, y] = dmy.split("/").map(Number);
-      return new Date(y, (m || 1) - 1, d || 1);
-    };
-  
     const compute = () => {
       try {
         const session = JSON.parse(sessionStorage.getItem("session") || "null");
@@ -161,15 +151,16 @@ export default function Header() {
         const ok = list.some(
           (s) =>
             s.idNguoiDung === session?.idNguoiDung &&
-            parseVnDate(s.NgayKetThuc) &&
-            parseVnDate(s.NgayKetThuc) >= today
+            parseVNDate(s.NgayKetThuc) &&
+            parseVNDate(s.NgayKetThuc) >= today &&
+            s.status !== "Đã hủy"
         );
         setChatPro(ok);
       } catch {
         setChatPro(false);
       }
     };
-  
+
     compute();
     const onStorage = (e) => {
       if (e.key === "goiTraPhiCuaNguoiDung") compute();
@@ -197,9 +188,14 @@ export default function Header() {
           placeholder="Tìm kiếm"
           className="search-input"
           value={keyword}
-          onChange={(e) => { doSearch(e.target.value); setShowSearch(true); }}
+          onChange={(e) => {
+            doSearch(e.target.value);
+            setShowSearch(true);
+          }}
           onFocus={() => setShowSearch(true)}
-          onKeyDown={(e) => { if (e.key === "Enter") navigate(`/timkiem/${keyword}`); }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") navigate(`/timkiem/${keyword}`);
+          }}
         />
 
         {showSearch && keyword && (
@@ -217,7 +213,8 @@ export default function Header() {
                     className="result-item"
                     onClick={() => {
                       navigate(`/flashcard/${item.idBoThe}`);
-                      setShowSearch(false); setKeyword("");
+                      setShowSearch(false);
+                      setKeyword("");
                     }}
                   >
                     📑 {item.tenBoThe}
@@ -234,9 +231,9 @@ export default function Header() {
                     key={item.idKhoaHoc}
                     className="result-item"
                     onClick={() => {
-                      // vẫn dùng /lop/:id để vào trang chi tiết (component đã đọc từ "khoaHoc")
                       navigate(`/khoaHoc/${item.idKhoaHoc}`);
-                      setShowSearch(false); setKeyword("");
+                      setShowSearch(false);
+                      setKeyword("");
                     }}
                   >
                     🏫 {item.tenKhoaHoc}
@@ -259,16 +256,34 @@ export default function Header() {
           />
           {showPlus && (
             <div className="plus">
-              <div className="plus-item" onClick={() => { navigate("/newBoThe"); setShowPlus(false); }}>
+              <div
+                className="plus-item"
+                onClick={() => {
+                  navigate("/newBoThe");
+                  setShowPlus(false);
+                }}
+              >
                 <FontAwesomeIcon icon={faClone} />
                 <span>Bộ thẻ mới</span>
               </div>
-              <div className="plus-item" onClick={() => { navigate("/newfolder"); setShowPlus(false); }}>
+              <div
+                className="plus-item"
+                onClick={() => {
+                  navigate("/newfolder");
+                  setShowPlus(false);
+                }}
+              >
                 <FontAwesomeIcon icon={faFolderOpen} />
                 <span>Thư mục mới</span>
               </div>
-              {user?.vaiTro === "GIANG_VIEN" || user?.vaiTro === "ADMIN" && (
-                <div className="plus-item" onClick={() => { navigate("/newKhoaHoc"); setShowPlus(false); }}>
+              {(user?.vaiTro === "GIANG_VIEN" || user?.vaiTro === "ADMIN") && (
+                <div
+                  className="plus-item"
+                  onClick={() => {
+                    navigate("/newKhoaHoc");
+                    setShowPlus(false);
+                  }}
+                >
                   <FontAwesomeIcon icon={faBookOpen} />
                   <span>Khóa học mới</span>
                 </div>
@@ -276,7 +291,10 @@ export default function Header() {
             </div>
           )}
         </div>
-          <AIButton/>
+
+        {/* Chỉ Prime mới có AIButton (nếu muốn hiện cho tất cả role, bỏ điều kiện chatPro) */}
+        {chatPro && <AIButton />}
+
         <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
           Nâng cấp tài khoản
         </button>
@@ -284,10 +302,13 @@ export default function Header() {
         {/* Account */}
         <div className="inforContainer" ref={menuRef}>
           <div className="avatar-wrapper" onClick={() => setShowMenu((v) => !v)}>
-            {avatarSrc
-              ? <img src={avatarSrc} alt="avatar" className="avatar" />
-              : <div className="avatar avatar-fallback">{(displayName || "U").charAt(0).toUpperCase()}</div>
-            }
+            {avatarSrc ? (
+              <img src={avatarSrc} alt="avatar" className="avatar" />
+            ) : (
+              <div className="avatar avatar-fallback">
+                {(displayName || "U").charAt(0).toUpperCase()}
+              </div>
+            )}
             {prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
           </div>
 
@@ -295,10 +316,13 @@ export default function Header() {
             <div className="setting">
               <div className="infor">
                 <div className="avatar-wrapper">
-                  {avatarSrc
-                    ? <img src={avatarSrc} alt="avatar" className="avatar" />
-                    : <div className="avatar avatar-fallback">{(displayName || "U").charAt(0).toUpperCase()}</div>
-                  }
+                  {avatarSrc ? (
+                    <img src={avatarSrc} alt="avatar" className="avatar" />
+                  ) : (
+                    <div className="avatar avatar-fallback">
+                      {(displayName || "U").charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   {prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
                 </div>
                 <h2 className="tittle">{displayName}</h2>
@@ -306,23 +330,38 @@ export default function Header() {
 
               <div className="divide" />
 
-              <div className="confirg" onClick={() => { setShowMenu(false); navigate("/setting"); }}>
+              <div
+                className="confirg"
+                onClick={() => {
+                  setShowMenu(false);
+                  navigate("/setting");
+                }}
+              >
                 <FontAwesomeIcon icon={faGear} className="icon icon-setting" />
                 <span className="confirg-text">Cài đặt</span>
               </div>
+
               <div className="divide" />
-              <div className="confirg" onClick={() => { setShowMenu(false); navigate("/lichSuThanhToan"); }}>
+
+              <div
+                className="confirg"
+                onClick={() => {
+                  setShowMenu(false);
+                  navigate("/lichSuThanhToan");
+                }}
+              >
                 <FontAwesomeIcon icon={faReceipt} className="icon icon-setting" />
                 <span className="confirg-text">Lịch sử thanh toán</span>
               </div>
 
               <div className="divide" />
-              <div className="loggout" onClick={logout}>Đăng xuất</div>
+              <div className="loggout" onClick={logout}>
+                Đăng xuất
+              </div>
             </div>
           )}
         </div>
       </div>
-      {chatPro && <AIButton />}
     </div>
   );
 }

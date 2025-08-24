@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import "./TrangChu.css";
+import AIButton from "../../../components/Admin/AIButton/AIButton";
 
 export default function TrangChu() {
   const navigate = useNavigate();
@@ -47,6 +48,9 @@ export default function TrangChu() {
 
   return (
     <div className="home-wrap">
+      <AIButton>
+        
+      </AIButton>
       {/* GẦN ĐÂY */}
       <section className="block">
         <div className="block-head">
