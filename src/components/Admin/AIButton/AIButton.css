@@ -37,3 +37,169 @@
   .ai-dropdown, .ai-dropdown * { color: #111 !important; }
   .ai-item { padding: 12px 14px; cursor: pointer; color: #111; }
   .ai-item:hover { background: #f8fafc; color: #111; }
+  .create-form-modal{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .create-form-modal-content{
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    width: 100%;
+    max-width: 420px;
+  }
+ .create-form-modal-content-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+ }
+ .create-form-modal-content-header h3{
+    margin: 0;
+    color: #111;
+ }
+ .create-form-modal-content-header button{
+    cursor: pointer;
+    border: none;
+    background: none;
+ }
+ .create-form-modal-content-header button:hover{
+    color: #3b82f6;
+ }
+  .create-form-modal-content input{
+    padding: 8px 10px;
+  }
+  .create-form-modal-content-form{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .create-form-modal-content-form-label{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .create-form-modal-content-form-label span{
+    margin: 0;
+    color: #111;
+  }
+  .create-form-modal-content-form-label input{
+    padding: 8px 10px;
+  }
+  .create-form-modal-content-form-label input:focus{
+    outline: none;
+    border: 1px solid #3b82f6;
+  }
+  .create-form-modal-content-form-label input:hover{
+    outline: none;
+    border: 1px solid #3b82f6;
+  }
+  .create-form-modal-content-form-button{
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .create-form-modal-content-form-button button{
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+  }
+  .create-form-modal-content-form-button button:hover{
+    background: #3b82f6;
+    color: #fff;
+  }
+  
+  .preview-modal{
+     position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .preview-modal-content{
+    width: min(800px, 96vw);
+      max-height: 80vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 20px;
+      padding: 16;
+      box-shadow: 0 10px 30px rgba(0,0,0,.2);
+  }
+  .preview-modal-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px;
+  }
+  .preview-modal-header h1{
+    margin: 0;
+    color: #111;
+   
+  }
+  .preview-modal-header-title{
+    margin: 0;
+  }
+  .preview-modal-header button{
+    cursor: pointer;
+    color: black;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+  }
+  .preview-modal-body{
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 20px;
+  }
+  .preview-modal-body input{
+    padding: 8px 10px;
+    margin: 10px ;
+  }
+  .preview-modal-body button{
+    background: #e23339;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin: 10px ;
+  }
+  .preview-modal-body-item{
+    display: flex;
+    align-items: center;
+  }
+  .preview-modal-footer{
+    display: flex;
+    justify-content: flex-end;
+    margin: 10px;
+  }
+ .preview-modal-footer-button{
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin: 10px ;
+ }
+ .preview-modal-footer-button:hover{
+ 
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin: 10px ;
+    cursor: pointer;
+ }
+ .save-button{
+    background: #3b82f6;
+ }
+ .cancel-button{
+    background: #e23339;
+ }

@@ -38,7 +38,11 @@ export function DangNhapTheoRole({ allowed = [] }) {
   }
   if (allowed.length && !allowed.includes(user.vaiTro)) {
     // Có thể điều hướng tới trang 403/404 riêng nếu bạn có
+<<<<<<< HEAD
     return <Navigate to="/trangchu" replace />;
+=======
+    return <Navigate to="/error-404" replace />;
+>>>>>>> thuong/chat
   }
   return <Outlet />;
 }

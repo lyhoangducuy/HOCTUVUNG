@@ -19,7 +19,6 @@ const TableAdmin = ({ Colums = [], Data = [], Action = [] }) => {
     () => (Array.isArray(Data) ? Data.slice(startIndex, endIndex) : []),
     [Data, startIndex, endIndex]
   );
-
   const handlePrev = () => setCurrentPage((p) => Math.max(1, p - 1));
   const handleNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
 

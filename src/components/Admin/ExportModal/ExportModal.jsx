@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ExportModal.css';
 
 const ExportModal = ({ 
@@ -14,7 +14,7 @@ const ExportModal = ({
   const [isExporting, setIsExporting] = useState(false);
 
   // Tự động tạo selectedColumns từ columns prop
-  React.useEffect(() => {
+  useEffect(() => {
     const initialColumns = {};
     columns.forEach(col => {
       initialColumns[col.key] = true;
@@ -40,7 +40,7 @@ const ExportModal = ({
     
     columnConfig.forEach(col => {
       if (columns[col.key]) {
-        headers.push(col.label);
+        headers.push(col.name);
         selectedKeys.push(col.key);
       }
     });
@@ -104,7 +104,7 @@ const ExportModal = ({
     
     columnConfig.forEach(col => {
       if (columns[col.key]) {
-        headers.push(col.label);
+        headers.push(col.name);
         selectedKeys.push(col.key);
       }
     });
@@ -198,7 +198,7 @@ const ExportModal = ({
         <div className="export-modal-content">
           {/* Thông tin dữ liệu */}
           <div className="export-info">
-            <p>Tổng số bản ghi: <strong>{filteredData.length}</strong></p>
+            <b>Tổng số bản ghi: <strong>{filteredData.length}</strong></b>
           </div>
 
           {/* Chọn định dạng file */}
@@ -264,7 +264,7 @@ const ExportModal = ({
                     onChange={() => handleColumnToggle(col.key)}
                   />
                   <span className="checkbox-custom"></span>
-                  <span>{col.label}</span>
+                  <span>{col.name}</span>
                 </label>
               ))}
             </div>
