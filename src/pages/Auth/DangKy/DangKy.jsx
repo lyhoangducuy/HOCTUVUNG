@@ -65,7 +65,7 @@ function DangKy() {
       localStorage.setItem("nguoiDung", JSON.stringify(next));
 
       alert("Đăng ký thành công!");
-      navigate("/"); // trang đăng nhập theo routes của bạn
+      navigate("/dang-nhap"); // trang đăng nhập theo routes của bạn
     } catch (error) {
       const msg =
         error?.response?.data?.message ||
