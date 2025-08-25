@@ -54,7 +54,7 @@ export default function App() {
         <Route path="/dang-nhap" element={<DangNhap />} />
         <Route path="/dang-ky" element={<DangKy />} />
         <Route path="/quen-mat-khau" element={<QuenMatKhau />} />
-        <Route path="/landingpage" element={<Landingpage />} />
+        <Route path="/" element={<Landingpage />} />
 
       </Route>
       <Route element={<YeuCauDangNhap />}>

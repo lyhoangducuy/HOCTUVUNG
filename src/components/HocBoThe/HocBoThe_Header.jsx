@@ -87,7 +87,7 @@ function HocBoThe_Header({ activeMode }) {
   return (
     <>
       <div className="top-bar">
-        <div className="back" onClick={() => navigate(-1)}>
+        <div className="back" onClick={() => navigate("/trangchu")}>
           <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
           Quay lại
         </div>
