@@ -19,7 +19,7 @@ export function YeuCauDangNhap() {
   const nguoiDung = getCurrentNguoiDung();
 
   if (!nguoiDung) {
-    return <Navigate to="/" replace state={{ from: location }} />;
+    return <Navigate to="/dang-nhap" replace state={{ from: location }} />;
   }
   return <Outlet />;
 }
@@ -34,11 +34,11 @@ export function DangNhapTheoRole({ allowed = [] }) {
   const user = getCurrentNguoiDung();
 
   if (!user) {
-    return <Navigate to="/" replace state={{ from: location }} />;
+    return <Navigate to="/dang-nhap" replace state={{ from: location }} />;
   }
   if (allowed.length && !allowed.includes(user.vaiTro)) {
     // Có thể điều hướng tới trang 403/404 riêng nếu bạn có
-    return <Navigate to="/giangvien" replace />;
+    return <Navigate to="/error-404" replace />;
   }
   return <Outlet />;
 }

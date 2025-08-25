@@ -91,6 +91,7 @@
 .value.status.status--paid {
   color: #065f46;
   background: rgba(16,185,129,.12);
+  
 }
 .value.status.status--pending {
   color: #92400e;

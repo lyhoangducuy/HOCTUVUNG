@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./Edit.css";
 
 const Edit = ({
@@ -8,9 +8,18 @@ const Edit = ({
   isEditMode = false,
   Colums,
   showAvatar,
+
+  // ====== props mở rộng (tất cả đều optional, không ảnh hưởng chỗ cũ) ======
+  readOnlyKeys = [],                   // ví dụ: ["id", "created", "memberCount", "cardCount"]
+  selectFields = {},                   // ví dụ: { userCreated: [{value:"1",label:"Admin 1"}] }
+  selectLabels = {},                   // ví dụ: { userCreated: (v)=>`ID ${v}` }
 }) => {
   const [formData, setFormData] = useState({ ...user });
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    setFormData({ ...user });
+  }, [user]);
 
   const handleInputChange = (key) => (e) => {
     const value = e.target.value;
@@ -37,7 +46,7 @@ const Edit = ({
     if (isEditMode) fileInputRef.current?.click();
   };
 
-  // ===== Helpers cho select mặc định =====
+  // ===== Helpers mặc định cho một số field phổ biến =====
   const defaultRoleOptions = [
     { value: "HOC_VIEN", label: "Học viên" },
     { value: "GIANG_VIEN", label: "Giảng viên" },
@@ -48,6 +57,16 @@ const Edit = ({
     { value: "Hết hạn", label: "Hết hạn" },
     { value: "Đã hủy", label: "Đã hủy" },
   ];
+
+  // lấy label hiển thị từ options/mapper
+  const getLabelFromOptions = (key, value, opts) => {
+    if (typeof selectLabels[key] === "function") return selectLabels[key](value);
+    if (Array.isArray(opts)) {
+      const found = opts.find((o) => String(o.value) === String(value));
+      if (found) return found.label ?? found.value;
+    }
+    return value ?? "";
+  };
 
   return (
     <div className="user-detail-modal-overlay">
@@ -82,41 +101,47 @@ const Edit = ({
 
           <div className="user-info-section">
             {Colums.map((item, index) => {
-              const val = formData[item.key] ?? "";
+              const key = item.key;
+              const val = formData[key] ?? "";
+              const readOnly = readOnlyKeys.includes(key);
 
-              // 1) ROLE: nếu có options thì dùng options; nếu không thì dùng mặc định
-              if (item.key === "role") {
+              // ===== 1) ROLE: ưu tiên item.options, fallback defaultRoleOptions
+              if (key === "role") {
                 const opts = Array.isArray(item.options) ? item.options : defaultRoleOptions;
+                if (!isEditMode || readOnly) {
+                  return (
+                    <div key={index} className="info-row">
+                      <label>{item.name}</label>
+                      <span>{getLabelFromOptions(key, val, opts)}</span>
+                    </div>
+                  );
+                }
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
-                    {isEditMode ? (
-                      <select
-                        value={val}
-                        onChange={handleInputChange(item.key)}
-                        className="edit-input"
-                      >
-                        {opts.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span>{val}</span>
-                    )}
+                    <select
+                      value={val}
+                      onChange={handleInputChange(key)}
+                      className="edit-input"
+                    >
+                      {opts.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
                   </div>
                 );
               }
 
-              // 2) PASSWORD: giữ nguyên hành vi
-              if (item.key === "password") {
+              // ===== 2) PASSWORD: giữ nguyên hành vi
+              if (key === "password") {
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
-                    {isEditMode ? (
+                    {isEditMode && !readOnly ? (
                       <input
                         type="password"
                         value={val}
-                        onChange={handleInputChange(item.key)}
+                        onChange={handleInputChange(key)}
                         className="edit-input"
                       />
                     ) : (
@@ -126,72 +151,89 @@ const Edit = ({
                 );
               }
 
-              // 3) STATUS: nếu có options thì dùng; nếu không thì dùng mặc định
-              if (item.key === "status") {
+              // ===== 3) STATUS: ưu tiên item.options, fallback defaultStatusOptions
+              if (key === "status") {
                 const opts = Array.isArray(item.options) ? item.options : defaultStatusOptions;
+                if (!isEditMode || readOnly) {
+                  return (
+                    <div key={index} className="info-row">
+                      <label>{item.name}</label>
+                      <span>{getLabelFromOptions(key, val, opts)}</span>
+                    </div>
+                  );
+                }
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
-                    {isEditMode ? (
-                      <select
-                        value={val}
-                        onChange={handleInputChange(item.key)}
-                        className="edit-input"
-                      >
-                        {opts.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span>{val}</span>
-                    )}
+                    <select
+                      value={val}
+                      onChange={handleInputChange(key)}
+                      className="edit-input"
+                    >
+                      {opts.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
                   </div>
                 );
               }
 
-              // 4) GENERIC SELECT: nếu cột có item.options => render <select>
-              if (Array.isArray(item.options)) {
+              // ===== 4) GENERIC SELECT:
+              // - nếu Colums cung cấp item.options => dùng
+              // - else nếu selectFields prop có options cho key => dùng
+              const providedOpts = Array.isArray(item.options)
+                ? item.options
+                : Array.isArray(selectFields[key])
+                ? selectFields[key]
+                : null;
+
+              if (providedOpts) {
+                if (!isEditMode || readOnly) {
+                  return (
+                    <div key={index} className="info-row">
+                      <label>{item.name}</label>
+                      <span>{getLabelFromOptions(key, val, providedOpts)}</span>
+                    </div>
+                  );
+                }
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
-                    {isEditMode ? (
-                      <select
-                        value={val}
-                        onChange={handleInputChange(item.key)}
-                        className="edit-input"
-                      >
-                        <option value="">-- chọn --</option>
-                        {item.options.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      // hiển thị label tương ứng khi ở chế độ xem
-                      <span>
-                        {(() => {
-                          const found = item.options.find((o) => String(o.value) === String(val));
-                          return found ? found.label : val;
-                        })()}
-                      </span>
-                    )}
+                    <select
+                      value={val}
+                      onChange={handleInputChange(key)}
+                      className="edit-input"
+                    >
+                      <option value="">-- chọn --</option>
+                      {providedOpts.map((o) => (
+                        <option key={String(o.value)} value={String(o.value)}>
+                          {o.label ?? o.value}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 );
               }
 
-              // 5) Mặc định: input text như cũ
+              // ===== 5) Text input mặc định (tôn trọng readOnlyKeys)
+              if (!isEditMode || readOnly) {
+                return (
+                  <div key={index} className="info-row">
+                    <label>{item.name}</label>
+                    <span>{val}</span>
+                  </div>
+                );
+              }
+
               return (
                 <div key={index} className="info-row">
                   <label>{item.name}</label>
-                  {isEditMode ? (
-                    <input
-                      type="text"
-                      value={val}
-                      onChange={handleInputChange(item.key)}
-                      className="edit-input"
-                    />
-                  ) : (
-                    <span>{val}</span>
-                  )}
+                  <input
+                    type="text"
+                    value={val}
+                    onChange={handleInputChange(key)}
+                    className="edit-input"
+                  />
                 </div>
               );
             })}
