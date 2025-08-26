@@ -2,6 +2,9 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./TrangTimKiem.css";
 
+import { db } from "../../../../lib/firebase";
+import { collection, onSnapshot, query, limit } from "firebase/firestore";
+
 /* ---------- Item components ---------- */
 function ItemBoThe({ item, dsNguoiDung, onClick }) {
   const nguoiTao = dsNguoiDung.find(
@@ -21,7 +24,13 @@ function ItemBoThe({ item, dsNguoiDung, onClick }) {
         />
         <span>{tenNguoiTao}</span>
       </div>
-      <button className="btn-hoc" onClick={() => onClick(item.idBoThe)}>
+      <button
+        className="btn-hoc"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick(item.idBoThe);
+        }}
+      >
         Học
       </button>
     </div>
@@ -59,7 +68,7 @@ function ItemKhoaHoc({ item, dsNguoiDung, onClick }) {
         <div className="tags">
           {item.kienThuc.map((t, i) => (
             <span className="tag" key={i}>
-              {t} 
+              {t}
             </span>
           ))}
         </div>
@@ -77,7 +86,7 @@ function ItemKhoaHoc({ item, dsNguoiDung, onClick }) {
 
 /* ---------- Page ---------- */
 export default function TrangTimKiem() {
-  const { id } = useParams(); // từ route /search/:id (chuỗi tìm kiếm)
+  const { id } = useParams(); // /search/:id
   const navigate = useNavigate();
 
   const [typeSearch, setTypeSearch] = useState("All");
@@ -85,19 +94,61 @@ export default function TrangTimKiem() {
   const [nguoiDung, setNguoiDung] = useState([]);
   const [khoaHoc, setKhoaHoc] = useState([]);
 
-  // nạp dữ liệu 1 lần
+  // nạp dữ liệu từ Firestore (giới hạn để tránh kéo quá lớn — tùy bạn chỉnh)
   useEffect(() => {
-    const _boThe = JSON.parse(localStorage.getItem("boThe") || "[]");
-    const _nguoiDung = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-    const _khoaHoc = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
-    setBoThe(Array.isArray(_boThe) ? _boThe : []);
-    setNguoiDung(Array.isArray(_nguoiDung) ? _nguoiDung : []);
-    setKhoaHoc(Array.isArray(_khoaHoc) ? _khoaHoc : []);
+    const unsubBoThe = onSnapshot(
+      query(collection(db, "boThe"), limit(200)),
+      (snap) => {
+        const list = snap.docs.map((d) => {
+          const data = d.data();
+          return {
+            ...data,
+            soTu:
+              typeof data.soTu === "number"
+                ? data.soTu
+                : Array.isArray(data.danhSachThe)
+                ? data.danhSachThe.length
+                : 0,
+          };
+        });
+        setBoThe(list);
+      },
+      () => setBoThe([])
+    );
+
+    const unsubNguoiDung = onSnapshot(
+      query(collection(db, "nguoiDung"), limit(200)),
+      (snap) => setNguoiDung(snap.docs.map((d) => d.data())),
+      () => setNguoiDung([])
+    );
+
+    const unsubKhoaHoc = onSnapshot(
+      query(collection(db, "khoaHoc"), limit(200)),
+      (snap) => {
+        const list = snap.docs.map((d) => {
+          const x = d.data();
+          return {
+            ...x,
+            boTheIds: Array.isArray(x.boTheIds) ? x.boTheIds : [],
+            thanhVienIds: Array.isArray(x.thanhVienIds) ? x.thanhVienIds : [],
+            kienThuc: Array.isArray(x.kienThuc) ? x.kienThuc : [],
+          };
+        });
+        setKhoaHoc(list);
+      },
+      () => setKhoaHoc([])
+    );
+
+    return () => {
+      unsubBoThe();
+      unsubNguoiDung();
+      unsubKhoaHoc();
+    };
   }, []);
 
   const q = useMemo(() => String(id || "").trim().toLowerCase(), [id]);
 
-  // lọc kết quả
+  // lọc kết quả (client-side, giống bản cũ)
   const listBoTheTimKiem = useMemo(() => {
     if (!q) return boThe;
     return boThe.filter((x) => (x.tenBoThe || "").toLowerCase().includes(q));
@@ -105,9 +156,7 @@ export default function TrangTimKiem() {
 
   const listUserTimKiem = useMemo(() => {
     if (!q) return nguoiDung;
-    return nguoiDung.filter((x) =>
-      (x.tenNguoiDung || "").toLowerCase().includes(q)
-    );
+    return nguoiDung.filter((x) => (x.tenNguoiDung || "").toLowerCase().includes(q));
   }, [nguoiDung, q]);
 
   const listKhoaHocTimKiem = useMemo(() => {
@@ -117,13 +166,13 @@ export default function TrangTimKiem() {
       const byTag = Array.isArray(k.kienThuc)
         ? k.kienThuc.some((t) => String(t).toLowerCase().includes(q))
         : false;
-      return byName || byTag; // ✅ tìm kiếm theo kiến thức
+      return byName || byTag;
     });
   }, [khoaHoc, q]);
 
   // điều hướng
   const denHoc = (idBoThe) => navigate(`/flashcard/${idBoThe}`);
-  const denKhoaHoc = (idKhoaHoc) => navigate(`/khoaHoc/${idKhoaHoc}`); // trang chi tiết khóa học
+  const denKhoaHoc = (idKhoaHoc) => navigate(`/khoaHoc/${idKhoaHoc}`);
 
   return (
     <div className="search-container">
