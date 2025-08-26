@@ -6,11 +6,13 @@ import {
   faListCheck,
   faFilePen,
   faLayerGroup,
-  faPlay,
   faEllipsisH,
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate, useParams } from "react-router-dom";
 import "./HocBoThe_Header.css";
+
+import { auth, db } from "../../../lib/firebase";
+import { doc, onSnapshot, deleteDoc } from "firebase/firestore";
 
 function HocBoThe_Header({ activeMode }) {
   const navigate = useNavigate();
@@ -21,9 +23,11 @@ function HocBoThe_Header({ activeMode }) {
   const nutMenuRef = useRef(null);
   const menuRef = useRef(null);
 
-  // session hiện tại
-  const session = JSON.parse(sessionStorage.getItem("session") || "null");
+  // bộ thẻ & quyền sở hữu
+  const [boThe, setBoThe] = useState(null);
+  const [isOwner, setIsOwner] = useState(false);
 
+  // đóng menu khi click ra ngoài
   useEffect(() => {
     if (!moMenu) return;
     function handleOutside(e) {
@@ -37,50 +41,44 @@ function HocBoThe_Header({ activeMode }) {
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [moMenu]);
 
-  // Tìm bộ thẻ theo id từ localStorage
-  const docBoThe = () => {
-    try {
-      const arr = JSON.parse(localStorage.getItem("boThe") || "[]");
-      return (
-        (Array.isArray(arr) ? arr.find((x) => String(x.idBoThe) === String(id)) : null) ||
-        null
-      );
-    } catch {
-      return null;
-    }
-  };
+  // Nạp bộ thẻ từ Firestore + tính quyền
+  useEffect(() => {
+    if (!id) return;
+    const ref = doc(db, "boThe", String(id));
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        const data = snap.exists() ? snap.data() : null;
+        setBoThe(data);
 
-  const bt = docBoThe();
-  const isOwner =
-    bt && session?.idNguoiDung && String(bt.idNguoiDung) === String(session.idNguoiDung);
-
-  const handleXoaBoThe = () => {
-    if (!isOwner) return; // chặn nếu không phải chủ sở hữu
-
-    const ok = window.confirm(
-      `Xoá bộ thẻ "${bt.tenBoThe}"? Hành động này không thể hoàn tác.`
+        const session = JSON.parse(sessionStorage.getItem("session") || "null");
+        const uid = auth.currentUser?.uid || session?.idNguoiDung;
+        setIsOwner(Boolean(data && uid && String(data.idNguoiDung) === String(uid)));
+      },
+      () => {
+        setBoThe(null);
+        setIsOwner(false);
+      }
     );
+    return () => unsub();
+  }, [id]);
+
+  const handleXoaBoThe = async () => {
+    if (!isOwner || !boThe) return;
+    const ok = window.confirm(`Xoá bộ thẻ "${boThe.tenBoThe}"? Hành động này không thể hoàn tác.`);
     if (!ok) return;
-
-    const list = JSON.parse(localStorage.getItem("boThe") || "[]");
-    const newList = list.filter((x) => String(x.idBoThe) !== String(id));
-    localStorage.setItem("boThe", JSON.stringify(newList));
-
-    const sel = JSON.parse(localStorage.getItem("selected") || "null");
-    if (sel && String(sel.idBoThe) === String(id)) {
-      localStorage.removeItem("selected");
+    try {
+      await deleteDoc(doc(db, "boThe", String(id)));
+      alert("Đã xoá bộ thẻ.");
+      navigate("/giangvien");
+    } catch (e) {
+      console.error(e);
+      alert("Không thể xoá bộ thẻ. Vui lòng thử lại.");
     }
-
-    window.dispatchEvent(new Event("boTheUpdated"));
-    alert("Đã xoá bộ thẻ.");
-    navigate("/giangvien");
   };
 
   const handleSuaBoThe = () => {
     if (!isOwner) return;
-
-    // Lưu tạm để trang chỉnh sửa lấy dữ liệu fill form
-    localStorage.setItem("selected", JSON.stringify(bt));
     navigate(`/suabothe/${id}`);
   };
 
@@ -152,8 +150,6 @@ function HocBoThe_Header({ activeMode }) {
           <FontAwesomeIcon icon={faLayerGroup} />
           <span>Match game</span>
         </div>
-
-        
       </div>
     </>
   );
