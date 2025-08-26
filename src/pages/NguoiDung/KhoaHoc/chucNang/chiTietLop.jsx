@@ -1,12 +1,47 @@
+// src/components/ChiTietLop/ChiTietLopModal.jsx
 import React, { useEffect, useState } from "react";
 import "./chiTietLop.css";
+
+import { db } from "../../../../../lib/firebase";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  limit,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
+
+/* ===== Firestore helpers ===== */
+async function getCourseDocRefByAnyId(id) {
+  if (!id && id !== 0) return null;
+  const idStr = String(id);
+
+  // 1) thử docId
+  const ref1 = doc(db, "khoaHoc", idStr);
+  const s1 = await getDoc(ref1);
+  if (s1.exists()) return ref1;
+
+  // 2) thử field idKhoaHoc
+  const rs = await getDocs(
+    query(collection(db, "khoaHoc"), where("idKhoaHoc", "==", idStr), limit(1))
+  );
+  if (!rs.empty) return rs.docs[0].ref;
+
+  return null;
+}
+const safeArr = (v) => (Array.isArray(v) ? v : []);
 
 export default function ChiTietLopModal({
   open,
   lop,
   onClose,
-  onSave,          // optional: nếu không truyền, sẽ tự lưu vào localStorage
-  isEditMode = false, // optional: mở modal là edit luôn
+  onSave,              // optional: nếu không truyền, component tự lưu Firestore
+  isEditMode = false,  // mở modal là edit luôn
 }) {
   if (!open || !lop) return null;
 
@@ -17,7 +52,7 @@ export default function ChiTietLopModal({
   });
   const [isEditing, setIsEditing] = useState(!!isEditMode);
 
-  // ===== Helpers =====
+  /* ===== Helpers ===== */
   const parseTags = (txt) =>
     Array.from(
       new Set(
@@ -29,18 +64,10 @@ export default function ChiTietLopModal({
       )
     );
 
-  const readJSON = (k, fb) => {
-    try {
-      const v = JSON.parse(localStorage.getItem(k) || "null");
-      return v ?? fb;
-    } catch {
-      return fb;
-    }
-  };
-  const writeJSON = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-  const getAnyId = (x) => x?.idKhoaHoc ?? x?.idLop ?? x?.id ?? x?.maLop ?? null;
+  const getAnyId = (x) =>
+    x?.idKhoaHoc ?? x?._docId ?? x?.id ?? x?.idLop ?? x?.maLop ?? null;
 
-  // đồng bộ prop -> state khi mở modal / đổi lop
+  /* đồng bộ prop -> state khi mở modal / đổi lop */
   useEffect(() => {
     if (!open) return;
     setIsEditing(!!isEditMode);
@@ -55,45 +82,52 @@ export default function ChiTietLopModal({
     setForm((s) => ({ ...s, [name]: value }));
   };
 
-  // fallback lưu vào localStorage (khoaHoc + legacy lop)
-  const fallbackSaveToLocalStorage = (next) => {
+  /* ===== Firestore fallback save (nếu không truyền onSave) ===== */
+  const fallbackSaveToFirestore = async (next) => {
     const id = getAnyId(next);
-    if (!id) return;
-
-    // 1) cập nhật 'khoaHoc'
-    {
-      const arr = readJSON("khoaHoc", []);
-      const idx = arr.findIndex((it) => String(getAnyId(it)) === String(id));
-      if (idx > -1) arr[idx] = { ...arr[idx], ...next };
-      else arr.push(next);
-      writeJSON("khoaHoc", arr);
+    if (!id && id !== 0) {
+      alert("Thiếu ID khóa học để lưu.");
+      return false;
     }
 
-    // 2) cập nhật 'lop' (legacy) để không phá phần cũ
-    {
-      const arr = readJSON("lop", []);
-      if (Array.isArray(arr) && arr.length) {
-        const idx = arr.findIndex((it) => String(getAnyId(it)) === String(id));
-        if (idx > -1) {
-          arr[idx] = {
-            ...arr[idx],
-            tenLop: next.tenKhoaHoc,
-            moTa: next.moTa,
-            boTheIds: next.boTheIds,
-            folderIds: next.folderIds,
-            thanhVienIds: next.thanhVienIds,
-            kienThuc: next.kienThuc,
-          };
-          writeJSON("lop", arr);
-        }
+    try {
+      let ref = await getCourseDocRefByAnyId(id);
+
+      // Nếu chưa có: tạo theo idKhoaHoc (ưu tiên), fallback docId = String(id)
+      if (!ref) {
+        const newId = String(next.idKhoaHoc ?? id);
+        ref = doc(db, "khoaHoc", newId);
+        await setDoc(ref, {
+          ...next,
+          idKhoaHoc: String(next.idKhoaHoc ?? newId),
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await updateDoc(ref, {
+          tenKhoaHoc: next.tenKhoaHoc,
+          moTa: next.moTa,
+          kienThuc: next.kienThuc,
+          tenLop: next.tenKhoaHoc, // để phần legacy nếu nơi khác còn đọc
+          updatedAt: serverTimestamp(),
+          // giữ nguyên các mảng đã tính sẵn:
+          boTheIds: safeArr(next.boTheIds).map(String),
+          folderIds: safeArr(next.folderIds).map(String),
+          thanhVienIds: safeArr(next.thanhVienIds).map(String),
+        });
       }
-    }
 
-    // phát sự kiện để các màn khác reload
-    window.dispatchEvent(new Event("khoaHocChanged"));
+      // phát sự kiện cho các màn khác nếu cần reload
+      window.dispatchEvent(new Event("khoaHocChanged"));
+      return true;
+    } catch (e) {
+      console.error("Lưu khóa học thất bại:", e);
+      alert("Không thể lưu thay đổi. Vui lòng thử lại.");
+      return false;
+    }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const tenKhoaHoc = String(form.tenKhoaHoc || "").trim();
     if (!tenKhoaHoc) {
       alert("Vui lòng nhập tên khóa học.");
@@ -104,33 +138,43 @@ export default function ChiTietLopModal({
 
     const next = {
       ...lop,
-      idKhoaHoc: lop.idKhoaHoc ?? getAnyId(lop) ?? Date.now(),
+      idKhoaHoc: String(lop.idKhoaHoc ?? getAnyId(lop) ?? Date.now()),
       tenKhoaHoc,
       moTa,
       kienThuc,
-      boTheIds: Array.isArray(lop.boTheIds) ? lop.boTheIds : [],
-      folderIds: Array.isArray(lop.folderIds) ? lop.folderIds : [],
-      thanhVienIds: Array.isArray(lop.thanhVienIds) ? lop.thanhVienIds : [],
+      boTheIds: safeArr(lop.boTheIds),
+      folderIds: safeArr(lop.folderIds),
+      thanhVienIds: safeArr(lop.thanhVienIds),
       // giữ tên cũ cho phần legacy dùng 'tenLop'
       tenLop: tenKhoaHoc,
     };
 
-    if (typeof onSave === "function") onSave(next);
-    else fallbackSaveToLocalStorage(next);
+    if (typeof onSave === "function") {
+      // Parent tự quyết định lưu; nếu parent làm Firestore thì ok
+      await onSave(next);
+    } else {
+      // Component tự lưu Firestore
+      const ok = await fallbackSaveToFirestore(next);
+      if (!ok) return;
+    }
 
     // Ở lại modal, chuyển về chế độ xem
     setIsEditing(false);
   };
 
   const soBoThe =
-    Array.isArray(lop.boTheIds) ? lop.boTheIds.length :
-    (Number.isFinite(lop?.soBoThe) ? lop.soBoThe : 0);
-  const soFolder =
-    Array.isArray(lop.folderIds) ? lop.folderIds.length :
-    (Number.isFinite(lop?.soFolder) ? lop.soFolder : 0);
+    Array.isArray(lop.boTheIds)
+      ? lop.boTheIds.length
+      : Number.isFinite(lop?.soBoThe)
+      ? lop.soBoThe
+      : 0;
+
   const soThanhVien =
-    Array.isArray(lop.thanhVienIds) ? lop.thanhVienIds.length :
-    (Number.isFinite(lop?.soThanhVien) ? lop.soThanhVien : 0);
+    Array.isArray(lop.thanhVienIds)
+      ? lop.thanhVienIds.length
+      : Number.isFinite(lop?.soThanhVien)
+      ? lop.soThanhVien
+      : 0;
 
   return (
     <div className="ctl-overlay">
@@ -138,7 +182,9 @@ export default function ChiTietLopModal({
         {/* Header */}
         <div className="ctl-header">
           <h3>Thông tin khóa học</h3>
-          <button className="ctl-close" onClick={onClose} aria-label="Đóng">×</button>
+          <button className="ctl-close" onClick={onClose} aria-label="Đóng">
+            ×
+          </button>
         </div>
 
         {/* Body */}
@@ -165,11 +211,9 @@ export default function ChiTietLopModal({
             <label className="ctl-label">Kỹ năng/Chủ đề (kiến thức)</label>
             {!isEditing ? (
               <div className="ctl-static">
-                {Array.isArray(lop.kienThuc) && lop.kienThuc.length > 0 ? (
-                  lop.kienThuc.join(", ")
-                ) : (
-                  "—"
-                )}
+                {Array.isArray(lop.kienThuc) && lop.kienThuc.length > 0
+                  ? lop.kienThuc.join(", ")
+                  : "—"}
               </div>
             ) : (
               <>
@@ -182,7 +226,7 @@ export default function ChiTietLopModal({
                   placeholder="Ví dụ: it, tiếng nhật, tiếng anh… (ngăn cách bằng dấu phẩy hoặc xuống dòng)"
                 />
                 <div className="ctl-hint">
-                  Mẹo: bạn có thể nhập mỗi dòng 1 thẻ hoặc dùng dấu phẩy. Hệ thống tự loại trùng & chuẩn hóa chữ thường.
+                  Mẹo: bạn có thể nhập mỗi dòng 1 thẻ hoặc dùng dấu phẩy. Hệ thống tự loại trùng & chuẩn hoá chữ thường.
                 </div>
               </>
             )}
@@ -222,11 +266,17 @@ export default function ChiTietLopModal({
 
         {/* Footer */}
         <div className="ctl-footer">
-          <button className="btn-cancel-outline" onClick={onClose}>Đóng</button>
+          <button className="btn-cancel-outline" onClick={onClose}>
+            Đóng
+          </button>
           {!isEditing ? (
-            <button className="btn-primary" onClick={() => setIsEditing(true)}>Chỉnh sửa</button>
+            <button className="btn-primary" onClick={() => setIsEditing(true)}>
+              Chỉnh sửa
+            </button>
           ) : (
-            <button className="btn-primary" onClick={handleSave}>Lưu</button>
+            <button className="btn-primary" onClick={handleSave}>
+              Lưu
+            </button>
           )}
         </div>
       </div>
