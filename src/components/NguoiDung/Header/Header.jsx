@@ -272,16 +272,6 @@ export default function Header() {
                 <FontAwesomeIcon icon={faClone} />
                 <span>Bộ thẻ mới</span>
               </div>
-              <div
-                className="plus-item"
-                onClick={() => {
-                  navigate("/newfolder");
-                  setShowPlus(false);
-                }}
-              >
-                <FontAwesomeIcon icon={faFolderOpen} />
-                <span>Thư mục mới</span>
-              </div>
               {(user?.vaiTro === "GIANG_VIEN" || user?.vaiTro === "ADMIN") && (
                 <div
                   className="plus-item"
