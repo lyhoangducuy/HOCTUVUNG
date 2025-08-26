@@ -72,6 +72,80 @@ body { background:#f8f9fa; }
   background: #d1d5db; border-radius: 999px;
 }
 .trangchu-layout-sidebar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+/* =========================
+   FAB AI – áp dụng cho cả prime & locked
+   ========================= */
+
+/* Vị trí cố định góc phải dưới cho AIButton (prime) */
+.ai-button-container{
+  position: fixed !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  z-index: 1100 !important;
+}
+
+/* Nút tròn xanh như ảnh */
+.ai-button-container .icon-btn{
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 999px !important;
+  border: none !important;
+  background: #3b82f6 !important;   /* xanh */
+  color: #fff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 10px 22px rgba(59,130,246,.35) !important;
+  transition: transform .12s ease, box-shadow .12s ease !important;
+}
+.ai-button-container .icon-btn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(59,130,246,.35);
+}
+
+/* =========================
+   FAB AI khoá (AILockedButton trong layout)
+   KHÔNG cần đổi JSX: target bằng aria-label
+   ========================= */
+button[aria-label="Nâng cấp để dùng AI"]{
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 999px !important;
+  background: #3b82f6 !important;   /* xanh cùng tông */
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 10px 22px rgba(59,130,246,.35) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+button[aria-label="Nâng cấp để dùng AI"] svg{
+  font-size: 22px !important; /* icon rõ hơn */
+}
+
+/* Huy hiệu ngôi sao nhỏ góc trên-phải */
+button[aria-label="Nâng cấp để dùng AI"] > span{
+  position: absolute !important;
+  top: -4px !important;
+  right: -4px !important;
+  background: #f59e0b !important;
+  color: #fff !important;
+  border: 2px solid #fff !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  padding: 2px 6px !important;
+  pointer-events: none !important;
+}
+
+/* Mobile: thu nhỏ một chút cho đỡ che nội dung */
+@media (max-width: 640px){
+  .ai-button-container .icon-btn,
+  button[aria-label="Nâng cấp để dùng AI"]{
+    width: 52px !important;
+    height: 52px !important;
+  }
+}
 
 
 @media (max-width: 992px){

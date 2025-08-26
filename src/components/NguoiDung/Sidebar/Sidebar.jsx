@@ -5,25 +5,36 @@ import { faHouse, faFolderOpen, faBell, faVideo } from "@fortawesome/free-solid-
 import "./sidebar.css";
 import { useNavigate } from "react-router-dom";
 
+// 🔥 Firebase
+import { onAuthStateChanged } from "firebase/auth";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { auth, db } from "../../../../lib/firebase"; // <- chỉnh đường dẫn đúng với dự án của bạn
+
 /* ===== Helpers ===== */
-const readJSON = (k, def = []) => {
-  try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? def; }
-  catch { return def; }
-};
+// dd/mm/yyyy -> Date | null
 const parseVNDate = (dmy) => {
-  if (!dmy) return null;
+  if (!dmy || typeof dmy !== "string") return null;
   const [d, m, y] = dmy.split("/").map(Number);
-  return y ? new Date(y, (m || 1) - 1, d || 1) : null;
+  if (!d || !m || !y) return null;
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  return Number.isNaN(dt.getTime()) ? null : dt;
 };
-// ✅ Chỉ tính prime nếu: chưa bị hủy + còn hạn
-const hasActiveSub = (userId) => {
-  const list = readJSON("goiTraPhiCuaNguoiDung", []);
-  const today = new Date();
-  return list.some((s) =>
-    s.idNguoiDung === userId &&
-    s.status !== "Đã hủy" &&
-    parseVNDate(s.NgayKetThuc) >= today
-  );
+const today0 = () => {
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  return t;
+};
+const toDateFlexible = (val) => {
+  // Firestore Timestamp
+  if (val?.toDate) return val.toDate();
+  // ISO string
+  if (typeof val === "string" && val.includes("-")) {
+    const d = new Date(val);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  // dd/mm/yyyy
+  if (typeof val === "string" && val.includes("/")) return parseVNDate(val);
+  return null;
 };
 
 function Sidebar() {
@@ -31,50 +42,69 @@ function Sidebar() {
 
   const [open, setOpen] = useState(true);
   const [prime, setPrime] = useState(false);
+  const [user, setUser] = useState(null);
 
   const [showNoti, setShowNoti] = useState(false);
   const notiRef = useRef(null);
 
-  // load user + prime; lắng nghe thay đổi
+  // 1) Theo dõi Auth
   useEffect(() => {
-    const loadPrime = () => {
-      const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-      if (!ss?.idNguoiDung) { setPrime(false); return; }
-      setPrime(hasActiveSub(ss.idNguoiDung));
-    };
-
-    loadPrime();
-
-    const onToggle = () => setOpen(v => !v);
-    const onStorage = (e) => {
-      if (e.key === "goiTraPhiCuaNguoiDung") loadPrime();
-    };
-    const onSubChanged = () => loadPrime(); // Traphi phát sự kiện này khi đăng ký/hủy
-
-    window.addEventListener("sidebar:toggle", onToggle);
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("subscriptionChanged", onSubChanged);
-
-    return () => {
-      window.removeEventListener("sidebar:toggle", onToggle);
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("subscriptionChanged", onSubChanged);
-    };
+    const unsubAuth = onAuthStateChanged(auth, (u) => setUser(u || null));
+    return () => unsubAuth();
   }, []);
 
-  // đóng dropdown thông báo khi click ra ngoài
+  // 2) Theo dõi gói trả phí của user (realtime)
   useEffect(() => {
+    if (!user?.uid) {
+      setPrime(false);
+      return;
+    }
+    // Collection “goiTraPhiCuaNguoiDung”: trường cần có
+    // - idNguoiDung: string (uid)
+    // - status: string (vd: "Đang hoạt động" | "Đã hủy")
+    // - NgayKetThuc: Firestore Timestamp | ISO | "dd/mm/yyyy"
+    const q = query(
+      collection(db, "goiTraPhiCuaNguoiDung"),
+      where("idNguoiDung", "==", user.uid)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const now0 = today0();
+      const active = snap.docs.some((doc) => {
+        const s = doc.data();
+        if (s.status === "Đã hủy") return false;
+        const end = toDateFlexible(s.NgayKetThuc);
+        if (!end) return false;
+        end.setHours(0, 0, 0, 0);
+        return end >= now0;
+      });
+      setPrime(active);
+    });
+    return () => unsub();
+  }, [user?.uid]);
+
+  // 3) Toggle & outside click for notifications
+  useEffect(() => {
+    const onToggle = () => setOpen((v) => !v);
     const outside = (e) => {
       if (notiRef.current && !notiRef.current.contains(e.target)) setShowNoti(false);
     };
+    window.addEventListener("sidebar:toggle", onToggle);
     document.addEventListener("mousedown", outside);
-    return () => document.removeEventListener("mousedown", outside);
+    return () => {
+      window.removeEventListener("sidebar:toggle", onToggle);
+      document.removeEventListener("mousedown", outside);
+    };
   }, []);
 
   const gotoVideo = () => {
+    if (!user) {
+      alert("Vui lòng đăng nhập để dùng chức năng Video.");
+      navigate("/dang-nhap");
+      return;
+    }
     if (!prime) {
       alert("Bạn cần nâng cấp tài khoản để dùng chức năng Video.");
-      navigate("/tra-phi");
+      navigate("/traphi"); // đồng bộ route trả phí
       return;
     }
     navigate("/video");
@@ -93,7 +123,7 @@ function Sidebar() {
           Thư viện của tôi
         </div>
 
-        <div ref={notiRef} className="noti-wrapper" onClick={() => setShowNoti(v => !v)}>
+        <div ref={notiRef} className="noti-wrapper" onClick={() => setShowNoti((v) => !v)}>
           <span className="noti-trigger">
             <FontAwesomeIcon icon={faBell} className="icon" />
             Thông báo
@@ -115,7 +145,6 @@ function Sidebar() {
         <div onClick={gotoVideo}>
           <FontAwesomeIcon icon={faVideo} className="icon" />
           Học qua Video
-          {/* ⭐ Hiện sao khi CHƯA prime */}
           {!prime && <span className="prime-badge" title="Nâng cấp để mở khóa">★</span>}
         </div>
       </div>

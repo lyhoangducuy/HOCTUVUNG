@@ -5,6 +5,7 @@ import Header from "../../components/NguoiDung/Header/Header";
 import Sidebar from "../../components/NguoiDung/Sidebar/Sidebar";
 import Footer from "../../components/Auth/Footer/Footer";
 import { FaRobot } from "react-icons/fa";
+import AuthSync from "../../components/Auth/AuthSync";
 
 export default function NguoiDungLayout() {
   const [prime, setPrime] = useState(false);
@@ -96,6 +97,7 @@ export default function NguoiDungLayout() {
   return (
     <div className="trangchu-layout-container">
       <Header />
+      <AuthSync />
       <div className="trangchu-layout-main">
         <div className="trangchu-layout-sidebar">
           <Sidebar />

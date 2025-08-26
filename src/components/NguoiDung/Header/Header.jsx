@@ -5,7 +5,6 @@ import {
   faBookOpen,
   faCirclePlus,
   faGear,
-  faFolderOpen,
   faClone,
   faReceipt,
 } from "@fortawesome/free-solid-svg-icons";
@@ -28,7 +27,7 @@ import {
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
-// ===== Helpers Firestore =====
+/* ===== Firestore helpers ===== */
 const usersCol = () => collection(db, "nguoiDung");
 const userRef = (id) => doc(db, "nguoiDung", String(id));
 const boTheCol = () => collection(db, "boThe");
@@ -49,6 +48,7 @@ export default function Header() {
   const menuRef = useRef(null);
   const plusRef = useRef(null);
   const searchRef = useRef(null);
+  const unsubSubRef = useRef(null); // ⬅️ giữ unsub của onSnapshot để huỷ khi nhận logout từ tab khác
 
   // user + prime
   const [user, setUser] = useState(null);
@@ -61,7 +61,7 @@ export default function Header() {
 
   // Search state
   const [keyword, setKeyword] = useState("");
-  const [resCards, setResCards] = useState([]);   // boThe
+  const [resCards, setResCards] = useState([]);    // boThe
   const [resCourses, setResCourses] = useState([]); // khoaHoc
 
   /* 1) Nạp user từ Auth/Session + theo dõi Prime realtime */
@@ -78,12 +78,12 @@ export default function Header() {
           return;
         }
 
-        // Lấy hồ sơ người dùng từ collection: nguoiDung/{uid}
+        // Lấy hồ sơ người dùng
         const snap = await getDoc(userRef(uid));
         if (snap.exists()) setUser(snap.data());
         else setUser({ idNguoiDung: uid, tenNguoiDung: "Người dùng" });
 
-        // Realtime theo dõi gói còn hạn (goiTraPhiCuaNguoiDung)
+        // Realtime theo dõi gói còn hạn
         const now = Timestamp.now();
         const q = query(
           subCol(),
@@ -94,6 +94,7 @@ export default function Header() {
           const ok = ssnap.docs.some((d) => !isCanceled(d.data()?.status));
           setPrime(ok);
         });
+        unsubSubRef.current = unsubSub; // ⬅️ lưu lại để có thể huỷ khi cross-tab logout
       } catch {
         setUser(null);
         setPrime(false);
@@ -103,6 +104,7 @@ export default function Header() {
     loadUserAndPrime();
     return () => {
       if (unsubSub) unsubSub();
+      unsubSubRef.current = null;
     };
   }, []);
 
@@ -117,7 +119,7 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", outside);
   }, []);
 
-  /* 3) Tìm kiếm nhanh (boThe + khoaHoc) – lọc client (contains) */
+  /* 3) Tìm kiếm nhanh (boThe + khoaHoc) – lọc client */
   const doSearch = async (q) => {
     setKeyword(q);
     const queryText = q.trim().toLowerCase();
@@ -128,7 +130,7 @@ export default function Header() {
     }
 
     try {
-      // Firestore không hỗ trợ "contains" tự do -> lấy một lượng giới hạn rồi lọc client
+      // Lấy một lượng giới hạn rồi lọc client
       const [cardsSnap, coursesSnap] = await Promise.all([
         getDocs(query(boTheCol(), limit(50))),
         getDocs(query(khoaHocCol(), limit(50))),
@@ -156,12 +158,13 @@ export default function Header() {
     }
   };
 
-  /* 4) Logout (Auth) */
+  /* 4) Logout (Auth) — CÁCH 1: dùng localStorage 'auth:logout' để phát tín hiệu */
   const logout = async () => {
     try {
       await signOut(auth);
     } finally {
-      sessionStorage.clear(); // nếu phần cũ còn đọc session
+      sessionStorage.removeItem("session");                // dọn session tab này
+      localStorage.setItem("auth:logout", String(Date.now())); // 🔔 phát tín hiệu cho tab khác
       navigate("/dang-nhap", { replace: true });
     }
   };
@@ -174,6 +177,30 @@ export default function Header() {
   useEffect(() => {
     setChatPro(prime);
   }, [prime]);
+
+  /* 6) Nghe tín hiệu logout từ tab khác */
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === "auth:logout") {
+        // 1 tab khác vừa logout → dọn ở tab hiện tại
+        sessionStorage.removeItem("session");
+        unsubSubRef.current?.();        // huỷ theo dõi realtime nếu có
+        unsubSubRef.current = null;
+
+        // dọn UI nhỏ
+        setUser(null);
+        setPrime(false);
+        setShowMenu(false);
+        setShowPlus(false);
+        setShowSearch(false);
+
+        // điều hướng về login
+        navigate("/dang-nhap", { replace: true });
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [navigate]);
 
   return (
     <div className="header-container">
@@ -200,7 +227,10 @@ export default function Header() {
           }}
           onFocus={() => setShowSearch(true)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") navigate(`/timkiem/${keyword}`);
+            if (e.key === "Enter") {
+              setShowSearch(false);
+              navigate(`/timkiem/${keyword}`);
+            }
           }}
         />
 
@@ -287,9 +317,6 @@ export default function Header() {
             </div>
           )}
         </div>
-
-        {/* Chỉ Prime mới có AIButton */}
-        {chatPro && <AIButton />}
 
         <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
           Nâng cấp tài khoản

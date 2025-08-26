@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import HeaderAdmin from "../../components/Admin/Header/HeaderAdmin";
 import SidebarAdmin from "../../components/Admin/Sidebar/SidebarAdmin";
 import "./AdminLayout.css";
+import AuthSync from "../../components/Auth/AuthSync";
 export default function AdminLayout({ children }) {
   const [isSidebar, setIsSidebar] = useState(false);
   const handleShowSidebar = (e) => {
@@ -13,6 +14,7 @@ export default function AdminLayout({ children }) {
     <div className={`admin-layout-root${isSidebar ? " sidebar-open" : ""}`}>
       <div className="admin-layout-header">
         <HeaderAdmin handleShowSidebar={handleShowSidebar} />
+        <AuthSync />
       </div>
       <div className="admin-layout-main">
         <div className="admin-layout-sidebar">
