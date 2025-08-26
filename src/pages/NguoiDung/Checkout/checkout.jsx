@@ -5,62 +5,109 @@ import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import Button from "../../../components/inputs/Button";
 import "./checkout.css";
 
+import { auth, db } from "../../../../lib/firebase";
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
+
 const VN = "vi-VN";
 const toVN = (date) => new Date(date).toLocaleDateString(VN);
 
-// (khuyến nghị) làm sạch orderId để khớp vnp_TxnRef
+// Làm sạch id để dùng với vnp_TxnRef
 const safeId = (s) => String(s).replace(/[^0-9a-zA-Z_-]/g, "").slice(0, 34);
 
 export default function Checkout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [currentUser, setCurrentUser] = useState(null);
+  const [uid, setUid] = useState(null);
   const [order, setOrder] = useState(null);
   const [paying, setPaying] = useState(false);
 
+  // Lấy uid (ưu tiên Firebase Auth, fallback session)
   useEffect(() => {
     const sessionUser = JSON.parse(sessionStorage.getItem("session") || "null");
-    if (!sessionUser) {
+    const _uid = auth.currentUser?.uid || sessionUser?.idNguoiDung || null;
+    if (!_uid) {
       alert("Vui lòng đăng nhập.");
-      navigate("/");
+      navigate("/dang-nhap");
       return;
     }
-    setCurrentUser(sessionUser);
+    setUid(String(_uid));
+  }, [navigate]);
 
-    const stateOrderId = location?.state?.orderId;
-    const orders = JSON.parse(localStorage.getItem("donHangTraPhi") || "[]") || [];
+  // Nạp đơn hàng: ưu tiên orderId từ location.state, fallback pending mới nhất
+  useEffect(() => {
+    if (!uid) return;
 
-    let found = null;
-    if (stateOrderId) {
-      found = orders.find((o) => o.idDonHang === stateOrderId) || null;
-    }
-    if (!found) {
-      const minePending = orders
-        .filter((o) => o.idNguoiDung === sessionUser.idNguoiDung && o.trangThai === "pending")
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      found = minePending[0] || null;
-    }
+    let unsub = null;
 
-    if (!found) {
-      alert("Không tìm thấy đơn hàng thanh toán.");
-      navigate("/traphi");
-      return;
-    }
+    (async () => {
+      const stateOrderId = location?.state?.orderId;
 
-    // đảm bảo idDonHang an toàn trước khi gửi cho VNPay
-    if (found.idDonHang !== safeId(found.idDonHang)) {
-      const cleaned = safeId(found.idDonHang);
-      const idx = orders.findIndex((o) => o.idDonHang === found.idDonHang);
-      found = { ...found, idDonHang: cleaned };
-      if (idx !== -1) {
-        orders[idx] = found;
-        localStorage.setItem("donHangTraPhi", JSON.stringify(orders));
+      // helper: attach listener cho 1 doc đơn
+      const listenOrderDoc = async (docId) => {
+        const ref = doc(db, "donHangTraPhi", docId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return false;
+
+        // Đảm bảo idDonHang an toàn: ưu tiên dùng doc id (đã an toàn)
+        const cur = snap.data()?.idDonHang;
+        if (cur !== snap.id) {
+          try {
+            await updateDoc(ref, { idDonHang: snap.id });
+          } catch {}
+        }
+
+        unsub = onSnapshot(ref, (d) => {
+          if (!d.exists()) return;
+          const data = d.data();
+          setOrder({
+            ...data,
+            idDonHang: data.idDonHang || d.id, // dùng trường, fallback doc id
+            _docId: d.id,
+          });
+        });
+        return true;
+      };
+
+      // 1) Nếu có orderId → thử doc đó
+      if (stateOrderId) {
+        const ok = await listenOrderDoc(String(stateOrderId));
+        if (ok) return;
       }
-    }
 
-    setOrder(found);
-  }, [location, navigate]);
+      // 2) Không có / không tìm thấy → lấy pending mới nhất của user
+      const qPending = query(
+        collection(db, "donHangTraPhi"),
+        where("idNguoiDung", "==", String(uid)),
+        where("trangThai", "==", "pending"),
+        orderBy("createdAt", "desc"),
+        limit(1)
+      );
+      const rs = await getDocs(qPending);
+      const first = rs.docs[0];
+      if (!first) {
+        alert("Không tìm thấy đơn hàng thanh toán.");
+        navigate("/traphi");
+        return;
+      }
+      await listenOrderDoc(first.id);
+    })();
+
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
+  }, [uid, location, navigate]);
 
   const priceText = useMemo(() => {
     if (!order) return "";
@@ -71,13 +118,17 @@ export default function Checkout() {
     if (!order || paying) return;
     try {
       setPaying(true);
+
+      // bảo đảm idDonHang an toàn (đã sync với doc id ở trên, nhưng ta vẫn sanitize lần cuối)
+      const idForVNP = safeId(order.idDonHang || order._docId);
+
       const resp = await fetch("http://localhost:3001/create_payment_url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: Number(order.soTienThanhToan), // VND; backend sẽ *100
-          orderId: order.idDonHang,              // vnp_TxnRef
-          // bankCode: "VNBANK", // tùy chọn
+          orderId: idForVNP,                     // vnp_TxnRef
+          // bankCode: "VNBANK",
         }),
       });
       const data = await resp.json();
@@ -120,7 +171,7 @@ export default function Checkout() {
           <span className="label">Thanh toán:</span>
           <span className="value">
             {priceText}
-            {order.giamGia > 0 && (
+            {Number(order.giamGia || 0) > 0 && (
               <small className="muted"> (đã áp dụng -{order.giamGia}%)</small>
             )}
           </span>
@@ -128,14 +179,17 @@ export default function Checkout() {
 
         <div className="row">
           <span className="label">Mã đơn:</span>
-          <span className="value code">{order.idDonHang}</span>
+          <span className="value code">{order.idDonHang || order._docId}</span>
         </div>
 
         <div className="row">
           <span className="label">Trạng thái:</span>
           <span className="value status">
-            {order.trangThai === "pending" ? "Đang chờ" :
-             order.trangThai === "paid" ? "Đã thanh toán" : "Đã hủy"}
+            {order.trangThai === "pending"
+              ? "Đang chờ"
+              : order.trangThai === "paid"
+              ? "Đã thanh toán"
+              : "Đã hủy"}
           </span>
         </div>
 

@@ -3,6 +3,19 @@ import { useNavigate } from "react-router-dom";
 import Button from "../../../components/inputs/Button";
 import "./CheckoutResult.css";
 
+import { db } from "../../../../lib/firebase";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+
 const VN = "vi-VN";
 const toVN = (date) => new Date(date).toLocaleDateString(VN);
 const addDays = (date, days) => {
@@ -27,7 +40,7 @@ const RESP_TEXT = {
   "99": "Lỗi khác",
 };
 
-export default function checkoutResult() {
+export default function CheckoutResult() {
   const navigate = useNavigate();
 
   // UI state
@@ -46,108 +59,123 @@ export default function checkoutResult() {
   );
 
   useEffect(() => {
-    const p = new URLSearchParams(window.location.search);
-    const responseCode = p.get("vnp_ResponseCode"); // "00" = thành công
-    const orderId = p.get("vnp_TxnRef");            // id đơn
-    const amount = Number(p.get("vnp_Amount") || 0) / 100; // VNPay trả *100
+    (async () => {
+      const p = new URLSearchParams(window.location.search);
+      const responseCode = p.get("vnp_ResponseCode"); // "00" = thành công
+      const orderId = (p.get("vnp_TxnRef") || "").replace(/[^0-9a-zA-Z_-]/g, ""); // doc id đã được sanitize ở bước checkout
+      const amount = Number(p.get("vnp_Amount") || 0) / 100; // VNPay trả *100
 
-    if (!orderId) {
-      setStatus("error");
-      setSummary({
-        orderId: "",
-        responseCode: "",
-        message: "Thiếu mã đơn hàng (vnp_TxnRef).",
-        amount: 0,
-        paidAt: "",
-      });
-      return;
-    }
+      if (!orderId) {
+        setStatus("error");
+        setSummary({
+          orderId: "",
+          responseCode: "",
+          message: "Thiếu mã đơn hàng (vnp_TxnRef).",
+          amount: 0,
+          paidAt: "",
+        });
+        return;
+      }
 
-    const orders = JSON.parse(localStorage.getItem("donHangTraPhi") || "[]");
-    const idx = orders.findIndex((o) => String(o.idDonHang) === String(orderId));
+      // Lấy đơn theo doc id
+      const orderRef = doc(db, "donHangTraPhi", orderId);
+      const snap = await getDoc(orderRef);
+      if (!snap.exists()) {
+        setStatus("error");
+        setSummary({
+          orderId,
+          responseCode: responseCode || "",
+          message: "Không tìm thấy đơn hàng tương ứng.",
+          amount,
+          paidAt: "",
+        });
+        return;
+      }
 
-    if (idx === -1) {
-      setStatus("error");
-      setSummary({
-        orderId,
-        responseCode: responseCode || "",
-        message: "Không tìm thấy đơn hàng tương ứng.",
-        amount,
-        paidAt: "",
-      });
-      return;
-    }
+      const o = snap.data();
+      const expected = Number(o.soTienThanhToan || 0);
+      const moneyOK = expected > 0 ? amount === expected : true;
+      const alreadyPaid = o.trangThai === "paid";
 
-    const expected = Number(orders[idx].soTienThanhToan || 0);
-    const moneyOK = expected > 0 ? amount === expected : true;
+      if (responseCode === "00" && moneyOK) {
+        // cập nhật đơn thành paid (nếu chưa)
+        if (!alreadyPaid) {
+          await updateDoc(orderRef, {
+            trangThai: "paid",
+            paidAt: serverTimestamp(),
+            soTienThanhToanThucTe: amount,
+          });
 
-    const alreadyPaid = orders[idx].trangThai === "paid";
+          // Kích hoạt/ghi nhận gói cho người dùng
+          try {
+            const uid = String(o.idNguoiDung);
+            const idGoi = String(o.idGoi);
+            const thoiHanNgay = Number(o.thoiHanNgay || 0);
 
-    if (responseCode === "00" && moneyOK) {
-      if (!alreadyPaid) {
-        orders[idx] = {
-          ...orders[idx],
-          trangThai: "paid",
-          paidAt: new Date().toISOString(),
-          soTienThanhToanThucTe: amount,
-        };
-        localStorage.setItem("donHangTraPhi", JSON.stringify(orders));
+            // kiểm tra có sub cùng gói còn hiệu lực không (status !== "Đã hủy" và chưa hết hạn)
+            const qSub = query(
+              collection(db, "goiTraPhiCuaNguoiDung"),
+              where("idNguoiDung", "==", uid),
+              where("idGoi", "==", idGoi)
+            );
+            const rs = await getDocs(qSub);
+            const now = new Date();
+            const end = addDays(now, thoiHanNgay);
 
-        const currentUser = JSON.parse(sessionStorage.getItem("session") || "null");
-        if (currentUser) {
-          const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
-          const now = new Date();
-          const end = addDays(now, orders[idx].thoiHanNgay);
-          const hasSameActive = subs.some(
-            (s) =>
-              s.idNguoiDung === currentUser.idNguoiDung &&
-              s.idGoi === orders[idx].idGoi &&
-              s.status === "Đang hoạt động"
-          );
-          if (!hasSameActive) {
-            subs.push({
-              idGTPCND: `SUB_${Date.now()}`,
-              idNguoiDung: currentUser.idNguoiDung,
-              idGoi: orders[idx].idGoi,
-              NgayBatDau: toVN(now),
-              NgayKetThuc: toVN(end),
-              status: "Đang hoạt động",
+            const hasActiveSamePack = rs.docs.some((d) => {
+              const s = d.data();
+              const status = s?.status || "";
+              const endAt =
+                typeof s?.NgayKetThuc?.toDate === "function"
+                  ? s.NgayKetThuc.toDate()
+                  : (typeof s?.NgayKetThuc === "string" ? new Date(s.NgayKetThuc) : null);
+              return status !== "Đã hủy" && endAt && endAt >= now;
             });
-            localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(subs));
+
+            if (!hasActiveSamePack) {
+              await addDoc(collection(db, "goiTraPhiCuaNguoiDung"), {
+                idNguoiDung: uid,
+                idGoi,
+                NgayBatDau: serverTimestamp(),
+                NgayKetThuc: end, // Firestore auto lưu dạng Timestamp
+                status: "Đang hoạt động",
+              });
+            }
+          } catch (e) {
+            // Không chặn hiển thị thành công nếu tạo sub thất bại, có thể xử lý lại về sau
+            console.error("Kích hoạt gói thất bại:", e);
           }
         }
-        window.dispatchEvent(new Event("subscriptionChanged"));
-      }
 
-      setStatus("success");
-      setSummary({
-        orderId,
-        responseCode: "00",
-        message: RESP_TEXT["00"] || "Thanh toán thành công. Gói đã kích hoạt.",
-        amount,
-        paidAt: new Date().toISOString(),
-      });
-    } else {
-      if (!alreadyPaid) {
-        orders[idx] = {
-          ...orders[idx],
-          trangThai: "canceled",
-          canceledAt: new Date().toISOString(),
-        };
-        localStorage.setItem("donHangTraPhi", JSON.stringify(orders));
-      }
+        setStatus("success");
+        setSummary({
+          orderId,
+          responseCode: "00",
+          message: RESP_TEXT["00"] || "Thanh toán thành công. Gói đã kích hoạt.",
+          amount,
+          paidAt: new Date().toISOString(),
+        });
+      } else {
+        // thất bại/hủy → cập nhật canceled nếu chưa paid
+        if (!alreadyPaid) {
+          await updateDoc(orderRef, {
+            trangThai: "canceled",
+            canceledAt: serverTimestamp(),
+          });
+        }
 
-      setStatus("fail");
-      setSummary({
-        orderId,
-        responseCode: responseCode || "",
-        message:
-          RESP_TEXT[responseCode || ""] ||
-          "Thanh toán không thành công hoặc đã bị hủy.",
-        amount,
-        paidAt: "",
-      });
-    }
+        setStatus("fail");
+        setSummary({
+          orderId,
+          responseCode: responseCode || "",
+          message:
+            RESP_TEXT[responseCode || ""] ||
+            "Thanh toán không thành công hoặc đã bị hủy.",
+          amount,
+          paidAt: "",
+        });
+      }
+    })();
   }, []);
 
   const isSuccess = status === "success";
@@ -164,7 +192,6 @@ export default function checkoutResult() {
           {isSuccess && <h2 className="cr-title cr-title--success">Thanh toán thành công</h2>}
           {isFail && <h2 className="cr-title cr-title--fail">Thanh toán không thành công</h2>}
           {isError && <h2 className="cr-title cr-title--fail">Có lỗi xảy ra</h2>}
-
         </div>
 
         {/* Details */}
@@ -190,7 +217,9 @@ export default function checkoutResult() {
 
         {/* Actions */}
         <div className="cr-actions">
-          <Button variant="secondary" onClick={() => navigate("/trangchu")}>Quay lại trang chủ</Button>
+          <Button variant="secondary" onClick={() => navigate("/trangchu")}>
+            Quay lại trang chủ
+          </Button>
           <Button variant="secondary" onClick={() => navigate("/tra-phi")}>
             Mua gói trả phí mới
           </Button>
