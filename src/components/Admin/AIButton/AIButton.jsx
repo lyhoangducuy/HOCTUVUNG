@@ -1,94 +1,97 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaRobot } from "react-icons/fa";
 import "./AIButton.css";
 import { fetchVocabulary } from "../ChatAI/ChatBot";
-import React from "react";
+
 export default function AIButton() {
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState("HOC_VIEN"); // ADMIN | GIANG_VIEN | HOC_VIEN
   const menuRef = useRef(null);
 
+  // Loading & form tạo bộ thẻ
   const [loading, setLoading] = useState(false);
-    // Thêm vào đầu component
   const [showForm, setShowForm] = useState(false);
   const [topic, setTopic] = useState("");
   const [count, setCount] = useState(1);
   const [error, setError] = useState("");
 
-// Preview modal
+  // Preview modal
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTopic, setPreviewTopic] = useState("");
   const [previewList, setPreviewList] = useState([]); // [{tu, nghia}]
-    useEffect(() => {
+
+  // User hiện tại
+  const [user, setUser] = useState(null);
+
+  /* ============= Effects ============= */
+  useEffect(() => {
+    // nạp session
+    try {
+      const s = JSON.parse(sessionStorage.getItem("session") || "null");
+      setUser(s || null);
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    // đóng menu khi click ngoài
     const onClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
     };
-    const onStorage = (e) => {
-      if (!e || !e.key) return;
-      // Nếu thay đổi phiên hoặc danh sách người dùng → cập nhật role
-      if (["nguoiDung"].includes(e.key)) loadRole();
-    };
-
     document.addEventListener("mousedown", onClickOutside);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      document.removeEventListener("mousedown", onClickOutside);
-      window.removeEventListener("storage", onStorage);
-    };
+    return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
+  /* ============= Tạo bộ thẻ bằng AI ============= */
+  const openCreateForm = () => {
+    if (loading) return;
+    setTopic("");
+    setCount(1);
+    setError("");
+    setShowForm(true);
+    setOpen(false);
+  };
 
-const openCreateForm = () => {
-	if (loading) return;
-	setTopic("");
-	setCount(1);
-	setError("");
-	setShowForm(true);
-};
+  const closeCreateForm = () => {
+    setShowForm(false);
+    setError("");
+  };
 
-const closeCreateForm = () => {
-	setShowForm(false);
-	setError("");
-};
+  const handleSubmitCreate = async (e) => {
+    e.preventDefault();
 
-const handleSubmitCreate = async (e) => {
-	e.preventDefault();
+    if (!topic.trim()) {
+      setError("Vui lòng nhập chủ đề.");
+      return;
+    }
 
-	if (!topic.trim()) {
-		setError("Vui lòng nhập chủ đề.");
-		return;
-	}
+    const num = Number(count);
+    if (!Number.isInteger(num) || num <= 0) {
+      setError("Số lượng phải là số nguyên dương.");
+      return;
+    }
+    if (num > 9) {
+      setError("Số lượng tối đa là 9.");
+      return;
+    }
 
-	const num = Number(count);
-	if (!Number.isInteger(num) || num <= 0) {
-		setError("Số lượng phải là số nguyên dương.");
-		return;
-	}
-	if (num > 9) {
-		setError("Số lượng tối đa là 9.");
-		return;
-	}
+    setShowForm(false);
+    setError("");
+    setLoading(true);
+    try {
+      const ds = await fetchVocabulary(topic, num);
+      setPreviewTopic(topic);
+      setPreviewList(Array.isArray(ds) ? ds : []);
+      setPreviewOpen(true);
+    } catch (err) {
+      console.error(err);
+      alert("Không thể tạo bộ thẻ. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-	setShowForm(false);
-	setError("");
-  setShowForm(false);
-  setError("");
-  setLoading(true);
-  try {
-    const ds = await fetchVocabulary(topic, num);
-    setPreviewTopic(topic);
-    setPreviewList(Array.isArray(ds) ? ds : []);
-    setPreviewOpen(true);
-  } catch (e) {
-    console.error(e);
-    alert("Không thể tạo bộ thẻ. Vui lòng thử lại.");
-  } finally {
-    setLoading(false);
-  }
-
-};
-
-   
+  /* ============= ADMIN: thêm user ảo ============= */
   const addFakeUsers = () => {
     try {
       const session = JSON.parse(sessionStorage.getItem("session") || "null");
@@ -96,7 +99,7 @@ const handleSubmitCreate = async (e) => {
         alert("Vui lòng đăng nhập.");
         return;
       }
-      if (!isAdmin) {
+      if (session?.vaiTro !== "ADMIN") {
         alert("Chức năng này chỉ dành cho ADMIN.");
         return;
       }
@@ -133,67 +136,68 @@ const handleSubmitCreate = async (e) => {
       setOpen(false);
     }
   };
+
+  /* ============= Preview thao tác ============= */
   const updatePreviewItem = (idx, field, value) => {
-    setPreviewList(prev => {
+    setPreviewList((prev) => {
       const next = prev.slice();
       next[idx] = { ...next[idx], [field]: value };
       return next;
     });
   };
-  
+
   const removePreviewItem = (idx) => {
-    setPreviewList(prev => prev.filter((_, i) => i !== idx));
+    setPreviewList((prev) => prev.filter((_, i) => i !== idx));
   };
-  
-  const onCancel = () => {
-    setPreviewOpen(false); // đóng, KHÔNG lưu
+
+  const onCancelPreview = () => {
+    setPreviewOpen(false);
   };
-  const [user, setUser] = useState(null);
-  useEffect (() => {
-    const session = JSON.parse(sessionStorage.getItem("session") || "null");
-    if(session !== null){
-      setUser(session)
-    }
-  },[]);
- 
-  
-  const onOkSave = () => {
-    
+
+  const onSavePreview = () => {
     const userCreated = user?.idNguoiDung;
-  
+
     // Lọc thẻ hợp lệ
     const valid = previewList
-      .map(t => ({ tu: String(t?.tu || "").trim(), nghia: String(t?.nghia || "").trim() }))
-      .filter(t => t.tu && t.nghia);
-  
+      .map((t) => ({
+        tu: String(t?.tu || "").trim(),
+        nghia: String(t?.nghia || "").trim(),
+      }))
+      .filter((t) => t.tu && t.nghia);
+
     if (!valid.length) {
       alert("Danh sách thẻ trống hoặc không hợp lệ.");
       return;
     }
-  
-    // Lấy danh sách bộ thẻ cũ
+
+    // Lấy danh sách cũ
     const raw = localStorage.getItem("boThe");
     const cards = raw ? JSON.parse(raw) : [];
     const list = Array.isArray(cards) ? cards : [];
-  
+
     // Tạo id tăng dần
-    const ids = list.map(c => Number(c.idBoThe)).filter(Number.isFinite);
+    const ids = list.map((c) => Number(c.idBoThe)).filter(Number.isFinite);
     const nextId = ids.length ? Math.max(...ids) + 1 : 1;
-  
+
     const newCard = {
       idBoThe: String(nextId),
       tenBoThe: previewTopic,
       idNguoiDung: userCreated,
-      danhSachThe: valid,    // CHÚ Ý: dùng danhSachThe (S hoa)
+      danhSachThe: valid, // dùng key chuẩn danhSachThe
       soTu: valid.length,
     };
-  
+
     localStorage.setItem("boThe", JSON.stringify([...list, newCard]));
+    // cho các trang khác reload ngay
+    window.dispatchEvent(new Event("boTheUpdated"));
+
     setPreviewOpen(false);
     alert("Đã lưu bộ thẻ: " + previewTopic);
   };
 
- 
+  const isAdmin = user?.vaiTro === "ADMIN";
+
+  /* ============= Render ============= */
   return (
     <div className="ai-button-container" ref={menuRef}>
       <button
@@ -208,27 +212,32 @@ const handleSubmitCreate = async (e) => {
 
       {open && (
         <div className="ai-dropdown">
-          <div className={`ai-item${loading ? " disabled" : ""}`} onClick={!loading ? openCreateForm : undefined}>
-              {loading ? "Đang tạo..." : "Tạo bộ thẻ theo chủ đề"}
+          <div
+            className={`ai-item${loading ? " disabled" : ""}`}
+            onClick={!loading ? openCreateForm : undefined}
+          >
+            {loading ? "Đang tạo..." : "Tạo bộ thẻ theo chủ đề"}
           </div>
-          {user.vaiTro === "ADMIN" && (
+
+          {isAdmin && (
             <div className="ai-item" onClick={addFakeUsers}>
-            Thêm người dùng ảo
-          </div>
-             
-          )
-          } 
-          </div>
+              Thêm người dùng ảo
+            </div>
+          )}
+        </div>
       )}
+
+      {/* Modal tạo nhanh */}
       {showForm && (
         <div className="create-form-modal">
           <div className="create-form-modal-content">
             <div className="create-form-modal-content-header">
-            <h3 >Tạo bộ thẻ</h3>
-            <button onClick={closeCreateForm}>X</button>
+              <h3>Tạo bộ thẻ</h3>
+              <button onClick={closeCreateForm}>X</button>
             </div>
+
             <form onSubmit={handleSubmitCreate}>
-              <div className="create-form-modal-content-form" >
+              <div className="create-form-modal-content-form">
                 <label className="create-form-modal-content-form-label">
                   <span>Chủ đề</span>
                   <input
@@ -236,7 +245,6 @@ const handleSubmitCreate = async (e) => {
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                     placeholder="Nhập chủ đề bộ thẻ"
-                    
                   />
                 </label>
 
@@ -248,26 +256,25 @@ const handleSubmitCreate = async (e) => {
                     max={9}
                     value={count}
                     onChange={(e) => {
-                      const v = e.target.value === "" ? "" : Math.max(1, Math.min(9, Number(e.target.value)));
+                      const v =
+                        e.target.value === ""
+                          ? ""
+                          : Math.max(1, Math.min(9, Number(e.target.value)));
                       setCount(v);
                     }}
                     placeholder="1 - 9"
                   />
                 </label>
 
-                {error && <div style={{ color: "#d33", fontSize: 14 }}>{error}</div>}
+                {error && (
+                  <div style={{ color: "#d33", fontSize: 14 }}>{error}</div>
+                )}
 
-                <div className="create-form-modal-content-form-button" >
-                  <button
-                    type="button"
-                    onClick={closeCreateForm}
-                  >
+                <div className="create-form-modal-content-form-button">
+                  <button type="button" onClick={closeCreateForm}>
                     Hủy
                   </button>
-                  <button
-                    type="submit"
-                    disabled={loading} 
-                  >
+                  <button type="submit" disabled={loading}>
                     Tạo
                   </button>
                 </div>
@@ -276,46 +283,71 @@ const handleSubmitCreate = async (e) => {
           </div>
         </div>
       )}
+
+      {/* Modal preview */}
       {previewOpen && (
-    <div className="preview-modal">
-    <div className="preview-modal-content" >
-      <div className="preview-modal-header" >
-        <h1  className="preview-modal-header-title">Xem lại bộ thẻ: {previewTopic}</h1>
-        <button onClick={onCancel}>X</button>
-      </div>
+        <div className="preview-modal">
+          <div className="preview-modal-content">
+            <div className="preview-modal-header">
+              <h1 className="preview-modal-header-title">
+                Xem lại bộ thẻ: {previewTopic}
+              </h1>
+              <button onClick={onCancelPreview}>X</button>
+            </div>
 
-      <div className="preview-modal-body" >
-        <strong>Từ</strong>
-        <strong>Nghĩa</strong>
-        <span />
-        {previewList.map((item, idx) => (
-          <React.Fragment key={idx} className="preview-modal-body-item" >
-            <input
-              type="text"
-              value={item.tu || ""}
-              onChange={(e) => updatePreviewItem(idx, "tu", e.target.value)}
-              placeholder="apple"
-              style={{ padding: "8px 10px" }}
-            />
-            <input
-              type="text"
-              value={item.nghia || ""}
-              onChange={(e) => updatePreviewItem(idx, "nghia", e.target.value)}
-              placeholder="quả táo"
-              style={{ padding: "8px 10px" }}
-            />
-            <button onClick={() => removePreviewItem(idx)}>Xóa</button>
-          </React.Fragment>
-        ))}
-      </div>
+            <div className="preview-modal-body">
+              <strong>Từ</strong>
+              <strong>Nghĩa</strong>
+              <span />
+              {previewList.map((item, idx) => (
+                <div className="preview-modal-row" key={idx}>
+                  <input
+                    type="text"
+                    value={item.tu || ""}
+                    onChange={(e) => updatePreviewItem(idx, "tu", e.target.value)}
+                    placeholder="apple"
+                    style={{ padding: "8px 10px" }}
+                  />
+                  <input
+                    type="text"
+                    value={item.nghia || ""}
+                    onChange={(e) =>
+                      updatePreviewItem(idx, "nghia", e.target.value)
+                    }
+                    placeholder="quả táo"
+                    style={{ padding: "8px 10px" }}
+                  />
+                  <button onClick={() => removePreviewItem(idx)}>Xóa</button>
+                </div>
+              ))}
+            </div>
 
-      <div className="preview-modal-footer" >
-        <button className="preview-modal-footer-button save-button" onClick={() => setPreviewList(prev => [...prev, { tu: "", nghia: "" }])}>Thêm thẻ</button>
-        <button className="preview-modal-footer-button cancel-button" onClick={onOkSave}>OK</button>
-      </div>
-    </div>
-  </div>
-)}
+            <div className="preview-modal-footer">
+              <button
+                className="preview-modal-footer-button"
+                onClick={() =>
+                  setPreviewList((prev) => [...prev, { tu: "", nghia: "" }])
+                }
+              >
+                Thêm thẻ
+              </button>
+              <span style={{ flex: 1 }} />
+              <button
+                className="preview-modal-footer-button"
+                onClick={onCancelPreview}
+              >
+                Hủy
+              </button>
+              <button
+                className="preview-modal-footer-button save-button"
+                onClick={onSavePreview}
+              >
+                Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
