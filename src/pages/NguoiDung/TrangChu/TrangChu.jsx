@@ -105,69 +105,11 @@ export default function TrangChu() {
   };
 
   // === Nút AI cho non-prime: có ngôi sao, click → alert + điều hướng /tra-phi ===
-  const AILockedButton = () => {
-    const onLockedClick = () => {
-      alert("Tính năng AI chỉ dành cho tài khoản trả phí. Vui lòng nâng cấp để sử dụng.");
-      navigate("/tra-phi", { state: { from: "ai" } });
-    };
-    return (
-      <div
-        style={{
-          position: "fixed",
-          right: 16,
-          bottom: 16,
-          zIndex: 1000,
-        }}
-      >
-        <button
-          onClick={onLockedClick}
-          title="Nâng cấp để dùng AI"
-          aria-label="Nâng cấp để dùng AI"
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 999,
-            border: "1px solid #e5e7eb",
-            background: "#ffffff",
-            boxShadow: "0 6px 16px rgba(0,0,0,.12)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            position: "relative",
-          }}
-        >
-          <FaRobot style={{ fontSize: 18, color: "#6b7280" }} />
-          {/* Huy hiệu ngôi sao */}
-          <span
-            style={{
-              position: "absolute",
-              top: -6,
-              right: -6,
-              fontSize: 12,
-              color: "#f59e0b",
-              background: "rgba(245,158,11,.12)",
-              border: "1px solid rgba(245,158,11,.35)",
-              padding: "2px 6px",
-              borderRadius: 999,
-              lineHeight: 1,
-              pointerEvents: "none",
-            }}
-            title="Nâng cấp để mở khóa"
-          >
-            ★
-          </span>
-        </button>
-      </div>
-    );
-  };
+  
 
   return (
     <div className="home-wrap">
-      {/* AI: nếu prime thì dùng AIButton; chưa prime thì hiện nút có sao, click → alert + /tra-phi */}
-      {prime ? <AIButton /> : <AILockedButton />}
-
-      {/* GẦN ĐÂY */}
+      
       <section className="block">
         <div className="block-head">
           <h2 className="block-title">Học gần đây</h2>

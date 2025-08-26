@@ -18,7 +18,7 @@ const genSubId = () => "SUB_" + Date.now();
 
 const parseVN = (dmy) => {
   if (!dmy || typeof dmy !== "string") return null;
-  const [d, m, y] = dmy.split("/").map(Number);s
+  const [d, m, y] = dmy.split("/").map(Number);
   if (!d || !m || !y) return null;
   return new Date(y, (m || 1) - 1, d || 1);
 };
