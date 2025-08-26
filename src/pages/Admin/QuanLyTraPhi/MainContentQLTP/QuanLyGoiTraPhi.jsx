@@ -6,31 +6,38 @@ import Delete from "../../../../components/Admin/Delete/Delete";
 import Edit from "../../../../components/Admin/Edit/Edit";
 import Add from "../../../../components/Admin/Add/Add";
 
-const LS_KEY = "goiTraPhi";
-const genId = () => "GOI_" + Date.now();
-const toNum = (v, d = 0) => (Number.isFinite(+v) ? +v : d);
-const read = () => {
-  try { const a = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); return Array.isArray(a) ? a : []; }
-  catch { return []; }
-};
-const write = (a) => localStorage.setItem(LS_KEY, JSON.stringify(a));
+import { db } from "../../../../../lib/firebase";
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
 
-// Tạo dữ liệu hiển thị cho TableAdmin
-const makeRows = (packs) =>
-  packs.map((p) => {
+const VN = "vi-VN";
+const genIdGoi = () => "GOI_" + Date.now();
+const toNum = (v, d = 0) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : d;
+};
+
+const makeRows = (docs) =>
+  docs.map((p) => {
     const gia = toNum(p.giaGoi);
     const gg = toNum(p.giamGia);
     const after = Math.max(0, Math.round(gia * (1 - gg / 100)));
     return {
-      id: p.idGoi,        // mirror để TableAdmin/Action dùng
-      idGoi: p.idGoi,
+      id: p._docId,                 // dùng docId cho action (Edit/Delete)
+      idGoi: p.idGoi || p._docId,   // hiển thị mã gói theo yêu cầu
       tenGoi: p.tenGoi || "",
       moTa: p.moTa || "",
       giaGoi: gia,
       giamGia: gg,
       thoiHan: toNum(p.thoiHan),
-      giaGoiFmt: gia.toLocaleString(),
-      giaSauGiamFmt: after.toLocaleString(),
+      giaGoiFmt: gia.toLocaleString(VN),
+      giaSauGiamFmt: after.toLocaleString(VN),
     };
   });
 
@@ -68,22 +75,36 @@ export default function QuanLyGoiTraPhi() {
 
   const [showAdd, setShowAdd] = useState(false);
 
-  // Load ban đầu
-  const reload = () => {
-    const r = makeRows(read());
-    setRows(r);
-    setFiltered(r);
-  };
-  useEffect(() => { reload(); }, []);
+  // Load realtime từ Firestore
+  useEffect(() => {
+    const un = onSnapshot(collection(db, "goiTraPhi"), (snap) => {
+      const docs = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+      const r = makeRows(docs);
+      setRows(r);
+      setFiltered(r);
+    });
+    return () => un();
+  }, []);
 
   // Xoá
-  const askDelete = (id) => { setDeleteId(id); setShowDelete(true); };
-  const closeDelete = () => { setShowDelete(false); setDeleteId(null); };
-  const confirmDelete = (id) => {
-    const next = read().filter((x) => String(x.idGoi) !== String(id));
-    write(next);
-    closeDelete();
-    reload();
+  const askDelete = (id) => {
+    setDeleteId(id);
+    setShowDelete(true);
+  };
+  const closeDelete = () => {
+    setShowDelete(false);
+    setDeleteId(null);
+  };
+  const confirmDelete = async (idFromModal) => {
+    const id = idFromModal ?? deleteId;
+    if (!id) return;
+    try {
+      await deleteDoc(doc(db, "goiTraPhi", id));
+      closeDelete();
+    } catch (e) {
+      console.error(e);
+      alert("Xoá gói thất bại.");
+    }
   };
 
   // Sửa
@@ -91,59 +112,62 @@ export default function QuanLyGoiTraPhi() {
     const row = rows.find((x) => String(x.id) === String(id));
     if (!row) return;
     setEditData({
-      id: row.id,             // giữ lại id để lưu
+      id: row.id, // docId
       tenGoi: row.tenGoi,
       moTa: row.moTa,
       giaGoi: row.giaGoi,
       giamGia: row.giamGia,
       thoiHan: row.thoiHan,
     });
-    setIsEditMode(false);     // mở ở chế độ xem
+    setIsEditMode(false);
     setShowEdit(true);
   };
-  const closeEdit = () => { setShowEdit(false); setEditData(null); setIsEditMode(false); };
-
-  // Nhận (payload, isEditFlag) từ Edit:
-  const saveEdit = (payload, isEditFlag) => {
-    if (isEditFlag) { setIsEditMode(true); return; } // bấm “Chỉnh sửa”
+  const closeEdit = () => {
+    setShowEdit(false);
+    setEditData(null);
+    setIsEditMode(false);
+  };
+  const saveEdit = async (payload, isEditFlag) => {
+    if (isEditFlag) {
+      setIsEditMode(true);
+      return;
+    }
     if (!payload?.id) return;
-
-    const packs = read();
-    const i = packs.findIndex((x) => String(x.idGoi) === String(payload.id));
-    if (i === -1) return;
-
-    packs[i] = {
-      ...packs[i],
-      tenGoi: String(payload.tenGoi || "").trim(),
-      moTa: String(payload.moTa || "").trim(),
-      giaGoi: toNum(payload.giaGoi),
-      giamGia: toNum(payload.giamGia),
-      thoiHan: toNum(payload.thoiHan),
-    };
-    write(packs);
-    closeEdit();
-    reload();
+    try {
+      await updateDoc(doc(db, "goiTraPhi", payload.id), {
+        tenGoi: String(payload.tenGoi || "").trim(),
+        moTa: String(payload.moTa || "").trim(),
+        giaGoi: toNum(payload.giaGoi),
+        giamGia: toNum(payload.giamGia),
+        thoiHan: toNum(payload.thoiHan),
+      });
+      closeEdit();
+    } catch (e) {
+      console.error(e);
+      alert("Cập nhật gói thất bại.");
+    }
   };
 
   // Thêm
   const openAdd = () => setShowAdd(true);
   const closeAdd = () => setShowAdd(false);
-  const saveAdd = (p) => {
+  const saveAdd = async (p) => {
     const ten = String(p?.tenGoi || "").trim();
     if (!ten) return alert("Nhập tên gói");
-
-    const next = read();
-    next.push({
-      idGoi: genId(),
-      tenGoi: ten,
-      moTa: String(p.moTa || "").trim(),
-      giaGoi: toNum(p.giaGoi),
-      giamGia: toNum(p.giamGia),
-      thoiHan: toNum(p.thoiHan),
-    });
-    write(next);
-    closeAdd();
-    reload();
+    try {
+      await addDoc(collection(db, "goiTraPhi"), {
+        idGoi: genIdGoi(), // vẫn lưu idGoi để hiển thị đúng như trước
+        tenGoi: ten,
+        moTa: String(p.moTa || "").trim(),
+        giaGoi: toNum(p.giaGoi),
+        giamGia: toNum(p.giamGia),
+        thoiHan: toNum(p.thoiHan),
+      });
+      closeAdd();
+    } catch (e) {
+      console.error(e);
+      alert("Thêm gói thất bại.");
+    }
   };
 
   // Nút hành động trong bảng
