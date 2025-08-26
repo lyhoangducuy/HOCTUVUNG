@@ -67,7 +67,7 @@ export default function NewBoThe() {
       window.dispatchEvent(new Event("boTheUpdated"));
 
       alert("Đã tạo bộ thẻ mới!");
-      navigate("/giangvien");
+      navigate("/trangchu");
     } catch {
       setLoi("Có lỗi khi lưu dữ liệu.");
     }

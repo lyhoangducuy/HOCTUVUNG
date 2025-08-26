@@ -214,10 +214,6 @@ export default function ChiTietLopModal({
               <span className="ctl-stat-value">{soBoThe}</span>
             </div>
             <div className="ctl-stat-item">
-              <span className="ctl-stat-label">Thư mục</span>
-              <span className="ctl-stat-value">{soFolder}</span>
-            </div>
-            <div className="ctl-stat-item">
               <span className="ctl-stat-label">Thành viên</span>
               <span className="ctl-stat-value">{soThanhVien}</span>
             </div>

@@ -148,49 +148,6 @@ export default function LopMenu({
           Rời khóa học
         </button>
       )}
-
-      {/* Form đánh giá: chỉ học viên + là thành viên */}
-      {!isOwner && role === "HOC_VIEN" && laThanhVien && (
-        <form onSubmit={themFeedback} style={{ padding: 10, borderTop: "1px solid #eee" }}>
-          <div style={{ marginBottom: 6, fontWeight: 600 }}>Đánh giá khóa học</div>
-          <div style={{ marginBottom: 6 }}>
-            {[1,2,3,4,5].map((star) => (
-              <span
-                key={star}
-                onClick={() => setRating(star)}
-                style={{
-                  fontSize: 20,
-                  cursor: "pointer",
-                  color: star <= rating ? "gold" : "#ccc",
-                  marginRight: 4,
-                }}
-              >
-                ★
-              </span>
-            ))}
-          </div>
-          <textarea
-            rows={2}
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Bình luận..."
-            style={{
-              width: "100%", fontSize: 13, padding: 6,
-              border: "1px solid #ddd", borderRadius: 6, marginBottom: 6,
-            }}
-          />
-          <button
-            type="submit"
-            style={{
-              width: "100%", padding: "6px 0",
-              background: "#2563eb", color: "#fff",
-              border: "none", borderRadius: 6, fontWeight: 600, cursor: "pointer",
-            }}
-          >
-            Gửi
-          </button>
-        </form>
-      )}
     </div>
   );
 }
