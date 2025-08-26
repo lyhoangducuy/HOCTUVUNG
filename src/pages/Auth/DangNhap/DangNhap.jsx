@@ -1,67 +1,36 @@
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
-import { useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
 import "./DangNhap.css";
-// import axios from "axios"; // Chưa dùng thì có thể xoá
+import { useForm } from "react-hook-form";
+import { useNavigate, Link } from "react-router-dom";
+import { useState } from "react";
 
-const schema = yup.object({
-  email: yup
-    .string()
-    .email("Nhập đúng định dạng email")
-    .required("Vui lòng nhập email"),
-  matkhau: yup
-    .string()
-    .min(6, "Mật khẩu tối thiểu 6 ký tự")
-    .required("Vui lòng nhập mật khẩu"),
-});
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../../../../lib/firebase";
 
 export default function DangNhap() {
   const navigate = useNavigate();
   const [loginError, setLoginError] = useState("");
+  const { register, handleSubmit } = useForm();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({ resolver: yupResolver(schema) });
-
-  // Lấy danh sách người dùng đã "đăng ký" (demo)
-  const danhSachNguoiDung = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-    } catch {
-      return [];
-    }
-  }, []);
-
-  const onSubmit = (form) => {
+  const onSubmit = async (form) => {
     setLoginError("");
-    const email = form.email.trim().toLowerCase();
-    const pwd = form.matkhau;
+    try {
+      const cred = await signInWithEmailAndPassword(auth, form.email, form.matkhau);
+      const snap = await getDoc(doc(db, "users", cred.user.uid));
+      if (!snap.exists()) throw new Error("Không tìm thấy hồ sơ người dùng!");
 
-    const found = danhSachNguoiDung.find(
-      (u) => u.email?.toLowerCase() === email && u.matkhau === pwd
-    );
+      const profile = snap.data();
+      // Tùy bạn: nếu các phần khác vẫn đọc sessionStorage thì giữ lại mini-session cho tương thích
+      sessionStorage.setItem(
+        "session",
+        JSON.stringify({ idNguoiDung: cred.user.uid, vaiTro: profile?.vaiTro || "HOC_VIEN" })
+      );
 
-    if (!found) {
-      setLoginError("Email hoặc mật khẩu không đúng.");
-      return;
+      if (profile?.vaiTro === "ADMIN") navigate("/admin");
+      else navigate("/trangchu");
+    } catch (e) {
+      setLoginError(e?.message || "Email hoặc mật khẩu không đúng.");
     }
-
-    // Lưu phiên đăng nhập (demo)
-    const sessionUser = {
-      idNguoiDung: found.idNguoiDung,
-      vaiTro: found.vaiTro,
-    };
-    sessionStorage.setItem("session", JSON.stringify(sessionUser));
-
-    // Điều hướng theo vai trò
-    if (sessionUser.vaiTro==="ADMIN")
-      navigate("/admin")
-    else
-      navigate("/trangchu");
   };
 
   return (
@@ -70,59 +39,26 @@ export default function DangNhap() {
         <div className="login-left">
           <img src="/src/assets/image/logo.jpg" alt="imgloginform" />
         </div>
-
         <div className="login-right">
           <div className="login-tabs">
-            <span
-              onClick={() => navigate("/dang-ky")}
-              style={{ cursor: "pointer" }}
-            >
-              Đăng ký
-            </span>
-            <span
-              className="active"
-              onClick={() => navigate("/dang-nhap")}
-              style={{ cursor: "pointer" }}
-            >
-              Đăng nhập
-            </span>
+            <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>Đăng ký</span>
+            <span className="active" style={{ cursor: "pointer" }}>Đăng nhập</span>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="login-form">
             <label>Email</label>
-            <input
-              type="text"
-              {...register("email")}
-              className={errors.email ? "error" : ""}
-            />
-            {errors.email && (
-              <span className="error">{errors.email.message}</span>
-            )}
+            <input type="text" {...register("email")} />
 
             <label>Mật khẩu</label>
-            <input
-              type="password"
-              {...register("matkhau")}
-              className={errors.matkhau ? "error" : ""}
-            />
-            {errors.matkhau && (
-              <span className="error">{errors.matkhau.message}</span>
-            )}
+            <input type="password" {...register("matkhau")} />
 
             {loginError && <span className="error">{loginError}</span>}
 
             <div className="forgot">
-              <a
-                onClick={() => navigate("/quen-mat-khau")}
-                style={{ cursor: "pointer" }}
-              >
-                Quên mật khẩu
-              </a>
+              <Link to="/quen-mat-khau">Quên mật khẩu</Link>
             </div>
 
-            <button type="submit" className="login-btn submit">
-              Đăng Nhập
-            </button>
+            <button type="submit" className="login-btn submit">Đăng Nhập</button>
           </form>
         </div>
       </div>
