@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+// src/pages/Admin/ThanhToan/Checkout.jsx (đường dẫn của bạn)
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
@@ -17,6 +18,7 @@ import {
   limit,
   getDocs,
   updateDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 const VN = "vi-VN";
@@ -32,6 +34,9 @@ export default function Checkout() {
   const [uid, setUid] = useState(null);
   const [order, setOrder] = useState(null);
   const [paying, setPaying] = useState(false);
+
+  // chống chạy lặp (auto xử lý đơn 0đ chỉ chạy 1 lần)
+  const autoHandledRef = useRef(false);
 
   // Lấy uid (ưu tiên Firebase Auth, fallback session)
   useEffect(() => {
@@ -98,7 +103,7 @@ export default function Checkout() {
       const first = rs.docs[0];
       if (!first) {
         alert("Không tìm thấy đơn hàng thanh toán.");
-        navigate("/traphi");
+        navigate("/tra-phi");
         return;
       }
       await listenOrderDoc(first.id);
@@ -108,6 +113,50 @@ export default function Checkout() {
       if (typeof unsub === "function") unsub();
     };
   }, [uid, location, navigate]);
+
+  // Nếu số tiền = 0đ → tự xác nhận thành công và đi tới checkoutResult
+  useEffect(() => {
+    const autoCompleteZeroOrder = async () => {
+      if (!order || autoHandledRef.current) return;
+
+      const amount = Number(order.soTienThanhToan || 0);
+      if (amount > 0) return; // chỉ xử lý đơn 0đ
+
+      // Đơn đã paid thì thôi
+      if (order.trangThai === "paid") {
+        autoHandledRef.current = true;
+        navigate("/checkout/result", {
+          state: { orderId: order.idDonHang || order._docId, status: "success" },
+          replace: true,
+        });
+        return;
+      }
+
+      try {
+        autoHandledRef.current = true;
+        setPaying(true);
+        const ref = doc(db, "donHangTraPhi", order._docId);
+        await updateDoc(ref, {
+          trangThai: "paid",
+          kenhThanhToan: "MIEN_PHI", // ghi chú kênh thanh toán 0đ
+          soTienThanhToanThucTe: 0,
+          paidAt: serverTimestamp(),
+        });
+
+        navigate("/checkout/result", {
+          state: { orderId: order.idDonHang || order._docId, status: "success" },
+          replace: true,
+        });
+      } catch (e) {
+        console.error("Xác nhận đơn 0đ thất bại:", e);
+        setPaying(false);
+        autoHandledRef.current = false; // cho phép thử lại nếu cần
+        alert("Không thể xác nhận đơn 0đ.");
+      }
+    };
+
+    autoCompleteZeroOrder();
+  }, [order, navigate]);
 
   const priceText = useMemo(() => {
     if (!order) return "";
@@ -119,6 +168,23 @@ export default function Checkout() {
     try {
       setPaying(true);
 
+      const amount = Number(order.soTienThanhToan || 0);
+      // Trường hợp 0đ: phòng hờ nếu user bấm nút (dù đã auto xử lý ở useEffect)
+      if (amount <= 0) {
+        const ref = doc(db, "donHangTraPhi", order._docId);
+        await updateDoc(ref, {
+          trangThai: "paid",
+          kenhThanhToan: "MIEN_PHI",
+          soTienThanhToanThucTe: 0,
+          paidAt: serverTimestamp(),
+        });
+        navigate("/checkout/result", {
+          state: { orderId: order.idDonHang || order._docId, status: "success" },
+          replace: true,
+        });
+        return;
+      }
+
       // bảo đảm idDonHang an toàn (đã sync với doc id ở trên, nhưng ta vẫn sanitize lần cuối)
       const idForVNP = safeId(order.idDonHang || order._docId);
 
@@ -126,8 +192,8 @@ export default function Checkout() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: Number(order.soTienThanhToan), // VND; backend sẽ *100
-          orderId: idForVNP,                     // vnp_TxnRef
+          amount: amount,           // VND; backend sẽ *100
+          orderId: idForVNP,        // vnp_TxnRef
           // bankCode: "VNBANK",
         }),
       });
@@ -147,6 +213,9 @@ export default function Checkout() {
 
   if (!order) return null;
 
+  const isZero = Number(order.soTienThanhToan || 0) <= 0;
+  const isPaid = order.trangThai === "paid";
+
   return (
     <>
       <div className="back" onClick={() => navigate(-1)}>
@@ -154,7 +223,7 @@ export default function Checkout() {
         <span>Quay lại</span>
       </div>
 
-      <h2 className="checkout-title">Checkout</h2>
+      <h2 className="checkout-title">Thanh toán</h2>
 
       <div className="checkout-card">
         <div className="row">
@@ -193,11 +262,16 @@ export default function Checkout() {
           </span>
         </div>
 
-        <div className="checkout-actions">
-          <Button onClick={payWithVNPay} disabled={paying}>
-            {paying ? "Đang chuyển tới VNPay..." : "Thanh toán"}
-          </Button>
-        </div>
+        {/* Nút hành động:
+            - Ẩn khi 0đ (đã auto xử lý) hoặc đã paid
+            - Hiện khi cần thanh toán VNPay */}
+        {!isZero && !isPaid && (
+          <div className="checkout-actions">
+            <Button onClick={payWithVNPay} disabled={paying}>
+              {paying ? "Đang chuyển tới VNPay..." : "Thanh toán"}
+            </Button>
+          </div>
+        )}
       </div>
     </>
   );
