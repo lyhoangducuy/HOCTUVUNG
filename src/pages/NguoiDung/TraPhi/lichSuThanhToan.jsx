@@ -26,7 +26,9 @@ const toDateFlexible = (v) => {
     // dd/mm/yyyy
     const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (m) {
-      const d = Number(m[1]), mo = Number(m[2]) - 1, y = Number(m[3]);
+      const d = Number(m[1]),
+        mo = Number(m[2]) - 1,
+        y = Number(m[3]);
       return new Date(y, mo, d);
     }
     // ISO
@@ -38,6 +40,13 @@ const toDateFlexible = (v) => {
 const toVN = (v) => {
   const d = toDateFlexible(v);
   return d ? d.toLocaleString(VN) : "—";
+};
+const addDays = (dateLike, days) => {
+  const d = toDateFlexible(dateLike);
+  if (!d) return null;
+  const x = new Date(d);
+  x.setDate(x.getDate() + Number(days || 0));
+  return x;
 };
 
 export default function lichSuThanhToan() {
@@ -135,6 +144,23 @@ export default function lichSuThanhToan() {
       );
   }, [rows]);
 
+  /* ==== Phân trang (client) ==== */
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+
+  // Khi data đổi, đảm bảo trang hiện tại hợp lệ
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [totalPages, page]);
+
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return rows.slice(start, start + pageSize);
+  }, [rows, page]);
+
+  const goPage = (p) => setPage(Math.min(totalPages, Math.max(1, p)));
+
   return (
     <div className="ph-container">
       <div className="back" onClick={() => navigate(-1)}>
@@ -155,6 +181,7 @@ export default function lichSuThanhToan() {
             {rows.filter((r) => r.trangThai === "paid").length} giao dịch • {money(totalPaid)}
           </div>
         </div>
+        
       </div>
 
       {/* Table */}
@@ -162,7 +189,7 @@ export default function lichSuThanhToan() {
         <div className="ph-empty">
           Chưa có giao dịch nào.
           <div className="ph-empty__actions">
-            <Button onClick={() => navigate("/traphi")}>Mua gói ngay</Button>
+            <Button onClick={() => navigate("/tra-phi")}>Mua gói ngay</Button>
           </div>
         </div>
       ) : (
@@ -176,10 +203,11 @@ export default function lichSuThanhToan() {
                 <th>Trạng thái</th>
                 <th>Tạo lúc</th>
                 <th>Thanh toán/Hủy lúc</th>
+                <th>Ngày hết hạn</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
+              {pagedRows.map((r) => {
                 const statusClass =
                   r.trangThai === "paid"
                     ? "is-paid"
@@ -190,6 +218,13 @@ export default function lichSuThanhToan() {
                   r.soTienThanhToanThucTe ?? r.soTienThanhToan ?? 0;
                 const timeCol =
                   r.trangThai === "paid" ? toVN(r.paidAt) : toVN(r.canceledAt);
+
+                // Tính ngày hết hạn nếu đã thanh toán
+                let endDateText = "—";
+                if (r.trangThai === "paid" && r.thoiHanNgay > 0) {
+                  const end = addDays(r.paidAt, r.thoiHanNgay);
+                  endDateText = end ? end.toLocaleDateString(VN) : "—";
+                }
 
                 return (
                   <tr key={r.idDonHang || r._docId}>
@@ -217,17 +252,51 @@ export default function lichSuThanhToan() {
                     </td>
                     <td>{toVN(r.createdAt)}</td>
                     <td>{timeCol}</td>
+                    <td>{endDateText}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
 
-          <div className="ph-actions">
-            <Button onClick={() => navigate("/traphi")}>
+          {/* Pagination */}
+          <div className="ph-pagination">
+            <div className="ph-actions">
+            <Button onClick={() => navigate("/tra-phi")} variant="blue">
               Nâng cấp gói trả phí mới
             </Button>
+        </div>
+            <button
+              className="ph-page-btn"
+              onClick={() => goPage(page - 1)}
+              disabled={page <= 1}
+            >
+              ← Trước
+            </button>
+            <div className="ph-page-numbers">
+              {Array.from({ length: totalPages }).map((_, i) => {
+                const p = i + 1;
+                return (
+                  <button
+                    key={p}
+                    className={`ph-page-number ${p === page ? "active" : ""}`}
+                    onClick={() => goPage(p)}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              className="ph-page-btn"
+              onClick={() => goPage(page + 1)}
+              disabled={page >= totalPages}
+            >
+              Sau →
+            </button>
           </div>
+
+          
         </div>
       )}
     </div>

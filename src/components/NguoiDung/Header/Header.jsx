@@ -11,7 +11,6 @@ import {
 import "./header.css";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import AIButton from "../../Admin/AIButton/AIButton";
 
 import { auth, db } from "../../../../lib/firebase";
 import {
@@ -23,32 +22,50 @@ import {
   query,
   where,
   limit,
-  Timestamp,
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
 /* ===== Firestore helpers ===== */
-const usersCol = () => collection(db, "nguoiDung");
 const userRef = (id) => doc(db, "nguoiDung", String(id));
 const boTheCol = () => collection(db, "boThe");
 const khoaHocCol = () => collection(db, "khoaHoc");
 const subCol = () => collection(db, "goiTraPhiCuaNguoiDung");
 
-// status helper: coi như “đã hủy” nếu chuỗi có “huy/cancel”
+/* Nhận diện trạng thái đã hủy: không kén dấu/biến thể */
 const isCanceled = (s) => {
   const t = String(s || "").toLowerCase();
-  return t.includes("huy") || t.includes("huỷ") || t.includes("cancel");
+  const noAccent = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (t === "đã hủy" || noAccent === "da huy") return true;
+  return (
+    t.includes("hủy") ||
+    t.includes("huỷ") ||
+    noAccent.includes("huy") ||
+    /cancel|canceled|cancelled/.test(noAccent)
+  );
+};
+
+/* Chuyển mọi kiểu ngày -> Date */
+const toDateFlexible = (v) => {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  if (typeof v?.toDate === "function") return v.toDate(); // Firestore Timestamp
+  if (typeof v === "string") {
+    // "dd/MM/yyyy" hoặc ISO
+    const [d, m, y] = v.split("/").map(Number);
+    if (y) return new Date(y, (m || 1) - 1, d || 1);
+    const dISO = new Date(v);
+    return isNaN(dISO) ? null : dISO;
+  }
+  return null;
 };
 
 export default function Header() {
   const navigate = useNavigate();
 
-  const [chatPro, setChatPro] = useState(false);
-
   const menuRef = useRef(null);
   const plusRef = useRef(null);
   const searchRef = useRef(null);
-  const unsubSubRef = useRef(null); // ⬅️ giữ unsub của onSnapshot để huỷ khi nhận logout từ tab khác
+  const unsubSubRef = useRef(null); // giữ unsub của onSnapshot để huỷ khi nhận logout từ tab khác
 
   // user + prime
   const [user, setUser] = useState(null);
@@ -61,7 +78,7 @@ export default function Header() {
 
   // Search state
   const [keyword, setKeyword] = useState("");
-  const [resCards, setResCards] = useState([]);    // boThe
+  const [resCards, setResCards] = useState([]); // boThe
   const [resCourses, setResCourses] = useState([]); // khoaHoc
 
   /* 1) Nạp user từ Auth/Session + theo dõi Prime realtime */
@@ -83,18 +100,24 @@ export default function Header() {
         if (snap.exists()) setUser(snap.data());
         else setUser({ idNguoiDung: uid, tenNguoiDung: "Người dùng" });
 
-        // Realtime theo dõi gói còn hạn
-        const now = Timestamp.now();
-        const q = query(
-          subCol(),
-          where("idNguoiDung", "==", String(uid)),
-          where("NgayKetThuc", ">=", now)
-        );
-        unsubSub = onSnapshot(q, (ssnap) => {
-          const ok = ssnap.docs.some((d) => !isCanceled(d.data()?.status));
-          setPrime(ok);
+        // Realtime theo dõi mọi sub của user (KHÔNG lọc theo ngày ở query để chắc chắn nhận được cập nhật hủy)
+        const qSubs = query(subCol(), where("idNguoiDung", "==", String(uid)));
+        unsubSub = onSnapshot(qSubs, (ssnap) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const hasActive = ssnap.docs.some((d) => {
+            const row = d.data();
+            if (isCanceled(row?.status)) return false;
+            const end = toDateFlexible(row?.NgayKetThuc);
+            if (!(end instanceof Date) || isNaN(end)) return false;
+            end.setHours(0, 0, 0, 0);
+            return end >= today;
+          });
+
+          setPrime(hasActive);
         });
-        unsubSubRef.current = unsubSub; // ⬅️ lưu lại để có thể huỷ khi cross-tab logout
+        unsubSubRef.current = unsubSub;
       } catch {
         setUser(null);
         setPrime(false);
@@ -158,12 +181,12 @@ export default function Header() {
     }
   };
 
-  /* 4) Logout (Auth) — CÁCH 1: dùng localStorage 'auth:logout' để phát tín hiệu */
+  /* 4) Logout (Auth) — đồng bộ đa tab bằng localStorage 'auth:logout' */
   const logout = async () => {
     try {
       await signOut(auth);
     } finally {
-      sessionStorage.removeItem("session");                // dọn session tab này
+      sessionStorage.removeItem("session");
       localStorage.setItem("auth:logout", String(Date.now())); // 🔔 phát tín hiệu cho tab khác
       navigate("/dang-nhap", { replace: true });
     }
@@ -173,28 +196,20 @@ export default function Header() {
   const avatarSrc = user?.anhDaiDien || "";
   const displayName = user?.tenNguoiDung || "Người dùng";
 
-  /* 5) Quyền dùng AI = Prime */
-  useEffect(() => {
-    setChatPro(prime);
-  }, [prime]);
-
-  /* 6) Nghe tín hiệu logout từ tab khác */
+  /* 5) Nghe tín hiệu logout từ tab khác */
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key === "auth:logout") {
-        // 1 tab khác vừa logout → dọn ở tab hiện tại
         sessionStorage.removeItem("session");
-        unsubSubRef.current?.();        // huỷ theo dõi realtime nếu có
+        unsubSubRef.current?.(); // huỷ theo dõi realtime nếu có
         unsubSubRef.current = null;
 
-        // dọn UI nhỏ
         setUser(null);
         setPrime(false);
         setShowMenu(false);
         setShowPlus(false);
         setShowSearch(false);
 
-        // điều hướng về login
         navigate("/dang-nhap", { replace: true });
       }
     };
@@ -318,9 +333,12 @@ export default function Header() {
           )}
         </div>
 
-        <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
-          Nâng cấp tài khoản
-        </button>
+        {/* Ẩn nút nâng cấp nếu đã có gói hoạt động */}
+        {!prime && (
+          <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
+            Nâng cấp tài khoản
+          </button>
+        )}
 
         {/* Account */}
         <div className="inforContainer" ref={menuRef}>
