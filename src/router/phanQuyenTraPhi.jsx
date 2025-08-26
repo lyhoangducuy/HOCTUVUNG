@@ -1,42 +1,45 @@
-import { useEffect, useState } from "react";
+// router/phanQuyenTraPhi.jsx
 import { Outlet, Navigate, useLocation } from "react-router-dom";
-import { useSession } from "/providers/AuthProvider";
-import { db } from "../../lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
 
-async function hasActiveSub(uid) {
-  const now = new Date();
-  // Yêu cầu Firestore có collection "subscriptions" với fields: userId, status, expiresAt (Timestamp)
-  const q = query(
-    collection(db, "subscriptions"),
-    where("userId", "==", uid),
-    where("status", "==", "active"),
-    where("expiresAt", ">=", now)
-  );
-  const snap = await getDocs(q);
-  return !snap.empty;
+function coGoiTraPhiHieuLuc(session) {
+  try {
+    if (!session?.idNguoiDung) return false;
+    const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
+    const mySubs = subs.filter((s) => s.idNguoiDung === session.idNguoiDung);
+    if (mySubs.length === 0) return false;
+
+    const last = mySubs[mySubs.length - 1];
+    const [d, m, y] = String(last.NgayKetThuc || "").split("/").map(Number);
+    if (!d || !m || !y) return false;
+
+    const expire = new Date(y, m - 1, d);
+    const today = new Date();
+    return expire >= today;
+  } catch {
+    return false;
+  }
 }
 
 export default function YeuCauTraPhi() {
-  const { user, loading } = useSession();
   const location = useLocation();
-  const [ok, setOk] = useState(null);
+  const session = JSON.parse(sessionStorage.getItem("session") || "null");
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      if (!user) return;
-      const valid = await hasActiveSub(user.uid);
-      if (mounted) setOk(valid);
-    })();
-    return () => (mounted = false);
-  }, [user]);
-
-  if (loading || ok === null) return null; // hoặc spinner
-  if (!user) return <Navigate to="/dang-nhap" replace state={{ from: location }} />;
-
-  if (!ok) {
-    return <Navigate to="/tra-phi" replace state={{ from: location, reason: "no_active_sub" }} />;
+  // nếu chưa đăng nhập → về trang đăng nhập
+  if (!session?.idNguoiDung) {
+    return <Navigate to="/dang-nhap" replace state={{ from: location }} />;
   }
+
+  // nếu không có gói còn hiệu lực → chuyển tới trang trả phí
+  if (!coGoiTraPhiHieuLuc(session)) {
+    return (
+      <Navigate
+        to="/tra-phi"
+        replace
+        state={{ from: location, reason: "no_active_sub" }}
+      />
+    );
+  }
+
+  // Hợp lệ → render các route con
   return <Outlet />;
 }

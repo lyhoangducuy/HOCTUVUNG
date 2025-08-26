@@ -12,64 +12,47 @@ import {
 import "./header.css";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
 import AIButton from "../../Admin/AIButton/AIButton";
-import { useSession } from "../../../providers/AuthProvider";
-import { auth, db } from "../../../lib/firebase";
+
+import { auth, db } from "../../../../lib/firebase";
 import {
   collection,
+  doc,
+  getDoc,
   getDocs,
+  onSnapshot,
   query,
   where,
+  limit,
   Timestamp,
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
-// === Helpers Firestore ===
-async function hasActiveSub(uid) {
-  if (!uid) return false;
-  const now = new Date();
-  const q = query(
-    collection(db, "subscriptions"),
-    where("userId", "==", uid),
-    where("status", "==", "active"),
-    where("expiresAt", ">=", now) // expiresAt kiểu Timestamp
-  );
-  const snap = await getDocs(q);
-  return !snap.empty;
-}
+// ===== Helpers Firestore =====
+const usersCol = () => collection(db, "nguoiDung");
+const userRef = (id) => doc(db, "nguoiDung", String(id));
+const boTheCol = () => collection(db, "boThe");
+const khoaHocCol = () => collection(db, "khoaHoc");
+const subCol = () => collection(db, "goiTraPhiCuaNguoiDung");
 
-async function quickSearchBoThe(keyword) {
-  // Đơn giản: fetch 1 lượt rồi lọc phía client (phù hợp dự án sinh viên/nhỏ)
-  const snap = await getDocs(collection(db, "boThe"));
-  const all = snap.docs.map((d) => ({ idBoThe: d.id, ...d.data() }));
-  const k = keyword.trim().toLowerCase();
-  return all.filter((x) => (x.tenBoThe || "").toLowerCase().includes(k));
-}
-
-async function quickSearchKhoaHoc(keyword) {
-  const snap = await getDocs(collection(db, "khoaHoc"));
-  const all = snap.docs.map((d) => ({ idKhoaHoc: d.id, ...d.data() }));
-  const k = keyword.trim().toLowerCase();
-  return all.filter((khoa) => {
-    const byName = (khoa.tenKhoaHoc || "").toLowerCase().includes(k);
-    const byTag =
-      Array.isArray(khoa.kienThuc) &&
-      khoa.kienThuc.some((t) => String(t).toLowerCase().includes(k));
-    return byName || byTag;
-  });
-}
+// status helper: coi như “đã hủy” nếu chuỗi có “huy/cancel”
+const isCanceled = (s) => {
+  const t = String(s || "").toLowerCase();
+  return t.includes("huy") || t.includes("huỷ") || t.includes("cancel");
+};
 
 export default function Header() {
   const navigate = useNavigate();
-  const { user, profile } = useSession();
 
   const [chatPro, setChatPro] = useState(false);
-  const [prime, setPrime] = useState(false);
 
   const menuRef = useRef(null);
   const plusRef = useRef(null);
   const searchRef = useRef(null);
+
+  // user + prime
+  const [user, setUser] = useState(null);
+  const [prime, setPrime] = useState(false);
 
   // UI state
   const [showMenu, setShowMenu] = useState(false);
@@ -80,29 +63,50 @@ export default function Header() {
   const [keyword, setKeyword] = useState("");
   const [resCards, setResCards] = useState([]);   // boThe
   const [resCourses, setResCourses] = useState([]); // khoaHoc
-  const [searching, setSearching] = useState(false);
 
-  // 1) Tính Prime / ChatPro từ Firestore
+  /* 1) Nạp user từ Auth/Session + theo dõi Prime realtime */
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      if (!user) {
-        if (mounted) {
-          setPrime(false);
-          setChatPro(false);
-        }
-        return;
-      }
-      const ok = await hasActiveSub(user.uid);
-      if (mounted) {
-        setPrime(ok);
-        setChatPro(ok); // nếu muốn: chỉ prime mới có AIButton
-      }
-    })();
-    return () => (mounted = false);
-  }, [user]);
+    let unsubSub = null;
 
-  // 2) Đóng popup khi click ra ngoài
+    const loadUserAndPrime = async () => {
+      try {
+        const ss = JSON.parse(sessionStorage.getItem("session") || "null");
+        const uid = auth.currentUser?.uid || ss?.idNguoiDung;
+        if (!uid) {
+          setUser(null);
+          setPrime(false);
+          return;
+        }
+
+        // Lấy hồ sơ người dùng từ collection: nguoiDung/{uid}
+        const snap = await getDoc(userRef(uid));
+        if (snap.exists()) setUser(snap.data());
+        else setUser({ idNguoiDung: uid, tenNguoiDung: "Người dùng" });
+
+        // Realtime theo dõi gói còn hạn (goiTraPhiCuaNguoiDung)
+        const now = Timestamp.now();
+        const q = query(
+          subCol(),
+          where("idNguoiDung", "==", String(uid)),
+          where("NgayKetThuc", ">=", now)
+        );
+        unsubSub = onSnapshot(q, (ssnap) => {
+          const ok = ssnap.docs.some((d) => !isCanceled(d.data()?.status));
+          setPrime(ok);
+        });
+      } catch {
+        setUser(null);
+        setPrime(false);
+      }
+    };
+
+    loadUserAndPrime();
+    return () => {
+      if (unsubSub) unsubSub();
+    };
+  }, []);
+
+  /* 2) Đóng popup khi click ra ngoài */
   useEffect(() => {
     const outside = (e) => {
       if (plusRef.current && !plusRef.current.contains(e.target)) setShowPlus(false);
@@ -113,41 +117,63 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", outside);
   }, []);
 
-  // 3) Tìm kiếm nhanh (Firestore)
+  /* 3) Tìm kiếm nhanh (boThe + khoaHoc) – lọc client (contains) */
   const doSearch = async (q) => {
     setKeyword(q);
-    const k = q.trim();
-    if (!k) {
+    const queryText = q.trim().toLowerCase();
+    if (!queryText) {
       setResCards([]);
       setResCourses([]);
       return;
     }
-    setSearching(true);
+
     try {
-      const [cards, courses] = await Promise.all([
-        quickSearchBoThe(k),
-        quickSearchKhoaHoc(k),
+      // Firestore không hỗ trợ "contains" tự do -> lấy một lượng giới hạn rồi lọc client
+      const [cardsSnap, coursesSnap] = await Promise.all([
+        getDocs(query(boTheCol(), limit(50))),
+        getDocs(query(khoaHocCol(), limit(50))),
       ]);
+
+      const cards = cardsSnap.docs
+        .map((d) => d.data())
+        .filter((x) => (x.tenBoThe || "").toLowerCase().includes(queryText));
+
+      const courses = coursesSnap.docs
+        .map((d) => d.data())
+        .filter((k) => {
+          const byName = (k.tenKhoaHoc || "").toLowerCase().includes(queryText);
+          const byTag =
+            Array.isArray(k.kienThuc) &&
+            k.kienThuc.some((t) => String(t).toLowerCase().includes(queryText));
+          return byName || byTag;
+        });
+
       setResCards(cards);
       setResCourses(courses);
-    } finally {
-      setSearching(false);
+    } catch {
+      setResCards([]);
+      setResCourses([]);
     }
   };
 
-  // 4) Logout
+  /* 4) Logout (Auth) */
   const logout = async () => {
     try {
       await signOut(auth);
-      sessionStorage.removeItem("session"); // giữ tương thích phần code cũ nếu còn đọc session
     } finally {
+      sessionStorage.clear(); // nếu phần cũ còn đọc session
       navigate("/dang-nhap", { replace: true });
     }
   };
 
   // avatar & tên hiển thị
-  const avatarSrc = profile?.anhDaiDien || "";
-  const displayName = profile?.tenNguoiDung || user?.email || "Người dùng";
+  const avatarSrc = user?.anhDaiDien || "";
+  const displayName = user?.tenNguoiDung || "Người dùng";
+
+  /* 5) Quyền dùng AI = Prime */
+  useEffect(() => {
+    setChatPro(prime);
+  }, [prime]);
 
   return (
     <div className="header-container">
@@ -180,13 +206,11 @@ export default function Header() {
 
         {showSearch && keyword && (
           <div className="search-result">
-            {searching && <p className="empty">Đang tìm...</p>}
-
-            {!searching && resCards.length === 0 && resCourses.length === 0 && (
+            {resCards.length === 0 && resCourses.length === 0 && (
               <p className="empty">Không tìm thấy kết quả</p>
             )}
 
-            {!searching && resCards.length > 0 && (
+            {resCards.length > 0 && (
               <div className="result-group">
                 <h4>Bộ thẻ</h4>
                 {resCards.map((item) => (
@@ -205,7 +229,7 @@ export default function Header() {
               </div>
             )}
 
-            {!searching && resCourses.length > 0 && (
+            {resCourses.length > 0 && (
               <div className="result-group">
                 <h4>Khóa học</h4>
                 {resCourses.map((item) => (
@@ -258,7 +282,7 @@ export default function Header() {
                 <FontAwesomeIcon icon={faFolderOpen} />
                 <span>Thư mục mới</span>
               </div>
-              {(profile?.vaiTro === "GIANG_VIEN" || profile?.vaiTro === "ADMIN") && (
+              {(user?.vaiTro === "GIANG_VIEN" || user?.vaiTro === "ADMIN") && (
                 <div
                   className="plus-item"
                   onClick={() => {
@@ -274,7 +298,7 @@ export default function Header() {
           )}
         </div>
 
-        {/* Chỉ Prime mới có AIButton (nếu muốn mở cho tất cả, thay chatPro bằng true) */}
+        {/* Chỉ Prime mới có AIButton */}
         {chatPro && <AIButton />}
 
         <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
@@ -337,7 +361,6 @@ export default function Header() {
               </div>
 
               <div className="divide" />
-
               <div className="loggout" onClick={logout}>
                 Đăng xuất
               </div>

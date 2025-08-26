@@ -1,24 +1,43 @@
+// src/router/phanQuyen.jsx
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useSession } from "../../providers/AuthProvider";
 
+function getCurrentNguoiDung() {
+  try {
+    const raw = sessionStorage.getItem("session");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Bắt buộc đăng nhập: nếu chưa đăng nhập → về trang "/" (login),
+ * kèm state.from để đăng nhập xong quay lại đúng trang.
+ */
 export function YeuCauDangNhap() {
   const location = useLocation();
-  const { user, loading } = useSession();
+  const nguoiDung = getCurrentNguoiDung();
 
-  if (loading) return null; // hoặc spinner
-  if (!user) return <Navigate to="/dang-nhap" replace state={{ from: location }} />;
+  if (!nguoiDung) {
+    return <Navigate to="/dang-nhap" replace state={{ from: location }} />;
+  }
   return <Outlet />;
 }
 
+/**
+ * Phân quyền theo vai trò: chỉ cho phép role trong "allowed".
+ * Nếu chưa đăng nhập → về "/".
+ * Nếu sai quyền → điều hướng về trang an toàn (ví dụ /giangvien).
+ */
 export function DangNhapTheoRole({ allowed = [] }) {
   const location = useLocation();
-  const { user, profile, loading } = useSession();
+  const user = getCurrentNguoiDung();
 
-  if (loading) return null;
-  if (!user) return <Navigate to="/dang-nhap" replace state={{ from: location }} />;
-
-  const vaiTro = profile?.vaiTro || "HOC_VIEN";
-  if (allowed.length && !allowed.includes(vaiTro)) {
+  if (!user) {
+    return <Navigate to="/dang-nhap" replace state={{ from: location }} />;
+  }
+  if (allowed.length && !allowed.includes(user.vaiTro)) {
+    // Có thể điều hướng tới trang 403/404 riêng nếu bạn có
     return <Navigate to="/error-404" replace />;
   }
   return <Outlet />;
