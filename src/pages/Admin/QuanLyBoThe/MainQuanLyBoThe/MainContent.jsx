@@ -7,6 +7,19 @@ import Add from "../../../../components/Admin/Add/Add";
 import ExportModal from "../../../../components/Admin/ExportModal/ExportModal";
 import "./MainContent.css";
 
+import { db } from "../../../../../lib/firebase";
+import {
+  doc,
+  getDoc,
+  deleteDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  limit,
+  getDocs,
+} from "firebase/firestore";
+
 const MainContentQLBT = ({ Data = [] }) => {
   const ColumsBoThe = [
     { name: "ID", key: "id" },
@@ -17,6 +30,12 @@ const MainContentQLBT = ({ Data = [] }) => {
 
   const [data, setData] = useState(Data);
   const [filteredData, setFilteredData] = useState(Data);
+
+  // Đồng bộ khi prop Data đổi (realtime từ cha)
+  useEffect(() => {
+    setData(Data);
+    setFilteredData(Data);
+  }, [Data]);
 
   // Delete dialog
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -30,10 +49,6 @@ const MainContentQLBT = ({ Data = [] }) => {
   // Export
   const [exportModal, setExportModal] = useState(false);
 
-  useEffect(() => {
-    setFilteredData(data);
-  }, [data]);
-
   const handleDelete = (id) => {
     setDeleteId(id);
     setShowDeleteDialog(true);
@@ -44,26 +59,40 @@ const MainContentQLBT = ({ Data = [] }) => {
     setDeleteId(null);
   };
 
-  // ✅ FIX: dùng fallback từ state nếu modal không truyền id
-  const onConfirmDelete = (idFromModal) => {
+  // Xoá trên Firestore + cập nhật UI tạm thời
+  const onConfirmDelete = async (idFromModal) => {
     const id = idFromModal ?? deleteId;
     if (id == null) return;
 
-    // Cập nhật state list hiển thị
+    // UI optimstic update
     const updated = data.filter((item) => String(item.id) !== String(id));
     setData(updated);
-    setFilteredData(updated); // ✅ cập nhật ngay UI
+    setFilteredData(updated);
 
-    // Xoá trong localStorage "boThe" (idBoThe phải trùng với item.id)
     try {
-      const raw = localStorage.getItem("boThe");
-      const list = raw ? JSON.parse(raw) : [];
-      const next = (Array.isArray(list) ? list : []).filter(
-        (bt) => String(bt.idBoThe) !== String(id)
-      );
-      localStorage.setItem("boThe", JSON.stringify(next));
+      // 1) Thử xoá theo doc id
+      const ref = doc(db, "boThe", String(id));
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        await deleteDoc(ref);
+      } else {
+        // 2) Fallback: tìm theo field idBoThe == id
+        const q1 = query(
+          collection(db, "boThe"),
+          where("idBoThe", "==", String(id)),
+          limit(1)
+        );
+        const rs = await getDocs(q1);
+        const first = rs.docs[0];
+        if (first) {
+          await deleteDoc(first.ref);
+        } else {
+          console.warn("Không tìm thấy tài liệu boThe để xoá:", id);
+        }
+      }
     } catch (e) {
-      console.error("Xoá bộ thẻ trong localStorage thất bại:", e);
+      console.error("Xoá bộ thẻ trên Firestore thất bại:", e);
+      // (tuỳ chọn) rollback UI nếu muốn
     }
 
     onClose();
@@ -82,37 +111,56 @@ const MainContentQLBT = ({ Data = [] }) => {
     setSelectedUser(null);
     setIsEditMode(false);
   };
-  
 
-  const handleUserDetailSave = (updatedUser, flagIsEditMode = false) => {
-    if (flagIsEditMode) { setIsEditMode(true); return; }
+  // Lưu chỉnh sửa lên Firestore + cập nhật UI
+  const handleUserDetailSave = async (updatedUser, flagIsEditMode = false) => {
+    if (flagIsEditMode) {
+      setIsEditMode(true);
+      return;
+    }
 
+    // UI optimistic
     const updated = data.map((it) =>
       String(it.id) === String(updatedUser.id) ? updatedUser : it
     );
     setData(updated);
     setFilteredData(updated);
 
-    // Đồng bộ localStorage/boThe (map các field phù hợp schema thực tế)
+    // Ghi Firestore
     try {
-      const raw = localStorage.getItem("boThe");
-      const list = raw ? JSON.parse(raw) : [];
-      const idx = list.findIndex(
-        (c) => String(c.idBoThe) === String(updatedUser.id)
-      );
-      if (idx !== -1) {
-        const cur = { ...list[idx] };
-        list[idx] = {
-          ...cur,
-          tenBoThe: updatedUser.name,
-          // tuỳ schema thật của bạn: soTu hoặc danhSachThe.length
-          soTu: Number(updatedUser.numBer) || cur.soTu || 0,
-          // idNguoiDung / thông tin creator không nhất thiết lưu string "userCreated"
-        };
-        localStorage.setItem("boThe", JSON.stringify(list));
+      const payload = {
+        tenBoThe: updatedUser.name ?? "",
+      };
+
+      // Hỗ trợ cập nhật số lượng thẻ nếu bạn đang cho sửa (giữ nguyên nếu không)
+      if (updatedUser.numBer != null) {
+        const n = Number(updatedUser.numBer);
+        if (!Number.isNaN(n)) payload.soTu = n;
+      }
+
+      // 1) Thử update theo doc id
+      const ref = doc(db, "boThe", String(updatedUser.id));
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        await updateDoc(ref, payload);
+      } else {
+        // 2) Fallback: tìm theo field idBoThe == id
+        const q1 = query(
+          collection(db, "boThe"),
+          where("idBoThe", "==", String(updatedUser.id)),
+          limit(1)
+        );
+        const rs = await getDocs(q1);
+        const first = rs.docs[0];
+        if (first) {
+          await updateDoc(first.ref, payload);
+        } else {
+          console.warn("Không tìm thấy tài liệu boThe để cập nhật:", updatedUser.id);
+        }
       }
     } catch (e) {
-      console.error("Cập nhật bộ thẻ trong localStorage thất bại:", e);
+      console.error("Cập nhật boThe trên Firestore thất bại:", e);
+      // (tuỳ chọn) rollback UI nếu cần
     }
 
     handleUserDetailClose();
@@ -155,7 +203,7 @@ const MainContentQLBT = ({ Data = [] }) => {
         <Delete
           id={deleteId}
           onClose={onClose}
-          onConfirm={onConfirmDelete}  // sẽ tự fallback deleteId nếu không truyền id
+          onConfirm={onConfirmDelete}
           message="Bạn có muốn xóa bộ thẻ này không?"
         />
       )}
