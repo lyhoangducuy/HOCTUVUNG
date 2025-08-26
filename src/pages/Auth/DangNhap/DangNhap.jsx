@@ -16,7 +16,7 @@ export default function DangNhap() {
     setLoginError("");
     try {
       const cred = await signInWithEmailAndPassword(auth, form.email, form.matkhau);
-      const snap = await getDoc(doc(db, "users", cred.user.uid));
+      const snap = await getDoc(doc(db, "nguoiDung", cred.user.uid));
       if (!snap.exists()) throw new Error("Không tìm thấy hồ sơ người dùng!");
 
       const profile = snap.data();
