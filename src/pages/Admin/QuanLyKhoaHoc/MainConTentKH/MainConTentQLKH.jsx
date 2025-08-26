@@ -1,12 +1,15 @@
+// src/pages/Admin/QuanLyTraPhi/QuanLyKhoaHoc.jsx
+// (hoặc MainConTentQLKH.jsx)
 import TableAdmin from "../../../../components/Admin/TableAdmin/TableAdmin";
 import { useEffect, useMemo, useState } from "react";
 import Search from "../../../../components/Admin/Search/Search";
 import Delete from "../../../../components/Admin/Delete/Delete";
 import Edit from "../../../../components/Admin/Edit/Edit";
 import ExportModal from "../../../../components/Admin/ExportModal/ExportModal";
+import * as yup from "yup";
 import "./MainConTentQLKH.css";
 
-import { db } from "../../../../../lib/firebase"; // chỉnh lại nếu đường dẫn khác
+import { db } from "../../../../../lib/firebase";
 import {
   doc,
   getDoc,
@@ -20,13 +23,13 @@ import {
   getDocs,
 } from "firebase/firestore";
 
-/* --- utils --- */
+/* ========== Tiện ích ngày giờ ========== */
 const toVN = (date) =>
-  date instanceof Date && !isNaN(date) ? date.toLocaleDateString("vi-VN") : "";
+  date instanceof Date && !Number.isNaN(date) ? date.toLocaleDateString("vi-VN") : "";
 
 const fromMaybeTs = (val) => {
   if (!val) return null;
-  if (typeof val?.toDate === "function") return val.toDate(); // Firestore Timestamp
+  if (typeof val?.toDate === "function") return val.toDate(); // Timestamp Firestore
   if (typeof val === "string" && val.includes("/")) {
     const [d, m, y] = val.split("/").map(Number);
     if (d && m && y) return new Date(y, m - 1, d);
@@ -36,24 +39,25 @@ const fromMaybeTs = (val) => {
     return new Date(n > 1e12 ? n : n * 1000);
   }
   const d = new Date(val);
-  return isNaN(d) ? null : d;
+  return Number.isNaN(d) ? null : d;
 };
 
-/* --- Firestore helpers --- */
+/* ========== Trợ giúp Firestore ========== */
 async function getCourseDocRefByAnyId(id) {
-  // 1) Thử coi id là docId
   const ref1 = doc(db, "khoaHoc", String(id));
   const snap1 = await getDoc(ref1);
   if (snap1.exists()) return ref1;
 
-  // 2) Fallback: tìm tài liệu có field idKhoaHoc == id
-  const q1 = query(collection(db, "khoaHoc"), where("idKhoaHoc", "==", String(id)), limit(1));
+  const q1 = query(
+    collection(db, "khoaHoc"),
+    where("idKhoaHoc", "==", String(id)),
+    limit(1)
+  );
   const rs = await getDocs(q1);
   if (!rs.empty) return rs.docs[0].ref;
 
   return null;
 }
-
 async function getCourseByAnyId(id) {
   const ref = await getCourseDocRefByAnyId(id);
   if (!ref) return null;
@@ -61,27 +65,10 @@ async function getCourseByAnyId(id) {
   return snap.exists() ? { _docId: snap.id, ...snap.data() } : null;
 }
 
+/* ========== Thành phần chính ========== */
 const MainConTentQLKH = ({ Data = [] }) => {
-  const ColumsBoThe = [
-    { name: "ID", key: "id" },
-    { name: "Tên Lớp Học", key: "name" },
-    { name: "Người tạo", key: "userCreated" },
-    { name: "Ngày tạo", key: "created" },
-  ];
-
-  // dữ liệu bảng lấy từ prop Data (do parent đã realtime)
-  const [data, setData] = useState(Data);
-  const [filteredData, setFilteredData] = useState(Data);
-
-  // users để build dropdown “Người tạo”
+  /* Danh sách người dùng (để hiện “Người tạo”) */
   const [users, setUsers] = useState([]);
-
-  useEffect(() => {
-    setData(Data);
-    setFilteredData(Data);
-  }, [Data]);
-
-  // realtime users
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "nguoiDung"),
@@ -98,7 +85,8 @@ const MainConTentQLKH = ({ Data = [] }) => {
     () =>
       users.map((u) => ({
         value: String(u.idNguoiDung ?? u._docId),
-        label: u.tenNguoiDung || u.username || u.email || `ID: ${u.idNguoiDung ?? u._docId}`,
+        label:
+          u.tenNguoiDung || u.username || u.email || `ID: ${u.idNguoiDung ?? u._docId}`,
       })),
     [users]
   );
@@ -106,21 +94,57 @@ const MainConTentQLKH = ({ Data = [] }) => {
     const m = new Map(userOptions.map((o) => [String(o.value), o.label]));
     return (id) => m.get(String(id)) || (id != null ? `ID: ${id}` : "—");
   }, [userOptions]);
+  const userIdSet = useMemo(
+    () => new Set(userOptions.map((o) => String(o.value))),
+    [userOptions]
+  );
 
-  // Delete dialog
+  /* Chuẩn hoá hàng dữ liệu cho bảng (đúng theo ảnh + thêm Ngày tạo) */
+  const rows = useMemo(() => {
+    return (Array.isArray(Data) ? Data : []).map((r) => {
+      const createdRaw =
+        fromMaybeTs(r.ngayTao) || fromMaybeTs(r.createdAt) || fromMaybeTs(r._docId);
+      const creatorId = String(r.idNguoiDung ?? r.userCreated ?? "");
+      const kienThucArr = Array.isArray(r.kienThuc) ? r.kienThuc : [];
+      return {
+        id: String(r.idKhoaHoc ?? r._docId ?? r.id ?? ""),
+        name: r.tenKhoaHoc ?? r.name ?? "",
+        userCreated: userLabelById(creatorId),
+        knowledgeText: kienThucArr.join(", "),
+        description: r.moTa ?? "",
+        created: toVN(createdRaw),
+        _creatorId: creatorId, // dùng cho popup sửa
+      };
+    });
+  }, [Data, userLabelById]);
+
+  const [filteredData, setFilteredData] = useState(rows);
+  useEffect(() => setFilteredData(rows), [rows]);
+
+  /* Cột bảng – đúng theo ảnh + Ngày tạo */
+  const ColumsBoThe = [
+    { name: "Mã", key: "id" },
+    { name: "Tên khóa học", key: "name" },
+    { name: "Người tạo", key: "userCreated" },
+    { name: "Kiến thức", key: "knowledgeText" },
+    { name: "Mô tả", key: "description" },
+    { name: "Ngày tạo", key: "created" },
+  ];
+
+  /* Xoá */
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
-  // Edit dialog
+  /* Sửa/Xem */
   const [showEdit, setShowEdit] = useState(false);
-  const [selectedRow, setSelectedRow] = useState(null); // {id,name,userCreated,created,...}
-  const [rawCourse, setRawCourse] = useState(null);      // raw từ Firestore
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [rawCourse, setRawCourse] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // Export
+  /* Xuất */
   const [exportModal, setExportModal] = useState(false);
 
-  /* Delete flow */
+  /* ===== Xoá ===== */
   const handleDelete = (id) => {
     setDeleteId(id);
     setShowDeleteDialog(true);
@@ -133,44 +157,64 @@ const MainConTentQLKH = ({ Data = [] }) => {
     const id = idFromModal ?? deleteId;
     if (!id) return;
 
-    // UI optimistic
-    setData((prev) => prev.filter((r) => String(r.id) !== String(id)));
-    setFilteredData((prev) => prev.filter((r) => String(r.id) !== String(id)));
-
     try {
       const ref = await getCourseDocRefByAnyId(id);
-      if (ref) {
-        await deleteDoc(ref);
-      } else {
+      if (!ref) {
         console.warn("Không tìm thấy tài liệu 'khoaHoc' để xoá:", id);
+        onCloseDelete();
+        return;
       }
-      // (tuỳ chọn) có thể dọn tham chiếu ở nơi khác (nếu có)
-    } catch (e) {
-      console.error("Xoá lớp học thất bại:", e);
-    }
+      const snap = await getDoc(ref);
+      const course = { _docId: ref.id, ...snap.data() };
+      const customId = String(course.idKhoaHoc ?? course._docId);
 
+      // Không cho xoá nếu vẫn còn bộ thẻ trỏ tới khoá học này
+      const cBoThe = collection(db, "boThe");
+      const q1 = query(cBoThe, where("idKhoaHoc", "==", customId));
+      const q2 =
+        customId !== course._docId
+          ? query(cBoThe, where("idKhoaHoc", "==", course._docId))
+          : null;
+
+      const [s1, s2] = await Promise.all([getDocs(q1), q2 ? getDocs(q2) : Promise.resolve(null)]);
+      const linkedCount = (s1?.size || 0) + (s2?.size || 0);
+
+      if (linkedCount > 0) {
+        alert(
+          `Không thể xoá vì còn ${linkedCount} bộ thẻ đang tham chiếu tới khóa học này.\n` +
+            `Vui lòng xoá/đổi liên kết các bộ thẻ trước.`
+        );
+        onCloseDelete();
+        return;
+      }
+
+      await deleteDoc(ref);
+    } catch (e) {
+      console.error("Xoá khóa học thất bại:", e);
+      alert("Xoá khóa học thất bại.");
+    }
     onCloseDelete();
   };
 
-  /* Edit flow */
+  /* ===== Sửa/Xem ===== */
   const handleEdit = async (id) => {
     try {
       const raw = await getCourseByAnyId(id);
       if (!raw) return;
 
+      const createdStr =
+        toVN(fromMaybeTs(raw.ngayTao) || fromMaybeTs(raw.createdAt) || fromMaybeTs(raw._docId));
+      const creatorId = String(raw.idNguoiDung ?? "");
+      const knowledge = Array.isArray(raw.kienThuc) ? raw.kienThuc : [];
+
       setRawCourse(raw);
       setSelectedRow({
         id: raw.idKhoaHoc ?? raw._docId,
         name: raw.tenKhoaHoc ?? "",
-        userCreated: String(raw.idNguoiDung ?? ""), // sẽ hiển thị bằng select
-        created: toVN(
-          fromMaybeTs(raw.createdAt) ||
-            fromMaybeTs(raw.ngayTao) ||
-            fromMaybeTs(raw._docId)
-        ),
-        // thêm vài số liệu đọc-only nếu muốn
-        memberCount: Array.isArray(raw.thanhVienIds) ? raw.thanhVienIds.length : 0,
-        cardCount: Array.isArray(raw.boTheIds) ? raw.boTheIds.length : 0,
+        userCreated: creatorId,
+        description: raw.moTa ?? "",
+        knowledgeText: knowledge.join(", "),
+        created: createdStr, // chỉ hiển thị
       });
 
       setShowEdit(true);
@@ -187,53 +231,67 @@ const MainConTentQLKH = ({ Data = [] }) => {
     setIsEditMode(false);
   };
 
-  const handleUserDetailSave = async (updatedUser, flagIsEditMode = false) => {
+  const validationSchema = useMemo(
+    () =>
+      yup.object({
+        name: yup
+          .string()
+          .trim()
+          .required("Tên khóa học không được để trống")
+          .min(3, "Tên tối thiểu 3 ký tự")
+          .max(120, "Tên tối đa 120 ký tự"),
+        userCreated: yup
+          .string()
+          .required("Vui lòng chọn người tạo")
+          .test("valid-creator", "Người tạo không hợp lệ", (v) =>
+            v ? userIdSet.has(String(v)) : false
+          ),
+        description: yup.string().max(1000, "Mô tả tối đa 1000 ký tự").nullable(),
+        knowledgeText: yup.string().nullable(),
+      }),
+    [userIdSet]
+  );
+
+  const tachDanhSach = (s) =>
+    String(s || "")
+      .split(/[;,]/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+
+  const handleUserDetailSave = async (updated, flagIsEditMode = false) => {
     if (flagIsEditMode) {
       setIsEditMode(true);
       return;
     }
     if (!rawCourse) return;
 
-    const newName = updatedUser.name ?? "";
-    const newCreatorId = updatedUser.userCreated
-      ? String(updatedUser.userCreated)
-      : String(rawCourse.idNguoiDung ?? "");
+    const newName = String(updated.name ?? "").trim();
+    const newCreatorId = String(updated.userCreated ?? rawCourse.idNguoiDung ?? "");
+    const newDesc = String(updated.description ?? "").trim();
+    const newKnowledge = tachDanhSach(updated.knowledgeText);
 
-    // UI optimistic
-    setData((cur) =>
-      cur.map((r) =>
-        String(r.id) === String(updatedUser.id)
-          ? { ...r, name: newName, userCreated: userLabelById(newCreatorId) }
-          : r
-      )
-    );
-    setFilteredData((cur) =>
-      cur.map((r) =>
-        String(r.id) === String(updatedUser.id)
-          ? { ...r, name: newName, userCreated: userLabelById(newCreatorId) }
-          : r
-      )
-    );
-
-    // Firestore update
     try {
-      const ref = await getCourseDocRefByAnyId(updatedUser.id);
+      const ref = await getCourseDocRefByAnyId(updated.id);
       if (!ref) {
-        console.warn("Không tìm thấy tài liệu 'khoaHoc' để cập nhật:", updatedUser.id);
+        console.warn("Không tìm thấy tài liệu 'khoaHoc' để cập nhật:", updated.id);
       } else {
         await updateDoc(ref, {
           tenKhoaHoc: newName,
           idNguoiDung: newCreatorId,
+          moTa: newDesc,
+          kienThuc: newKnowledge,
+          // không sửa ngày tạo ở đây
         });
       }
     } catch (e) {
-      console.error("Cập nhật lớp học thất bại:", e);
+      console.error("Cập nhật khóa học thất bại:", e);
+      alert("Cập nhật khóa học thất bại.");
     }
 
     handleUserDetailClose();
   };
 
-  /* Hành động từng dòng */
+  /* Hành động hàng */
   const Action = [
     {
       name: "👀",
@@ -251,7 +309,7 @@ const MainConTentQLKH = ({ Data = [] }) => {
 
   return (
     <div className="main-content-admin-user">
-      <h1>Quản Lý Lớp Học</h1>
+      <h1>Quản lý khóa học</h1>
 
       <div className="user-actions">
         <div className="user-actions-buttons">
@@ -259,7 +317,7 @@ const MainConTentQLKH = ({ Data = [] }) => {
             Xuất
           </button>
         </div>
-        <Search Data={data} onResult={setFilteredData} />
+        <Search Data={rows} onResult={setFilteredData} />
       </div>
 
       <TableAdmin Colums={ColumsBoThe} Data={filteredData} Action={Action} />
@@ -270,7 +328,7 @@ const MainConTentQLKH = ({ Data = [] }) => {
           id={deleteId}
           onClose={onCloseDelete}
           onConfirm={onConfirmDelete}
-          message="Bạn có muốn xóa lớp học này không?"
+          message="Bạn có chắc muốn xóa khóa học này không?"
         />
       )}
 
@@ -282,15 +340,18 @@ const MainConTentQLKH = ({ Data = [] }) => {
           onSave={handleUserDetailSave}
           isEditMode={isEditMode}
           Colums={[
-            ...ColumsBoThe,
-            { name: "Số thành viên", key: "memberCount" },
-            { name: "Số bộ thẻ", key: "cardCount" },
+            { name: "Mã", key: "id" },
+            { name: "Tên khóa học", key: "name" },
+            { name: "Người tạo", key: "userCreated", options: userOptions },
+            { name: "Mô tả", key: "description" },
+            { name: "Kiến thức (ngăn cách bởi dấu phẩy)", key: "knowledgeText" },
+            { name: "Ngày tạo", key: "created" },
           ]}
           showAvatar={false}
-          readOnlyKeys={["id", "created", "memberCount", "cardCount"]}
-          selectFields={{
-            userCreated: userOptions, // dropdown người tạo
-          }}
+          readOnlyKeys={["id", "created"]}
+          validationSchema={validationSchema}
+          validateOnChange={false}
+          selectFields={{ userCreated: userOptions }}
           selectLabels={{
             userCreated: (val) => {
               const opt = userOptions.find((o) => String(o.value) === String(val));
@@ -305,11 +366,9 @@ const MainConTentQLKH = ({ Data = [] }) => {
         <ExportModal
           isOpen={exportModal}
           onClose={() => setExportModal(false)}
-          onExport={(rows) => console.log("Dữ liệu export:", rows)}
           filteredData={filteredData}
-          title="Xuất thông tin lớp học"
+          title="Xuất danh sách khóa học"
           columns={ColumsBoThe}
-          showAvatar={false}
         />
       )}
     </div>

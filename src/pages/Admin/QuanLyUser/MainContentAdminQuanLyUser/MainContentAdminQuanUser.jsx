@@ -7,6 +7,7 @@ import Delete from "../../../../components/Admin/Delete/Delete";
 import Edit from "../../../../components/Admin/Edit/Edit";
 import Add from "../../../../components/Admin/Add/Add";
 import ExportModal from "../../../../components/Admin/ExportModal/ExportModal";
+import * as Yup from "yup";
 
 import { db } from "../../../../../lib/firebase";
 import {
@@ -19,12 +20,41 @@ import {
   doc,
   serverTimestamp,
 } from "firebase/firestore";
-// Nếu muốn gửi email đặt lại mật khẩu thì mở dòng dưới và truyền auth + nút riêng:
-// import { auth } from "../../../../lib/firebase";
-// import { sendPasswordResetEmail } from "firebase/auth";
 
+/* ================= Helpers ================= */
 const toVN = (d) =>
   d instanceof Date && !isNaN(d) ? d.toLocaleString("vi-VN") : "";
+
+const trimStr = (v) => (typeof v === "string" ? v.trim() : v ?? "");
+const sanitize = (obj) =>
+  Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)); // Firestore không cho undefined
+
+const ROLE_OPTIONS = [
+  { value: "HOC_VIEN", label: "Học viên" },
+  { value: "GIANG_VIEN", label: "Giảng viên" },
+  { value: "ADMIN", label: "Quản trị" },
+];
+const ROLE_VALUES = ROLE_OPTIONS.map((o) => o.value);
+
+/* ===== Schema validate (không còn field ảnh) ===== */
+const EditSchema = Yup.object({
+  username: Yup.string().trim().required("Vui lòng nhập Tên đăng nhập").min(3, "Tối thiểu 3 ký tự"),
+  fullname: Yup.string().trim().required("Vui lòng nhập Họ tên").min(3, "Tối thiểu 3 ký tự"),
+  email: Yup.string().trim().required("Vui lòng nhập Email").email("Email không hợp lệ"),
+  role: Yup.string().oneOf(ROLE_VALUES, "Vai trò không hợp lệ").required("Vui lòng chọn vai trò"),
+});
+
+const AddSchema = Yup.object({
+  id: Yup.string()
+    .trim()
+    .matches(/^[\w-]*$/, "ID chỉ gồm chữ, số, gạch dưới, gạch ngang")
+    .max(64, "ID quá dài")
+    .notRequired(),
+  username: Yup.string().trim().required("Vui lòng nhập Tên đăng nhập").min(3, "Tối thiểu 3 ký tự"),
+  fullname: Yup.string().trim().required("Vui lòng nhập Họ tên").min(3, "Tối thiểu 3 ký tự"),
+  email: Yup.string().trim().required("Vui lòng nhập Email").email("Email không hợp lệ"),
+  role: Yup.string().oneOf(ROLE_VALUES, "Vai trò không hợp lệ").required("Vui lòng chọn vai trò"),
+});
 
 export default function MainContentAdminQuanUser() {
   const [data, setData] = useState([]);
@@ -42,26 +72,23 @@ export default function MainContentAdminQuanUser() {
 
   const [exportModal, setExportModal] = useState(false);
 
-  // ==== Load realtime từ Firestore/nguoiDung ====
+  /* ==== Load realtime từ Firestore/nguoiDung ==== */
   useEffect(() => {
     const unsub = onSnapshot(
-      collection(db, "nguoiDung"), // đúng tên collection bạn dùng
+      collection(db, "nguoiDung"),
       (snap) => {
         const rows = snap.docs.map((d) => {
           const u = d.data();
           const created =
             u?.ngayTaoTaiKhoan?.toDate?.() ??
-            (typeof u?.ngayTaoTaiKhoan === "string"
-              ? new Date(u.ngayTaoTaiKhoan)
-              : null);
-        return {
-            id: d.id, // dùng docId làm ID hiển thị & CRUD
+            (typeof u?.ngayTaoTaiKhoan === "string" ? new Date(u.ngayTaoTaiKhoan) : null);
+          return {
+            id: d.id, // dùng docId để CRUD
             username: u?.tenNguoiDung ?? "",
             fullname: u?.hoten ?? "",
             email: u?.email ?? "",
             role: u?.vaiTro ?? "",
             created: created ? toVN(created) : "",
-            image: u?.anhDaiDien ?? "",
             _raw: u,
           };
         });
@@ -77,47 +104,44 @@ export default function MainContentAdminQuanUser() {
     return () => unsub();
   }, []);
 
-  // ==== Cấu hình cột bảng / form ====
+  /* ==== Cột bảng (không có ảnh) ==== */
   const ColumsTable = [
-    { name: "ID", key: "id" },
-    { name: "UserName", key: "username" },
-    { name: "FullName", key: "fullname" },
+    { name: "Mã (docId)", key: "id" },
+    { name: "Tên đăng nhập", key: "username" },
+    { name: "Họ tên", key: "fullname" },
     { name: "Email", key: "email" },
     { name: "Vai trò", key: "role" },
-    { name: "Ngày Tạo", key: "created" },
+    { name: "Ngày tạo", key: "created" },
   ];
 
-  // Bản Edit/Add giữ nguyên layout nhưng sẽ bỏ qua "password" khi lưu (không set ở Firestore)
+  /* ==== Cột form Sửa / Thêm (không có ảnh) ==== */
   const ColumsEdit = [
-    { name: "ID", key: "id" },
-    { name: "UserName", key: "username" },
-    { name: "FullName", key: "fullname" },
-    // { name: "Password", key: "password" }, // ⚠️ KHÔNG lưu password vào Firestore
+    { name: "Mã (docId)", key: "id" },
+    { name: "Tên đăng nhập", key: "username" },
+    { name: "Họ tên", key: "fullname" },
     { name: "Email", key: "email" },
-    { name: "Vai trò", key: "role" },
-    { name: "Ngày Tạo", key: "created" },
+    { name: "Vai trò", key: "role", options: ROLE_OPTIONS },
+    { name: "Ngày tạo", key: "created" },
   ];
 
   const ColumsAdd = [
-    { name: "ID (tuỳ chọn - nếu để trống sẽ auto)", key: "id" },
-    { name: "UserName", key: "username" },
-    { name: "FullName", key: "fullname" },
-    // { name: "Password", key: "password" }, // ⚠️ KHÔNG lưu password vào Firestore
+    { name: "Mã (tùy chọn - để trống sẽ tự tạo)", key: "id" },
+    { name: "Tên đăng nhập", key: "username" },
+    { name: "Họ tên", key: "fullname" },
     { name: "Email", key: "email" },
-    { name: "Vai trò", key: "role" },
-    { name: "Image (URL)", key: "image" },
+    { name: "Vai trò", key: "role", options: ROLE_OPTIONS },
   ];
 
   const ColumsXuat = [
-    { name: "ID", key: "id" },
-    { name: "UserName", key: "username" },
-    { name: "FullName", key: "fullname" },
+    { name: "Mã", key: "id" },
+    { name: "Tên đăng nhập", key: "username" },
+    { name: "Họ tên", key: "fullname" },
     { name: "Email", key: "email" },
     { name: "Vai trò", key: "role" },
-    { name: "Ngày Tạo", key: "created" },
+    { name: "Ngày tạo", key: "created" },
   ];
 
-  // ==== Delete flow ====
+  /* ==== Delete flow ==== */
   const handleDelete = (id) => {
     setDeleteId(id);
     setShowDeleteDialog(true);
@@ -131,15 +155,14 @@ export default function MainContentAdminQuanUser() {
     if (!id) return;
     try {
       await deleteDoc(doc(db, "nguoiDung", id));
-      // UI sẽ tự cập nhật nhờ onSnapshot
       onCloseDelete();
     } catch (err) {
-      console.error("Xóa người dùng thất bại (Firestore):", err);
-      alert("Không thể xoá người dùng. Vui lòng thử lại.");
+      console.error("Xóa người dùng thất bại:", err);
+      alert(`Không thể xoá người dùng.\nChi tiết: ${err?.message || err}`);
     }
   };
 
-  // ==== Edit flow ====
+  /* ==== Edit flow ==== */
   const handleEdit = (id) => {
     const user = data.find((item) => String(item.id) === String(id));
     if (!user) return;
@@ -161,67 +184,60 @@ export default function MainContentAdminQuanUser() {
     }
     if (!updatedUser?.id) return;
 
-    // Map về schema Firestore "nguoiDung"
-    const payload = {
-      tenNguoiDung: updatedUser.username ?? "",
-      hoten: updatedUser.fullname ?? "",
-      email: updatedUser.email ?? "",
-      vaiTro: updatedUser.role ?? "",
-      anhDaiDien: updatedUser.image ?? "",
-      // ngayTaoTaiKhoan: KHÔNG ghi đè ở đây
-      // matkhau/password: KHÔNG lưu trong Firestore
-    };
+    const payload = sanitize({
+      tenNguoiDung: trimStr(updatedUser.username),
+      hoten: trimStr(updatedUser.fullname),
+      email: trimStr(updatedUser.email),
+      vaiTro: updatedUser.role || "HOC_VIEN",
+      // KHÔNG đụng tới ảnh
+      // KHÔNG ghi đè ngày tạo / mật khẩu
+    });
 
     try {
       await updateDoc(doc(db, "nguoiDung", updatedUser.id), payload);
-      // UI sẽ tự cập nhật qua onSnapshot
       handleUserDetailClose();
     } catch (err) {
-      console.error("Cập nhật người dùng thất bại (Firestore):", err);
-      alert("Không thể lưu thay đổi. Vui lòng thử lại.");
+      console.error("Cập nhật người dùng thất bại:", err);
+      alert(`Không thể lưu thay đổi.\nChi tiết: ${err?.message || err}`);
     }
   };
 
-  // ==== Add flow ====
+  /* ==== Add flow ==== */
   const handleAddUser = () => setShowAddDialog(true);
   const handleAddClose = () => setShowAddDialog(false);
 
   const handleAddSave = async (newUser) => {
     try {
-      const id = String(newUser?.id || "").trim() || null;
-
-      const payload = {
-        idNguoiDung: id || undefined, // sẽ set đúng sau nếu addDoc sinh id
-        tenNguoiDung: newUser?.username || "",
-        hoten: newUser?.fullname || "",
-        email: newUser?.email || "",
+      const id = trimStr(newUser?.id || "");
+      const basePayload = sanitize({
+        tenNguoiDung: trimStr(newUser?.username || ""),
+        hoten: trimStr(newUser?.fullname || ""),
+        email: trimStr(newUser?.email || ""),
         vaiTro: newUser?.role || "HOC_VIEN",
-        anhDaiDien: newUser?.image || "",
         ngayTaoTaiKhoan: serverTimestamp(),
-      };
+        // KHÔNG có ảnh
+      });
 
       if (id) {
-        // Tạo doc với id cụ thể (ví dụ bạn nhập đúng UID đã có)
-        await setDoc(doc(db, "nguoiDung", id), payload);
+        // Tự đặt docId = id
+        await setDoc(doc(db, "nguoiDung", id), {
+          ...basePayload,
+          idNguoiDung: id,
+        });
       } else {
-        // Tạo doc mới -> cập nhật idNguoiDung = doc.id cho nhất quán
-        const ref = await addDoc(collection(db, "nguoiDung"), payload);
+        // Tạo doc auto-id, rồi cập nhật idNguoiDung = doc.id
+        const ref = await addDoc(collection(db, "nguoiDung"), basePayload);
         await updateDoc(ref, { idNguoiDung: ref.id });
       }
 
       handleAddClose();
-      // UI tự cập nhật nhờ onSnapshot
-
-      // ⚠️ Lưu ý: Thêm user ở đây chỉ tạo HỒ SƠ (profile).
-      // Nếu cần tài khoản đăng nhập (Auth), bạn nên dùng trang Đăng ký,
-      // hoặc tạo tài khoản qua backend (Admin SDK) rồi sync profile.
     } catch (err) {
-      console.error("Thêm người dùng thất bại (Firestore):", err);
-      alert("Không thể thêm người dùng. Vui lòng thử lại.");
+      console.error("Thêm người dùng thất bại:", err);
+      alert(`Không thể thêm người dùng.\nChi tiết: ${err?.message || err}`);
     }
   };
 
-  // ==== Action buttons (table) ====
+  /* ==== Action buttons ==== */
   const Action = [
     {
       name: "👀",
@@ -239,17 +255,14 @@ export default function MainContentAdminQuanUser() {
 
   return (
     <div className="main-content-admin-user">
-      <h1>Quản Lý Người Dùng</h1>
+      <h1>Quản lý người dùng</h1>
 
       <div className="user-actions">
         <div className="user-actions-buttons">
           <button className="btn btn-primary" onClick={handleAddUser}>
             Thêm
           </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setExportModal(true)}
-          >
+          <button className="btn btn-secondary" onClick={() => setExportModal(true)}>
             Xuất
           </button>
         </div>
@@ -276,7 +289,11 @@ export default function MainContentAdminQuanUser() {
           onSave={handleUserDetailSave}
           isEditMode={isEditMode}
           Colums={ColumsEdit}
-          showAvatar={true}
+          showAvatar={false}            // ẨN avatar/ảnh
+          readOnlyKeys={["id", "created"]}
+          selectFields={{ role: ROLE_OPTIONS }}
+          validationSchema={EditSchema}
+          validateOnChange={true}
         />
       )}
 
@@ -286,7 +303,10 @@ export default function MainContentAdminQuanUser() {
           onClose={handleAddClose}
           onSave={handleAddSave}
           Colums={ColumsAdd}
-          showAvatar={true}
+          showAvatar={false}            // ẨN avatar/ảnh
+          selectFields={{ role: ROLE_OPTIONS }}
+          validationSchema={AddSchema}
+          validateOnChange={true}
         />
       )}
 
@@ -295,9 +315,6 @@ export default function MainContentAdminQuanUser() {
         <ExportModal
           isOpen={exportModal}
           onClose={() => setExportModal(false)}
-          onExport={(rows) => {
-            console.log("Dữ liệu xuất:", rows);
-          }}
           filteredData={filteredData}
           title="Xuất thông tin người dùng"
           columns={ColumsXuat}

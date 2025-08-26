@@ -1,301 +1,309 @@
 /* =============================
-   Biến dùng chung (dễ chỉnh)
+   Tokens
 ============================= */
-:root {
-  --clr-primary-1: #667eea;
-  --clr-primary-2: #764ba2;
-  --clr-text: #111827;
-  --clr-muted: #6b7280;
-  --clr-border: #e5e7eb;
-  --clr-border-soft: #f0f0f0;
-  --clr-bg: #ffffff;
-  --clr-bg-soft: #f8f9fa;
-  --overlay: rgba(0, 0, 0, 0.5);
+:root{
+  --clr-primary-1:#667eea;
+  --clr-primary-2:#764ba2;
+  --clr-text:#111827;
+  --clr-muted:#6b7280;
+  --clr-border:#e5e7eb;
+  --clr-border-soft:#f3f4f6;
+  --clr-bg:#ffffff;
+  --clr-bg-soft:#f8f9fa;
+  --overlay:rgba(0,0,0,.5);
 
-  --radius: 12px;
-  --radius-sm: 6px;
+  --radius:12px;
+  --radius-sm:8px;
 
-  --space-1: 8px;
-  --space-2: 12px;
-  --space-3: 16px;
-  --space-4: 20px;
-  --space-5: 24px;
+  --s-1:8px;
+  --s-2:12px;
+  --s-3:16px;
+  --s-4:20px;
+  --s-5:24px;
 
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  --focus-ring: 0 0 0 2px rgba(102, 126, 234, 0.25);
+  --shadow:0 10px 30px rgba(0,0,0,.25);
+  --focus:0 0 0 3px rgba(102,126,234,.18);
 }
 
 /* =============================
-   Overlay + Khung modal
+   Overlay + Modal
 ============================= */
-.user-detail-modal-overlay {
-  position: fixed;
-  inset: 0; /* top:0;right:0;bottom:0;left:0 */
-  background-color: var(--overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-
-  /* Nhẹ nhàng hiện lên */
-  animation: overlayFade 0.2s ease-out;
+.user-detail-modal-overlay{
+  position:fixed; inset:0;
+  background:var(--overlay);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000;
+  animation:fadeIn .18s ease-out;
 }
+@keyframes fadeIn{from{opacity:0} to{opacity:1}}
 
-@keyframes overlayFade {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+.user-detail-modal{
+  width:92%; max-width:560px; max-height:92vh;
+  background:var(--clr-bg);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  animation:slideIn .22s ease-out;
 }
-
-.user-detail-modal {
-  width: 90%;
-  max-width: 520px;
-  max-height: 90vh;
-  background: var(--clr-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-
-  /* Trượt nhẹ xuống khi mở */
-  animation: modalSlideIn 0.25s ease-out;
-}
-
-@keyframes modalSlideIn {
-  from { opacity: 0; transform: translateY(-18px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+@keyframes slideIn{from{opacity:0; transform:translateY(-14px)} to{opacity:1; transform:translateY(0)}}
 
 /* =============================
    Header
 ============================= */
-.user-detail-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-4) var(--space-5);
-  color: #fff;
-  background: linear-gradient(135deg, var(--clr-primary-1) 0%, var(--clr-primary-2) 100%);
+.user-detail-modal-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:var(--s-4) var(--s-5);
+  color:#fff;
+  background:linear-gradient(135deg,var(--clr-primary-1),var(--clr-primary-2));
 }
-
-.user-detail-modal-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
+.user-detail-modal-header h2{
+  margin:0; font-size:1.2rem; font-weight:600;
 }
-
-.modal-close-btn {
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: #fff;
-  font-size: 22px;
-  line-height: 1;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
+.modal-close-btn{
+  width:32px; height:32px; border:0; border-radius:50%;
+  background:transparent; color:#fff; font-size:20px;
+  display:grid; place-items:center; cursor:pointer;
+  transition:background-color .12s ease;
 }
-.modal-close-btn:hover { background-color: rgba(255, 255, 255, 0.2); }
+.modal-close-btn:hover{ background:rgba(255,255,255,.22); }
 
 /* =============================
-   Nội dung
+   Content
 ============================= */
-.user-detail-modal-content {
-  padding: var(--space-5);
+.user-detail-modal-content{
+  padding:var(--s-5);
+  color:var(--clr-text);
+}
+
+/* Avatar (optional) */
+.user-avatar-section{ display:flex; justify-content:center; margin-bottom:var(--s-5); }
+.user-avatar{ position:relative; }
+.avatar-placeholder{
+  width:96px; height:96px; border-radius:50%;
+  background:#e2e8f0; overflow:hidden;
+  display:grid; place-items:center;
+  transition:transform .12s ease;
+}
+.avatar-placeholder:hover{ transform:scale(1.03); }
+.avatar-icon{ font-size:1.75rem; color:#fff; }
+.avatar-image{ width:100%; height:100%; object-fit:cover; display:block; }
+.avatar-edit-icon{
+  position:absolute; right:0; bottom:0;
+  width:24px; height:24px; border-radius:50%;
+  border:2px solid #fff; background:#10b981; color:#fff;
+  font-size:12px; font-weight:700; display:grid; place-items:center;
+}
+
+/* =============================
+   Info rows
+============================= */
+.user-info-section{ display:flex; flex-direction:column; gap:var(--s-2); }
+
+.info-row{
+  display:flex; align-items:center; gap:var(--s-3);
+  padding:var(--s-2) 0;
+  border-bottom:1px solid var(--clr-border-soft);
+}
+.info-row:last-child{ border-bottom:0; }
+
+.info-row label{
+  min-width:140px;
+  font-weight:600; color:var(--clr-text);
+}
+.info-row span{
+  flex:1; color:var(--clr-muted); word-break:break-word;
+}
+
+/* Inputs */
+.edit-input{
+  flex:1;
+  padding:10px 12px;
+  border:1px solid var(--clr-border);
+  border-radius:var(--radius-sm);
+  background:#fff; color:var(--clr-text);
+  font-size:14px;
+  transition:border-color .12s ease, box-shadow .12s ease, background .12s ease;
+}
+.edit-input:focus{
+  outline:none; border-color:var(--clr-primary-1); box-shadow:var(--focus);
+}
+
+/* Error state */
+.edit-input.error{
+  border-color:#dc2626 !important;
+  background:#fef2f2;
+}
+.field-error{
+  margin-top:6px; font-size:12px; color:#dc2626;
+}
+
+/* =============================
+   Footer actions
+============================= */
+.user-detail-modal-actions{
+  display:flex; justify-content:flex-end; gap:var(--s-2);
+  padding:var(--s-4) var(--s-5);
+  background:var(--clr-bg-soft);
+  border-top:1px solid var(--clr-border);
+}
+
+.btn-cancel, .btn-edit, .btn-save{
+  padding:10px 16px; font-size:14px; font-weight:600;
+  border-radius:var(--radius-sm); cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+/* Cancel */
+.btn-cancel{
+  border:1px solid var(--clr-border); background:#fff; color:var(--clr-muted);
+}
+.btn-cancel:hover{ background:#f5f5f5; }
+
+/* Edit/Save */
+.btn-edit, .btn-save{
+  border:0; color:#fff;
+  background:linear-gradient(135deg,var(--clr-primary-1),var(--clr-primary-2));
+}
+.btn-edit:hover, .btn-save:hover{
+  transform:translateY(-1px);
+  box-shadow:0 6px 16px rgba(102,126,234,.35);
+}
+/* ---- ERROR UNDER INPUT, KEEP INPUT WIDTH ---- */
+:root { --label-w: 140px; } /* chỉnh bề rộng label ở đây */
+
+.info-row{
+  display: flex;
+  align-items: flex-start;        /* để error xếp đúng trục trên */
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--clr-border-soft);
+  flex-wrap: wrap;                /* cho phép xuống dòng */
+}
+.info-row:last-child{ border-bottom:0; }
+
+.info-row label{
+  flex: 0 0 var(--label-w);       /* cố định rộng label */
+  min-width: var(--label-w);
+  font-weight: 600;
   color: var(--clr-text);
 }
 
-/* Avatar (tuỳ chọn showAvatar=true) */
-.user-avatar-section {
-  display: flex;
-  justify-content: center;
-  margin-bottom: var(--space-5);
+/* input/select giữ full width còn lại, không bị co lại */
+.info-row .edit-input{
+  flex: 1 1 0;
+  min-width: 240px;               /* optional: tránh quá hẹp */
 }
-.user-avatar { position: relative; }
 
-/* Khung avatar chung (không trùng lặp) */
-.avatar-placeholder {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  overflow: hidden;        /* ảnh không tràn */
-  background: #e2e8f0;     /* màu nền khi chưa có ảnh */
+/* lỗi rơi xuống dòng dưới, canh theo mép input */
+.info-row .field-error{
+  flex: 0 0 100%;                 /* chiếm cả hàng mới */
+  margin-left: var(--label-w);    /* thụt vào bằng label */
+  margin-top: 6px;
+  color: #dc2626;
+  font-size: 12px;
+}
+
+/* mobile: xếp dọc, bỏ thụt lề */
+@media (max-width: 600px){
+  .info-row{ flex-direction: column; align-items: stretch; }
+  .info-row label{ flex: 0 0 auto; min-width: 0; }
+  .info-row .field-error{ margin-left: 0; }
+}
+/* ========== LỖI DƯỚI Ô (BẢN CHUẨN, KHÔNG CO INPUT) ========== */
+:root { --label-w: 160px; } /* sửa bề rộng label nếu muốn */
+
+.user-detail-modal .info-row{
   display: grid;
-  place-items: center;
-  transition: transform 0.15s ease;
+  grid-template-columns: var(--label-w) minmax(0,1fr); /* cột 1: label cố định, cột 2: input full */
+  column-gap: 16px;
+  row-gap: 6px;
+  align-items: start;          /* để error dính sát input */
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--clr-border-soft);
 }
-.avatar-placeholder:hover { transform: scale(1.03); }
+.user-detail-modal .info-row:last-child{ border-bottom: 0; }
 
-.avatar-icon { font-size: 1.75rem; color: #fff; }
+.user-detail-modal .info-row label{
+  grid-column: 1;
+  margin: 0;
+  font-weight: 600;
+  color: var(--clr-text);
+}
 
-.avatar-image,
-.user-detail-modal .avatar-image {  /* hỗ trợ tên cũ bạn dùng */
+/* input/select chiếm cột 2, full rộng, KHÔNG co khi báo lỗi */
+.user-detail-modal .info-row .edit-input{
+  grid-column: 2;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  min-height: 38px;
+  padding: 10px 12px;
+  border: 1px solid var(--clr-border);  /* giữ 1px để không đổi kích thước khi error */
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--clr-text);
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color .12s ease, box-shadow .12s ease, background .12s ease;
+}
+.user-detail-modal .info-row .edit-input:focus{
+  outline: none;
+  border-color: var(--clr-primary-1);
+  box-shadow: var(--focus);
+}
+
+/* trạng thái lỗi: chỉ đổi màu viền + nền — KHÔNG đổi độ dày viền */
+.user-detail-modal .info-row .edit-input.error{
+  border-color: #dc2626 !important;
+  background: #fef2f2;
+}
+
+/* dòng lỗi nằm NGAY dưới input (cột 2), không làm xô lệch layout */
+.user-detail-modal .info-row .field-error{
+  grid-column: 2;
+  margin: 2px 0 0;
+  color: #dc2626;
+  font-size: 12px;
+  line-height: 1.25;
   display: block;
 }
 
-/* Dấu + chỉnh sửa ảnh (nếu cho phép) */
-.avatar-edit-icon {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 24px;
-  height: 24px;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: #10b981;     /* xanh positive */
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  display: grid;
-  place-items: center;
+/* Mobile: xếp dọc, lỗi nằm ngay dưới input như thường */
+@media (max-width: 600px){
+  .user-detail-modal .info-row{
+    grid-template-columns: 1fr;
+    row-gap: 8px;
+  }
+  .user-detail-modal .info-row label{ grid-column: 1; }
+  .user-detail-modal .info-row .edit-input{ grid-column: 1; }
+  .user-detail-modal .info-row .field-error{ grid-column: 1; }
+}
+/* ====== FIX CỨNG CHIỀU NGANG POPUP ====== */
+:root { --popup-w: 720px; }  /* đổi 720px theo ý bạn */
+
+.user-detail-modal{
+  width: var(--popup-w) !important;
+  min-width: var(--popup-w) !important;
+  max-width: var(--popup-w) !important;
+  box-sizing: border-box;
 }
 
-/* =============================
-   Các dòng thông tin
-============================= */
-.user-info-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-/* Một hàng thông tin: label + value/input */
-.info-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--clr-border-soft);
-}
-.info-row:last-child { border-bottom: 0; }
-
-.info-row label {
-  min-width: 140px;        /* label rộng vừa phải */
-  color: var(--clr-text);
-  font-weight: 600;
-}
-.info-row span {
-  flex: 1;
-  color: var(--clr-muted);
-  word-break: break-word;  /* tránh tràn chữ dài */
-}
-
-/* Input / Select dùng chung */
-.edit-input {
-  flex: 1;
-  padding: 8px 10px;
-  border: 1px solid var(--clr-border);
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  color: var(--clr-text);
-  background: var(--clr-bg);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.edit-input:focus {
-  outline: none;
-  border-color: var(--clr-primary-1);
-  box-shadow: var(--focus-ring);
-}
-
-/* Password field (nếu dùng) */
-.password-input-container {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-.password-toggle-btn {
-  position: absolute;
-  right: 8px;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  padding: 4px;
-  font-size: 16px;
-  color: var(--clr-muted);
-}
-.password-toggle-btn:hover { opacity: 0.8; }
-
-/* =============================
-   Footer (nút hành động)
-============================= */
-.user-detail-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-  padding: var(--space-4) var(--space-5);
-  background: var(--clr-bg-soft);
-  border-top: 1px solid var(--clr-border);
-  border-radius: 0 0 var(--radius) var(--radius);
-}
-
-/* Nút cơ bản */
-.btn-cancel,
-.btn-edit,
-.btn-save {
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
-}
-
-/* Cancel: nền trắng, viền xám */
-.btn-cancel {
-  border: 1px solid var(--clr-border);
-  background: #fff;
-  color: var(--clr-muted);
-}
-.btn-cancel:hover {
-  background: #f5f5f5;
-}
-
-/* Edit & Save: gradient tím */
-.btn-edit,
-.btn-save {
-  border: none;
-  color: #fff;
-  background: linear-gradient(135deg, var(--clr-primary-1) 0%, var(--clr-primary-2) 100%);
-}
-.btn-edit:hover,
-.btn-save:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+/* Fallback cho màn nhỏ: co theo màn để không vỡ layout */
+@media (max-width: 780px){
+  .user-detail-modal{
+    width: calc(100vw - 24px) !important;
+    min-width: auto !important;
+    max-width: none !important;
+  }
 }
 
 /* =============================
    Responsive
 ============================= */
-@media (max-width: 600px) {
-  .user-detail-modal {
-    width: 95%;
-    margin: 10px;
-  }
+@media (max-width:600px){
+  .user-detail-modal{ width:95%; }
+  .user-detail-modal-header{ padding:var(--s-3) var(--s-4); }
+  .user-detail-modal-content{ padding:var(--s-4); }
+  .user-detail-modal-actions{ padding:var(--s-3) var(--s-4); }
 
-  .user-detail-modal-header {
-    padding: var(--space-3) var(--space-4);
-  }
-
-  .user-detail-modal-content {
-    padding: var(--space-4);
-  }
-
-  .user-detail-modal-actions {
-    padding: var(--space-3) var(--space-4);
-  }
-
-  /* Hàng thông tin xếp dọc, dễ đọc */
-  .info-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .info-row label {
-    min-width: 0;
-  }
+  .info-row{ flex-direction:column; align-items:stretch; }
+  .info-row label{ min-width:0; }
 }

@@ -85,7 +85,7 @@ export default function NguoiDungLayout() {
   const AILockedButton = () => {
     const onLockedClick = () => {
       alert("Tính năng AI chỉ dành cho tài khoản trả phí. Vui lòng nâng cấp để sử dụng.");
-      navigate("/traphi"); // đồng bộ với Sidebar
+      navigate("/tra-phi"); // đồng bộ với Sidebar
     };
     return (
       <div className="ai-locked-container">

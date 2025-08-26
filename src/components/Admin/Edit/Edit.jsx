@@ -1,6 +1,25 @@
-import React, { useState, useRef, useEffect } from "react";
+// src/components/Admin/Edit/Edit.jsx
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import "./Edit.css";
 
+/**
+ * Props chính:
+ * - user: object dữ liệu đang chỉnh
+ * - onClose(): đóng modal
+ * - onSave(payload, isEditFlag?): parent tự đóng khi thành công (component này KHÔNG auto close)
+ * - isEditMode: boolean (parent bật bằng cách gọi onSave(user, true))
+ * - Colums: [{ name, key, options? }]
+ * - showAvatar: boolean
+ *
+ * Props mở rộng:
+ * - readOnlyKeys: string[]
+ * - selectFields: { [key]: Array<{value,label}> }
+ * - selectLabels: { [key]: (v)=>string }
+ *
+ * Validate:
+ * - validationSchema: Yup schema
+ * - validateOnChange: boolean (mặc định false, chỉ validate onBlur + khi bấm Lưu)
+ */
 const Edit = ({
   user,
   onClose,
@@ -8,27 +27,80 @@ const Edit = ({
   isEditMode = false,
   Colums,
   showAvatar,
-
-  // ====== props mở rộng (tất cả đều optional, không ảnh hưởng chỗ cũ) ======
-  readOnlyKeys = [],                   // ví dụ: ["id", "created", "memberCount", "cardCount"]
-  selectFields = {},                   // ví dụ: { userCreated: [{value:"1",label:"Admin 1"}] }
-  selectLabels = {},                   // ví dụ: { userCreated: (v)=>`ID ${v}` }
+  readOnlyKeys = [],
+  selectFields = {},
+  selectLabels = {},
+  validationSchema,       // <-- nhận Yup schema
+  validateOnChange = false,
 }) => {
   const [formData, setFormData] = useState({ ...user });
+  const [errors, setErrors] = useState({}); // { key: "message" }
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     setFormData({ ...user });
+    setErrors({});
   }, [user]);
 
-  const handleInputChange = (key) => (e) => {
+  /* ======= helpers ======= */
+  const setFieldError = (key, message) =>
+    setErrors((prev) => ({ ...prev, [key]: message || "" }));
+
+  const clearFieldError = (key) =>
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+
+  const validateField = useCallback(
+    async (key, data) => {
+      if (!validationSchema || !validationSchema.validateAt) return;
+      try {
+        await validationSchema.validateAt(key, data);
+        clearFieldError(key);
+      } catch (err) {
+        setFieldError(key, err?.message || "Giá trị không hợp lệ");
+      }
+    },
+    [validationSchema]
+  );
+
+  const validateAll = useCallback(async () => {
+    if (!validationSchema) return { ok: true };
+    try {
+      await validationSchema.validate(formData, { abortEarly: false });
+      setErrors({});
+      return { ok: true };
+    } catch (err) {
+      if (err?.name === "ValidationError") {
+        const map = {};
+        for (const e of err.inner || []) {
+          if (e.path && !map[e.path]) map[e.path] = e.message;
+        }
+        setErrors(map);
+      }
+      return { ok: false };
+    }
+  }, [validationSchema, formData]);
+
+  const handleInputChange = (key) => async (e) => {
     const value = e.target.value;
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [key]: value };
+      if (validateOnChange) validateField(key, next);
+      return next;
+    });
   };
 
-  const handleSave = () => {
-    onSave(formData);
-    onClose();
+  const handleBlur = (key) => async () => {
+    await validateField(key, formData);
+  };
+
+  const handleSave = async () => {
+    const { ok } = await validateAll();
+    if (!ok) return; // giữ modal & hiển thị lỗi dưới ô
+    onSave(formData); // parent sẽ tự đóng khi cập nhật thành công
   };
 
   const handleImageChange = (e) => {
@@ -46,7 +118,6 @@ const Edit = ({
     if (isEditMode) fileInputRef.current?.click();
   };
 
-  // ===== Helpers mặc định cho một số field phổ biến =====
   const defaultRoleOptions = [
     { value: "HOC_VIEN", label: "Học viên" },
     { value: "GIANG_VIEN", label: "Giảng viên" },
@@ -58,7 +129,6 @@ const Edit = ({
     { value: "Đã hủy", label: "Đã hủy" },
   ];
 
-  // lấy label hiển thị từ options/mapper
   const getLabelFromOptions = (key, value, opts) => {
     if (typeof selectLabels[key] === "function") return selectLabels[key](value);
     if (Array.isArray(opts)) {
@@ -104,8 +174,9 @@ const Edit = ({
               const key = item.key;
               const val = formData[key] ?? "";
               const readOnly = readOnlyKeys.includes(key);
+              const errMsg = errors[key];
 
-              // ===== 1) ROLE: ưu tiên item.options, fallback defaultRoleOptions
+              // ROLE
               if (key === "role") {
                 const opts = Array.isArray(item.options) ? item.options : defaultRoleOptions;
                 if (!isEditMode || readOnly) {
@@ -122,28 +193,34 @@ const Edit = ({
                     <select
                       value={val}
                       onChange={handleInputChange(key)}
-                      className="edit-input"
+                      onBlur={handleBlur(key)}
+                      className={`edit-input ${errMsg ? "error" : ""}`}
                     >
                       {opts.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
+                    {errMsg && <div className="field-error">{errMsg}</div>}
                   </div>
                 );
               }
 
-              // ===== 2) PASSWORD: giữ nguyên hành vi
+              // PASSWORD
               if (key === "password") {
                 return (
                   <div key={index} className="info-row">
                     <label>{item.name}</label>
                     {isEditMode && !readOnly ? (
-                      <input
-                        type="password"
-                        value={val}
-                        onChange={handleInputChange(key)}
-                        className="edit-input"
-                      />
+                      <>
+                        <input
+                          type="password"
+                          value={val}
+                          onChange={handleInputChange(key)}
+                          onBlur={handleBlur(key)}
+                          className={`edit-input ${errMsg ? "error" : ""}`}
+                        />
+                        {errMsg && <div className="field-error">{errMsg}</div>}
+                      </>
                     ) : (
                       <span>••••••</span>
                     )}
@@ -151,7 +228,7 @@ const Edit = ({
                 );
               }
 
-              // ===== 3) STATUS: ưu tiên item.options, fallback defaultStatusOptions
+              // STATUS
               if (key === "status") {
                 const opts = Array.isArray(item.options) ? item.options : defaultStatusOptions;
                 if (!isEditMode || readOnly) {
@@ -168,19 +245,19 @@ const Edit = ({
                     <select
                       value={val}
                       onChange={handleInputChange(key)}
-                      className="edit-input"
+                      onBlur={handleBlur(key)}
+                      className={`edit-input ${errMsg ? "error" : ""}`}
                     >
                       {opts.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
+                    {errMsg && <div className="field-error">{errMsg}</div>}
                   </div>
                 );
               }
 
-              // ===== 4) GENERIC SELECT:
-              // - nếu Colums cung cấp item.options => dùng
-              // - else nếu selectFields prop có options cho key => dùng
+              // GENERIC SELECT
               const providedOpts = Array.isArray(item.options)
                 ? item.options
                 : Array.isArray(selectFields[key])
@@ -202,7 +279,8 @@ const Edit = ({
                     <select
                       value={val}
                       onChange={handleInputChange(key)}
-                      className="edit-input"
+                      onBlur={handleBlur(key)}
+                      className={`edit-input ${errMsg ? "error" : ""}`}
                     >
                       <option value="">-- chọn --</option>
                       {providedOpts.map((o) => (
@@ -211,11 +289,12 @@ const Edit = ({
                         </option>
                       ))}
                     </select>
+                    {errMsg && <div className="field-error">{errMsg}</div>}
                   </div>
                 );
               }
 
-              // ===== 5) Text input mặc định (tôn trọng readOnlyKeys)
+              // TEXT INPUT mặc định
               if (!isEditMode || readOnly) {
                 return (
                   <div key={index} className="info-row">
@@ -232,8 +311,10 @@ const Edit = ({
                     type="text"
                     value={val}
                     onChange={handleInputChange(key)}
-                    className="edit-input"
+                    onBlur={handleBlur(key)}
+                    className={`edit-input ${errMsg ? "error" : ""}`}
                   />
+                  {errMsg && <div className="field-error">{errMsg}</div>}
                 </div>
               );
             })}
@@ -245,7 +326,7 @@ const Edit = ({
           {isEditMode ? (
             <button className="btn-save" onClick={handleSave}>Lưu</button>
           ) : (
-            <button className="btn-edit" onClick={() => onSave(user, true)}>Chỉnh sửa</button>
+            <button className="btn-edit" onClick={() => onSave(formData, true)}>Chỉnh sửa</button>
           )}
         </div>
       </div>
