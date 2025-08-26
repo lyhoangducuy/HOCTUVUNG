@@ -3,6 +3,19 @@ import { useNavigate } from "react-router-dom";
 import Button from "../../../components/inputs/Button";
 import "./Traphi.css";
 
+import { auth, db } from "../../../../lib/firebase";
+import {
+  collection,
+  onSnapshot,
+  query,
+  where,
+  addDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+  orderBy,
+} from "firebase/firestore";
+
 /* -------- Helpers -------- */
 const VN = "vi-VN";
 const genId = (p) => `${p}_${Date.now()}`;
@@ -22,123 +35,149 @@ const parseVN = (dmy) => {
   return new Date(y, (m || 1) - 1, d || 1);
 };
 
+// cố gắng chuyển nhiều kiểu ngày (Timestamp, string VN/ISO, Date) -> Date
+const toDateFlexible = (v) => {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  if (typeof v?.toDate === "function") return v.toDate(); // Firestore Timestamp
+  if (typeof v === "string") return parseVN(v) || new Date(v);
+  return null;
+};
+
 function Traphi() {
   const navigate = useNavigate();
 
-  const [currentUser, setCurrentUser] = useState(null);
+  const [uid, setUid] = useState(null);
   const [packs, setPacks] = useState([]);
-  const [activeSub, setActiveSub] = useState(null); // {idGTPCND, idGoi, NgayBatDau, NgayKetThuc, status}
-
-  // Gói mặc định nếu chưa có
-  const DEFAULT_PACKS = [
-    {
-      idGoi: "GOI_" + (Date.now() - 2),
-      tenGoi: "1 tháng",
-      moTa: "Truy cập đầy đủ tính năng trong 30 ngày.",
-      giaGoi: 30000,
-      thoiHan: 30,
-      giamGia: 0,
-    },
-    {
-      idGoi: "GOI_" + (Date.now() - 1),
-      tenGoi: "1 năm",
-      moTa: "Tiết kiệm hơn với gói 12 tháng.",
-      giaGoi: 120000,
-      thoiHan: 365,
-      giamGia: 20,
-    },
-  ];
+  const [activeSub, setActiveSub] = useState(null); // { ...data, _docId }
 
   // Tính giá sau giảm
   const calcDiscounted = (gia, giamGia) => {
     const g = Number(gia || 0);
     const gg = Math.min(100, Math.max(0, Number(giamGia || 0)));
     return Math.max(0, Math.round(g * (1 - gg / 100)));
-    // Lưu ý: nếu muốn làm tròn theo tiền (đ) thì giữ nguyên .toLocaleString ở UI
   };
 
-  // Tải dữ liệu + xác định gói active (bỏ qua gói status = "Đã hủy")
-  const loadAll = () => {
-    const sessionUser = JSON.parse(sessionStorage.getItem("session") || "null");
-    if (!sessionUser) {
+  // Lấy uid (ưu tiên Firebase Auth, fallback session nếu app vẫn set)
+  useEffect(() => {
+    const session = JSON.parse(sessionStorage.getItem("session") || "null");
+    const _uid = auth.currentUser?.uid || session?.idNguoiDung || null;
+    if (!_uid) {
       alert("Vui lòng đăng nhập để sử dụng tính năng trả phí.");
-      navigate("/");
+      navigate("/dang-nhap");
       return;
     }
-    setCurrentUser(sessionUser);
+    setUid(String(_uid));
+  }, [navigate]);
 
-    let storedPacks = JSON.parse(localStorage.getItem("goiTraPhi") || "[]");
-    if (!Array.isArray(storedPacks) || storedPacks.length === 0) {
-      storedPacks = DEFAULT_PACKS;
-      localStorage.setItem("goiTraPhi", JSON.stringify(storedPacks));
-    }
-    setPacks(storedPacks);
-
-    const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
-    const mySubs = subs.filter((s) => s.idNguoiDung === sessionUser.idNguoiDung);
-
-    const today = new Date();
-    const activeOnes = mySubs.filter((s) => {
-      const end = parseVN(s.NgayKetThuc);
-      const isCanceled = s.status === "Đã hủy";
-      return !isCanceled && end && end >= today;
-    });
-
-    if (activeOnes.length > 0) {
-      const chosen = activeOnes
-        .sort((a, b) => (parseVN(b.NgayKetThuc) ?? 0) - (parseVN(a.NgayKetThuc) ?? 0))[0];
-      setActiveSub(chosen);
-    } else {
-      setActiveSub(null);
-    }
-  };
-
+  // Nạp danh sách gói (goiTraPhi)
   useEffect(() => {
-    loadAll();
-    // reload khi nơi khác cập nhật sub
-    const onSubChanged = () => loadAll();
-    window.addEventListener("subscriptionChanged", onSubChanged);
-    return () => window.removeEventListener("subscriptionChanged", onSubChanged);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const qPacks = query(collection(db, "goiTraPhi"), orderBy("giaGoi", "asc"));
+    const unsub = onSnapshot(
+      qPacks,
+      (snap) => {
+        const list = snap.docs.map((d) => {
+          const data = d.data();
+          // idGoi: ưu tiên field trong doc, fallback sang doc id
+          return { ...data, idGoi: data.idGoi ?? d.id };
+        });
+        setPacks(list);
+      },
+      () => setPacks([])
+    );
+    return () => unsub();
   }, []);
+
+  // Nạp gói đang hoạt động của user (goiTraPhiCuaNguoiDung)
+  useEffect(() => {
+    if (!uid) return;
+    const qSubs = query(
+      collection(db, "goiTraPhiCuaNguoiDung"),
+      where("idNguoiDung", "==", String(uid))
+    );
+    const unsub = onSnapshot(
+      qSubs,
+      (snap) => {
+        const today = new Date();
+        const items = snap.docs.map((d) => ({ ...d.data(), _docId: d.id }));
+        // lọc các sub còn hạn và chưa hủy
+        const active = items
+          .filter((s) => {
+            if (s?.status === "Đã hủy") return false;
+            const end = toDateFlexible(s?.NgayKetThuc);
+            return end && end >= today;
+          })
+          // lấy sub có hạn xa nhất (nếu nhiều)
+          .sort(
+            (a, b) =>
+              (toDateFlexible(b.NgayKetThuc)?.getTime() || 0) -
+              (toDateFlexible(a.NgayKetThuc)?.getTime() || 0)
+          )[0];
+        setActiveSub(active || null);
+      },
+      () => setActiveSub(null)
+    );
+    return () => unsub();
+  }, [uid]);
 
   const hasActiveSub = !!activeSub;
 
-  // Tạo đơn hàng (pending) và chuyển đến trang Checkout
-  const handleSub = (pack) => {
-    if (!currentUser) return;
+  // Tạo đơn hàng pending và điều hướng Checkout
+  const handleSub = async (pack) => {
+    if (!uid) return;
     if (hasActiveSub) {
       alert("Bạn đã có gói đang hoạt động. Hãy hủy hoặc chờ hết hạn mới đăng ký gói khác.");
       return;
     }
 
-    const giaSauGiam = calcDiscounted(pack.giaGoi, pack.giamGia);
+    try {
+      const giaSauGiam = calcDiscounted(pack.giaGoi, pack.giamGia);
 
-    const orders = JSON.parse(localStorage.getItem("donHangTraPhi") || "[]");
-    const order = {
-      idDonHang: genId("ORDER"),
-      idNguoiDung: currentUser.idNguoiDung,
-      idGoi: pack.idGoi,
-      tenGoi: pack.tenGoi,
-      giaGoc: Number(pack.giaGoi || 0),
-      giamGia: Number(pack.giamGia || 0),
-      soTienThanhToan: giaSauGiam,
-      thoiHanNgay: Number(pack.thoiHan || 0),
-      trangThai: "pending", // pending | paid | canceled
-      createdAt: new Date().toISOString(),
-    };
-    orders.push(order);
-    localStorage.setItem("donHangTraPhi", JSON.stringify(orders));
+      const payload = {
+        idDonHang: "", // sẽ gán bằng doc id ngay sau khi tạo
+        idNguoiDung: String(uid),
+        idGoi: String(pack.idGoi),
+        tenGoi: pack.tenGoi || "",
+        giaGoc: Number(pack.giaGoi || 0),
+        giamGia: Number(pack.giamGia || 0),
+        soTienThanhToan: giaSauGiam,
+        thoiHanNgay: Number(pack.thoiHan || 0),
+        trangThai: "pending", // pending | paid | canceled
+        createdAt: serverTimestamp(),
+      };
 
-    // Điều hướng sang Checkout, mang theo orderId
-    navigate("/checkout", { state: { orderId: order.idDonHang } });
+      const ref = await addDoc(collection(db, "donHangTraPhi"), payload);
+      // cập nhật idDonHang = doc id cho đồng nhất với app cũ
+      await updateDoc(doc(db, "donHangTraPhi", ref.id), { idDonHang: ref.id });
+
+      navigate("/checkout", { state: { orderId: ref.id } });
+    } catch (e) {
+      console.error(e);
+      alert("Không thể tạo đơn hàng. Vui lòng thử lại.");
+    }
   };
 
   // Hiển thị info gói đang active
   const activePack = useMemo(() => {
     if (!activeSub) return null;
-    return packs.find((p) => p.idGoi === activeSub.idGoi) || null;
+    return packs.find((p) => String(p.idGoi) === String(activeSub.idGoi)) || null;
   }, [activeSub, packs]);
+
+  const handleCancel = async () => {
+    if (!uid || !activeSub?._docId) {
+      alert("Bạn chưa có gói đang hoạt động để hủy.");
+      return;
+    }
+    try {
+      await updateDoc(doc(db, "goiTraPhiCuaNguoiDung", activeSub._docId), {
+        status: "Đã hủy",
+      });
+      alert("Đã hủy gói thành công!");
+    } catch (e) {
+      console.error(e);
+      alert("Không thể hủy gói. Vui lòng thử lại.");
+    }
+  };
 
   return (
     <div className="traphi-container">
@@ -151,24 +190,21 @@ function Traphi() {
             <div>
               <div className="active-sub__name">{activePack.tenGoi}</div>
               <div className="active-sub__desc">
-                Hiệu lực từ <strong>{activeSub.NgayBatDau}</strong> đến{" "}
-                <strong>{activeSub.NgayKetThuc}</strong>
+                Hiệu lực từ{" "}
+                <strong>
+                  {typeof activeSub.NgayBatDau === "string"
+                    ? activeSub.NgayBatDau
+                    : toVN(toDateFlexible(activeSub.NgayBatDau))}
+                </strong>{" "}
+                đến{" "}
+                <strong>
+                  {typeof activeSub.NgayKetThuc === "string"
+                    ? activeSub.NgayKetThuc
+                    : toVN(toDateFlexible(activeSub.NgayKetThuc))}
+                </strong>
               </div>
             </div>
-            <Button variant="cancel" onClick={() => {
-              if (!currentUser || !activeSub) {
-                alert("Bạn chưa có gói đang hoạt động để hủy.");
-                return;
-              }
-              const subs = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
-              const next = subs.map((s) =>
-                s.idGTPCND === activeSub.idGTPCND ? { ...s, status: "Đã hủy" } : s
-              );
-              localStorage.setItem("goiTraPhiCuaNguoiDung", JSON.stringify(next));
-              setActiveSub(null);
-              alert("Đã hủy gói thành công!");
-              window.dispatchEvent(new Event("subscriptionChanged"));
-            }}>
+            <Button variant="cancel" onClick={handleCancel}>
               Hủy gói hiện tại
             </Button>
           </div>
