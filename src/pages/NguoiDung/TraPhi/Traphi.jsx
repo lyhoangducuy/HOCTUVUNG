@@ -1,3 +1,4 @@
+// src/pages/NguoiDung/TraPhi/Traphi.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/inputs/Button";
@@ -14,18 +15,24 @@ import {
   doc,
   serverTimestamp,
   orderBy,
+  getDocs,
+  writeBatch,
 } from "firebase/firestore";
 
 /* -------- Helpers -------- */
 const VN = "vi-VN";
-const genId = (p) => `${p}_${Date.now()}`;
-
-const addDays = (date, days) => {
-  const d = new Date(date);
-  d.setDate(d.getDate() + Number(days || 0));
-  return d;
-};
 const toVN = (date) => new Date(date).toLocaleDateString(VN);
+
+const today0 = () => {
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  return t;
+};
+const yesterday0 = () => {
+  const y = today0();
+  y.setDate(y.getDate() - 1);
+  return y;
+};
 
 // dd/mm/yyyy -> Date
 const parseVN = (dmy) => {
@@ -35,7 +42,7 @@ const parseVN = (dmy) => {
   return new Date(y, (m || 1) - 1, d || 1);
 };
 
-// cố gắng chuyển nhiều kiểu ngày (Timestamp, string VN/ISO, Date) -> Date
+// chuyển Timestamp/string/Date -> Date
 const toDateFlexible = (v) => {
   if (!v) return null;
   if (v instanceof Date) return v;
@@ -50,6 +57,7 @@ function Traphi() {
   const [uid, setUid] = useState(null);
   const [packs, setPacks] = useState([]);
   const [activeSub, setActiveSub] = useState(null); // { ...data, _docId }
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Tính giá sau giảm
   const calcDiscounted = (gia, giamGia) => {
@@ -58,7 +66,7 @@ function Traphi() {
     return Math.max(0, Math.round(g * (1 - gg / 100)));
   };
 
-  // Lấy uid (ưu tiên Firebase Auth, fallback session nếu app vẫn set)
+  // Lấy uid (Auth hoặc session cũ)
   useEffect(() => {
     const session = JSON.parse(sessionStorage.getItem("session") || "null");
     const _uid = auth.currentUser?.uid || session?.idNguoiDung || null;
@@ -70,7 +78,7 @@ function Traphi() {
     setUid(String(_uid));
   }, [navigate]);
 
-  // Nạp danh sách gói (goiTraPhi)
+  // Nạp danh sách gói
   useEffect(() => {
     const qPacks = query(collection(db, "goiTraPhi"), orderBy("giaGoi", "asc"));
     const unsub = onSnapshot(
@@ -78,7 +86,6 @@ function Traphi() {
       (snap) => {
         const list = snap.docs.map((d) => {
           const data = d.data();
-          // idGoi: ưu tiên field trong doc, fallback sang doc id
           return { ...data, idGoi: data.idGoi ?? d.id };
         });
         setPacks(list);
@@ -88,7 +95,7 @@ function Traphi() {
     return () => unsub();
   }, []);
 
-  // Nạp gói đang hoạt động của user (goiTraPhiCuaNguoiDung)
+  // Nạp sub đang hoạt động của user
   useEffect(() => {
     if (!uid) return;
     const qSubs = query(
@@ -98,16 +105,16 @@ function Traphi() {
     const unsub = onSnapshot(
       qSubs,
       (snap) => {
-        const today = new Date();
+        const now = today0();
         const items = snap.docs.map((d) => ({ ...d.data(), _docId: d.id }));
-        // lọc các sub còn hạn và chưa hủy
         const active = items
           .filter((s) => {
-            if (s?.status === "Đã hủy") return false;
+            if (String(s?.status || "").toLowerCase().includes("hủy")) return false;
             const end = toDateFlexible(s?.NgayKetThuc);
-            return end && end >= today;
+            if (!end) return false;
+            end.setHours(0, 0, 0, 0);
+            return end >= now;
           })
-          // lấy sub có hạn xa nhất (nếu nhiều)
           .sort(
             (a, b) =>
               (toDateFlexible(b.NgayKetThuc)?.getTime() || 0) -
@@ -134,7 +141,7 @@ function Traphi() {
       const giaSauGiam = calcDiscounted(pack.giaGoi, pack.giamGia);
 
       const payload = {
-        idDonHang: "", // sẽ gán bằng doc id ngay sau khi tạo
+        idDonHang: "",
         idNguoiDung: String(uid),
         idGoi: String(pack.idGoi),
         tenGoi: pack.tenGoi || "",
@@ -142,12 +149,11 @@ function Traphi() {
         giamGia: Number(pack.giamGia || 0),
         soTienThanhToan: giaSauGiam,
         thoiHanNgay: Number(pack.thoiHan || 0),
-        trangThai: "pending", // pending | paid | canceled
+        trangThai: "pending",
         createdAt: serverTimestamp(),
       };
 
       const ref = await addDoc(collection(db, "donHangTraPhi"), payload);
-      // cập nhật idDonHang = doc id cho đồng nhất với app cũ
       await updateDoc(doc(db, "donHangTraPhi", ref.id), { idDonHang: ref.id });
 
       navigate("/checkout", { state: { orderId: ref.id } });
@@ -157,25 +163,58 @@ function Traphi() {
     }
   };
 
-  // Hiển thị info gói đang active
+  // Thông tin gói active
   const activePack = useMemo(() => {
     if (!activeSub) return null;
     return packs.find((p) => String(p.idGoi) === String(activeSub.idGoi)) || null;
   }, [activeSub, packs]);
 
+  // HỦY GÓI: tối ưu — huỷ **tất cả** sub đang hoạt động bằng batch + set endDate = hôm qua
   const handleCancel = async () => {
-    if (!uid || !activeSub?._docId) {
-      alert("Bạn chưa có gói đang hoạt động để hủy.");
-      return;
-    }
+    if (!uid || isCancelling) return;
+    setIsCancelling(true);
+
+    // 1) Ẩn UI ngay (optimistic)
+    setActiveSub(null);
+
     try {
-      await updateDoc(doc(db, "goiTraPhiCuaNguoiDung", activeSub._docId), {
-        status: "Đã hủy",
+      const snap = await getDocs(
+        query(collection(db, "goiTraPhiCuaNguoiDung"), where("idNguoiDung", "==", String(uid)))
+      );
+
+      const now0 = today0();
+      const y0 = yesterday0();
+
+      const actives = snap.docs.filter((d) => {
+        const s = d.data();
+        if (String(s?.status || "").toLowerCase().includes("hủy")) return false;
+        const end = toDateFlexible(s?.NgayKetThuc);
+        if (!end) return false;
+        end.setHours(0, 0, 0, 0);
+        return end >= now0;
       });
+
+      if (actives.length === 0) {
+        setIsCancelling(false);
+        return alert("Bạn không còn gói hoạt động.");
+      }
+
+      const batch = writeBatch(db);
+      actives.forEach((d) => {
+        batch.update(d.ref, {
+          status: "Đã hủy",
+          // Ép hết hạn ngay lập tức để mọi nơi không còn tính là active
+          NgayKetThuc: y0, // Firestore sẽ lưu dạng Timestamp
+        });
+      });
+      await batch.commit();
+
       alert("Đã hủy gói thành công!");
     } catch (e) {
       console.error(e);
       alert("Không thể hủy gói. Vui lòng thử lại.");
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -204,8 +243,13 @@ function Traphi() {
                 </strong>
               </div>
             </div>
-            <Button variant="cancel" onClick={handleCancel}>
-              Hủy gói hiện tại
+            <Button
+              variant="cancel"
+              onClick={handleCancel}
+              disabled={isCancelling}
+              title={isCancelling ? "Đang hủy..." : "Hủy gói hiện tại"}
+            >
+              {isCancelling ? "Đang hủy..." : "Hủy gói hiện tại"}
             </Button>
           </div>
         </div>
