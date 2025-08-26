@@ -6,69 +6,60 @@ import Edit from "../../../../components/Admin/Edit/Edit";
 import ExportModal from "../../../../components/Admin/ExportModal/ExportModal";
 import "./MainConTentQLKH.css";
 
-const MAIN_KEY = "khoaHoc";
-const USER_KEY = "nguoiDung";
+import { db } from "../../../../../lib/firebase"; // chỉnh lại nếu đường dẫn khác
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  collection,
+  onSnapshot,
+  query,
+  where,
+  limit,
+  getDocs,
+} from "firebase/firestore";
 
-/* helpers */
-const readJSON = (key, fallback = []) => {
-  try {
-    const v = JSON.parse(localStorage.getItem(key) || "null");
-    return v ?? fallback;
-  } catch {
-    return fallback;
-  }
-};
-const writeJSON = (key, val) => localStorage.setItem(key, JSON.stringify(val));
+/* --- utils --- */
+const toVN = (date) =>
+  date instanceof Date && !isNaN(date) ? date.toLocaleDateString("vi-VN") : "";
 
-const toVN = (d) => (d ? new Date(d).toLocaleDateString("vi-VN") : "");
-const dateFromMaybeTs = (val) => {
-  if (val == null) return null;
-  const n = Number(val);
-  if (Number.isFinite(n)) return new Date(n > 1e12 ? n : n * 1000);
-  const ddmmyyyy = typeof val === "string" && val.includes("/");
-  if (ddmmyyyy) {
+const fromMaybeTs = (val) => {
+  if (!val) return null;
+  if (typeof val?.toDate === "function") return val.toDate(); // Firestore Timestamp
+  if (typeof val === "string" && val.includes("/")) {
     const [d, m, y] = val.split("/").map(Number);
     if (d && m && y) return new Date(y, m - 1, d);
+  }
+  if (Number.isFinite(Number(val))) {
+    const n = Number(val);
+    return new Date(n > 1e12 ? n : n * 1000);
   }
   const d = new Date(val);
   return isNaN(d) ? null : d;
 };
 
-/* build display row from raw course */
-const mapRow = (c, i, userLookup) => {
-  const id = c?.idKhoaHoc ?? c?.id ?? `course_${i}`;
-  const name = c?.tenKhoaHoc ?? c?.name ?? "(Không tên)";
-  const createdDate =
-    dateFromMaybeTs(c?.createdAt ?? c?.ngayTao ?? c?.created ?? c?.idKhoaHoc) ||
-    new Date(0);
-  const userCreated = userLookup(c?.idNguoiDung);
+/* --- Firestore helpers --- */
+async function getCourseDocRefByAnyId(id) {
+  // 1) Thử coi id là docId
+  const ref1 = doc(db, "khoaHoc", String(id));
+  const snap1 = await getDoc(ref1);
+  if (snap1.exists()) return ref1;
 
-  return {
-    id,
-    name,
-    userCreated,
-    created: toVN(createdDate),
-    _createdAt: createdDate.getTime(),
-  };
-};
+  // 2) Fallback: tìm tài liệu có field idKhoaHoc == id
+  const q1 = query(collection(db, "khoaHoc"), where("idKhoaHoc", "==", String(id)), limit(1));
+  const rs = await getDocs(q1);
+  if (!rs.empty) return rs.docs[0].ref;
 
-const buildUserLookup = (users) => {
-  const map = new Map();
-  (users || []).forEach((u) => {
-    const id = u?.idNguoiDung ?? u?.id;
-    const label =
-      u?.tenNguoiDung ??
-      u?.name ??
-      u?.displayName ??
-      u?.username ??
-      u?.email ??
-      `ID: ${id}`;
-    if (id != null) map.set(String(id), label);
-  });
-  const fn = (id) => map.get(String(id)) || (id != null ? `ID: ${id}` : "—");
-  fn.options = Array.from(map.entries()).map(([value, label]) => ({ value, label }));
-  return fn;
-};
+  return null;
+}
+
+async function getCourseByAnyId(id) {
+  const ref = await getCourseDocRefByAnyId(id);
+  if (!ref) return null;
+  const snap = await getDoc(ref);
+  return snap.exists() ? { _docId: snap.id, ...snap.data() } : null;
+}
 
 const MainConTentQLKH = ({ Data = [] }) => {
   const ColumsBoThe = [
@@ -78,58 +69,56 @@ const MainConTentQLKH = ({ Data = [] }) => {
     { name: "Ngày tạo", key: "created" },
   ];
 
-  const [users, setUsers] = useState(readJSON(USER_KEY, []));
-  const userLookup = useMemo(() => buildUserLookup(users), [users]);
+  // dữ liệu bảng lấy từ prop Data (do parent đã realtime)
+  const [data, setData] = useState(Data);
+  const [filteredData, setFilteredData] = useState(Data);
 
-  const [data, setData] = useState(() =>
-    (Array.isArray(readJSON(MAIN_KEY, [])) ? readJSON(MAIN_KEY, []) : [])
-      .map((c, i) => mapRow(c, i, userLookup))
-      .sort((a, b) => b._createdAt - a._createdAt)
-      .map(({ _createdAt, ...rest }) => rest)
+  // users để build dropdown “Người tạo”
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    setData(Data);
+    setFilteredData(Data);
+  }, [Data]);
+
+  // realtime users
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, "nguoiDung"),
+      (snap) => {
+        const list = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+        setUsers(list);
+      },
+      () => setUsers([])
+    );
+    return () => unsub();
+  }, []);
+
+  const userOptions = useMemo(
+    () =>
+      users.map((u) => ({
+        value: String(u.idNguoiDung ?? u._docId),
+        label: u.tenNguoiDung || u.username || u.email || `ID: ${u.idNguoiDung ?? u._docId}`,
+      })),
+    [users]
   );
+  const userLabelById = useMemo(() => {
+    const m = new Map(userOptions.map((o) => [String(o.value), o.label]));
+    return (id) => m.get(String(id)) || (id != null ? `ID: ${id}` : "—");
+  }, [userOptions]);
 
-  const [filteredData, setFilteredData] = useState(data);
-
-  // delete
+  // Delete dialog
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
-  // Edit
+  // Edit dialog
   const [showEdit, setShowEdit] = useState(false);
-  const [selectedRow, setSelectedRow] = useState(null); // row dạng display
-  const [rawCourse, setRawCourse] = useState(null); // bản raw từ local
-  const [isEditMode, setIsEditMode] = useState(false); // giữ API cũ của Edit
+  const [selectedRow, setSelectedRow] = useState(null); // {id,name,userCreated,created,...}
+  const [rawCourse, setRawCourse] = useState(null);      // raw từ Firestore
+  const [isEditMode, setIsEditMode] = useState(false);
 
-  // export
+  // Export
   const [exportModal, setExportModal] = useState(false);
-
-  // đồng bộ khi local hoặc users thay đổi
-  const reload = () => {
-    const list = readJSON(MAIN_KEY, []);
-    const rows = list
-      .map((c, i) => mapRow(c, i, userLookup))
-      .sort((a, b) => b._createdAt - a._createdAt)
-      .map(({ _createdAt, ...rest }) => rest);
-    setData(rows);
-    setFilteredData(rows);
-  };
-
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e?.key === MAIN_KEY || e?.key === USER_KEY) {
-        setUsers(readJSON(USER_KEY, [])); // rebuild lookup
-        reload();
-      }
-    };
-    const onCoursesChanged = () => reload();
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("coursesChanged", onCoursesChanged);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("coursesChanged", onCoursesChanged);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLookup]);
 
   /* Delete flow */
   const handleDelete = (id) => {
@@ -140,34 +129,55 @@ const MainConTentQLKH = ({ Data = [] }) => {
     setShowDeleteDialog(false);
     setDeleteId(null);
   };
-  const onConfirmDelete = (id) => {
-    const list = readJSON(MAIN_KEY, []);
-    const next = list.filter((c) => String(c?.idKhoaHoc ?? c?.id) !== String(id));
-    writeJSON(MAIN_KEY, next);
-    window.dispatchEvent(new Event("coursesChanged"));
+  const onConfirmDelete = async (idFromModal) => {
+    const id = idFromModal ?? deleteId;
+    if (!id) return;
+
+    // UI optimistic
+    setData((prev) => prev.filter((r) => String(r.id) !== String(id)));
+    setFilteredData((prev) => prev.filter((r) => String(r.id) !== String(id)));
+
+    try {
+      const ref = await getCourseDocRefByAnyId(id);
+      if (ref) {
+        await deleteDoc(ref);
+      } else {
+        console.warn("Không tìm thấy tài liệu 'khoaHoc' để xoá:", id);
+      }
+      // (tuỳ chọn) có thể dọn tham chiếu ở nơi khác (nếu có)
+    } catch (e) {
+      console.error("Xoá lớp học thất bại:", e);
+    }
+
     onCloseDelete();
   };
 
-  /* Edit flow dùng Edit modal */
-  const handleEdit = (id) => {
-    const list = readJSON(MAIN_KEY, []);
-    const raw = list.find((c) => String(c?.idKhoaHoc ?? c?.id) === String(id));
-    if (!raw) return;
+  /* Edit flow */
+  const handleEdit = async (id) => {
+    try {
+      const raw = await getCourseByAnyId(id);
+      if (!raw) return;
 
-    setRawCourse(raw);
-    setSelectedRow({
-      id: raw.idKhoaHoc ?? raw.id,
-      name: raw.tenKhoaHoc ?? raw.name ?? "",
-      userCreated: String(raw.idNguoiDung ?? ""), // sẽ map sang dropdown
-      created: toVN(
-        dateFromMaybeTs(raw.createdAt ?? raw.ngayTao ?? raw.created ?? raw.idKhoaHoc)
-      ),
-      // thêm 2 field chỉ hiển thị
-      memberCount: Array.isArray(raw.thanhVienIds) ? raw.thanhVienIds.length : 0,
-      cardCount: Array.isArray(raw.boTheIds) ? raw.boTheIds.length : 0,
-    });
-    setShowEdit(true);
-    setIsEditMode(false);
+      setRawCourse(raw);
+      setSelectedRow({
+        id: raw.idKhoaHoc ?? raw._docId,
+        name: raw.tenKhoaHoc ?? "",
+        userCreated: String(raw.idNguoiDung ?? ""), // sẽ hiển thị bằng select
+        created: toVN(
+          fromMaybeTs(raw.createdAt) ||
+            fromMaybeTs(raw.ngayTao) ||
+            fromMaybeTs(raw._docId)
+        ),
+        // thêm vài số liệu đọc-only nếu muốn
+        memberCount: Array.isArray(raw.thanhVienIds) ? raw.thanhVienIds.length : 0,
+        cardCount: Array.isArray(raw.boTheIds) ? raw.boTheIds.length : 0,
+      });
+
+      setShowEdit(true);
+      setIsEditMode(false);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleUserDetailClose = () => {
@@ -177,60 +187,53 @@ const MainConTentQLKH = ({ Data = [] }) => {
     setIsEditMode(false);
   };
 
-  const handleUserDetailSave = (updatedUser, isEdit = false) => {
-    if (isEdit) {
+  const handleUserDetailSave = async (updatedUser, flagIsEditMode = false) => {
+    if (flagIsEditMode) {
       setIsEditMode(true);
       return;
     }
     if (!rawCourse) return;
 
-    // Lấy id người tạo mới từ field userCreated (đang là ID dạng string do dropdown)
-    const creatorId = updatedUser.userCreated
-      ? Number(updatedUser.userCreated)
-      : rawCourse.idNguoiDung;
+    const newName = updatedUser.name ?? "";
+    const newCreatorId = updatedUser.userCreated
+      ? String(updatedUser.userCreated)
+      : String(rawCourse.idNguoiDung ?? "");
 
-    // Ghi localStorage
-    const list = readJSON(MAIN_KEY, []);
-    const idx = list.findIndex(
-      (c) => String(c?.idKhoaHoc ?? c?.id) === String(updatedUser.id)
-    );
-    if (idx !== -1) {
-      const next = [...list];
-      next[idx] = {
-        ...next[idx],
-        tenKhoaHoc: updatedUser.name,
-        idNguoiDung: creatorId,
-      };
-      writeJSON(MAIN_KEY, next);
-      window.dispatchEvent(new Event("coursesChanged"));
-    }
-
-    // Cập nhật UI (bảng) — đổi name + displayName người tạo
-    const label = buildUserLookup(readJSON(USER_KEY, [])).call
-      ? buildUserLookup(readJSON(USER_KEY, [])).call(creatorId)
-      : buildUserLookup(readJSON(USER_KEY, []))(creatorId);
-
-    const displayName =
-      buildUserLookup(readJSON(USER_KEY, []))(creatorId);
-
+    // UI optimistic
     setData((cur) =>
       cur.map((r) =>
         String(r.id) === String(updatedUser.id)
-          ? { ...r, name: updatedUser.name, userCreated: displayName }
+          ? { ...r, name: newName, userCreated: userLabelById(newCreatorId) }
           : r
       )
     );
     setFilteredData((cur) =>
       cur.map((r) =>
         String(r.id) === String(updatedUser.id)
-          ? { ...r, name: updatedUser.name, userCreated: displayName }
+          ? { ...r, name: newName, userCreated: userLabelById(newCreatorId) }
           : r
       )
     );
 
+    // Firestore update
+    try {
+      const ref = await getCourseDocRefByAnyId(updatedUser.id);
+      if (!ref) {
+        console.warn("Không tìm thấy tài liệu 'khoaHoc' để cập nhật:", updatedUser.id);
+      } else {
+        await updateDoc(ref, {
+          tenKhoaHoc: newName,
+          idNguoiDung: newCreatorId,
+        });
+      }
+    } catch (e) {
+      console.error("Cập nhật lớp học thất bại:", e);
+    }
+
     handleUserDetailClose();
   };
 
+  /* Hành động từng dòng */
   const Action = [
     {
       name: "👀",
@@ -245,9 +248,6 @@ const MainConTentQLKH = ({ Data = [] }) => {
       onClick: (id) => () => handleDelete(id),
     },
   ];
-
-  // Tùy chọn dropdown Người tạo
-  const userOptions = userLookup.options; // [{value,label}]
 
   return (
     <div className="main-content-admin-user">
@@ -264,6 +264,7 @@ const MainConTentQLKH = ({ Data = [] }) => {
 
       <TableAdmin Colums={ColumsBoThe} Data={filteredData} Action={Action} />
 
+      {/* Xoá */}
       {showDeleteDialog && (
         <Delete
           id={deleteId}
@@ -273,6 +274,7 @@ const MainConTentQLKH = ({ Data = [] }) => {
         />
       )}
 
+      {/* Sửa / Xem */}
       {showEdit && selectedRow && (
         <Edit
           user={selectedRow}
@@ -285,14 +287,10 @@ const MainConTentQLKH = ({ Data = [] }) => {
             { name: "Số bộ thẻ", key: "cardCount" },
           ]}
           showAvatar={false}
-
-          /* === thêm 3 prop nhẹ nhàng cho Edit === */
-          readOnlyKeys={["id", "created", "memberCount", "cardCount"]} // ID/Ngày tạo/2 số liệu: chỉ xem
+          readOnlyKeys={["id", "created", "memberCount", "cardCount"]}
           selectFields={{
-            // key trong dữ liệu -> option list [{value,label}]
-            userCreated: userOptions,
+            userCreated: userOptions, // dropdown người tạo
           }}
-          // Nhãn thay vì id khi Edit hiển thị field userCreated
           selectLabels={{
             userCreated: (val) => {
               const opt = userOptions.find((o) => String(o.value) === String(val));
@@ -302,13 +300,12 @@ const MainConTentQLKH = ({ Data = [] }) => {
         />
       )}
 
+      {/* Xuất */}
       {exportModal && (
         <ExportModal
           isOpen={exportModal}
           onClose={() => setExportModal(false)}
-          onExport={(list) => {
-            console.log("Dữ liệu xuất:", list);
-          }}
+          onExport={(rows) => console.log("Dữ liệu export:", rows)}
           filteredData={filteredData}
           title="Xuất thông tin lớp học"
           columns={ColumsBoThe}
