@@ -1,21 +1,13 @@
-// src/pages/Admin/ThongKeAdmin/MainContent.jsx
 import { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../../../../../lib/firebase";
+
 import TopContent from "./TopContentAdmin";
 import AISummary from "./AISummary";
 import MiniCharts from "./MiniCharts";
 
 /* ---------- Helpers ---------- */
-const read = (k, def = []) => {
-  try {
-    const raw = localStorage.getItem(k);
-    const v = raw ? JSON.parse(raw) : def;
-    return Array.isArray(v) ? v : def;
-  } catch {
-    return def;
-  }
-};
-
-// dd/mm/yyyy -> Date (để fallback nếu cần)
+// dd/mm/yyyy -> Date
 const parseVN = (dmy) => {
   if (!dmy || typeof dmy !== "string") return null;
   const [d, m, y] = dmy.split("/").map(Number);
@@ -31,106 +23,149 @@ export default function MainContent() {
   const [rawUsers, setRawUsers] = useState([]);
   const [rawClasses, setRawClasses] = useState([]);
   const [rawCards, setRawCards] = useState([]);
-
-  // doanh thu: { total, monthRevenue, byMonth: { "2025-08": 12345, ... } }
   const [revenue, setRevenue] = useState({
     total: 0,
     monthRevenue: 0,
     byMonth: {},
   });
 
-  const load = () => {
-    // ===== DỮ LIỆU CHUẨN HOÁ KEY =====
-    const dsNguoiDung = read("nguoiDung", []);
-    const dsKhoaHoc = read("khoaHoc", []);      // trước đây dùng "lop"/"class"
-    const dsBoThe   = read("boThe", []);        // trước đây fallback "cards"
+  const load = async () => {
+    try {
+      console.log("=== BẮT ĐẦU LOAD DỮ LIỆU ===");
+      
+      // ===== LẤY DỮ LIỆU TỪ FIRESTORE =====
+      const nguoiDungSnap = await getDocs(collection(db, "nguoiDung"));
+      const dsNguoiDung = nguoiDungSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-    // ===== THỐNG KÊ SỐ LƯỢNG =====
-    const soNguoiDung = dsNguoiDung.length;
-    const soKhoaHoc   = dsKhoaHoc.length;
-    const soBoThe     = dsBoThe.length;
+      const khoaHocSnap = await getDocs(collection(db, "khoaHoc"));
+      const dsKhoaHoc = khoaHocSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-    // ===== DOANH THU: TÍNH TỪ ĐƠN HÀNG "paid" =====
-    // - nguồn: localStorage.donHangTraPhi
-    // - số tiền: ưu tiên soTienThanhToanThucTe, fallback soTienThanhToan
-    // - thời điểm: ưu tiên paidAt, fallback createdAt
-    const ordersAll = read("donHangTraPhi", []);
-    const paidOrders = ordersAll.filter((o) => o.trangThai === "paid");
+      const boTheSnap = await getDocs(collection(db, "boThe"));
+      const dsBoThe = boTheSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-    let total = 0;
-    const byMonth = {};
-    paidOrders.forEach((o) => {
-      const when =
-        (o.paidAt && new Date(o.paidAt)) ||
-        (o.createdAt && new Date(o.createdAt)) ||
-        parseVN(o.NgayBatDau) ||
-        new Date();
-      const key = ymKey(when);
-      const amount = Number(
-        o.soTienThanhToanThucTe ?? o.soTienThanhToan ?? 0
-      );
-      total += amount;
-      byMonth[key] = (byMonth[key] || 0) + amount;
-    });
+      const donHangSnap = await getDocs(collection(db, "donHangTraPhi"));
+      const ordersAll = donHangSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-    const nowKey = ymKey(new Date());
-    const monthRevenue = byMonth[nowKey] || 0;
+      console.log("Tổng số đơn hàng:", ordersAll.length);
+      console.log("Sample đơn hàng đầu tiên:", ordersAll[0]);
 
-    // ===== CẬP NHẬT CARDS =====
-    setUserStats([
-      { id: 1, name: "Người dùng", value: soNguoiDung, title: "Tổng số người dùng trong hệ thống" },
-      { id: 2, name: "Lớp học", value: soKhoaHoc, title: "Tổng số lớp học đã tạo" },
-      { id: 3, name: "Bộ thẻ", value: soBoThe, title: "Tổng số bộ thẻ hiện có" },
-      { id: 4, name: "Doanh thu (tháng này)", value: monthRevenue.toLocaleString("vi-VN") + " đ", title: "Tổng doanh thu tháng hiện tại (đơn đã thanh toán)" },
-    ]);
+      // ===== THỐNG KÊ =====
+      const soNguoiDung = dsNguoiDung.length;
+      const soKhoaHoc   = dsKhoaHoc.length;
+      const soBoThe     = dsBoThe.length;
 
-    // ===== DỮ LIỆU THÔ CHO AI/CHARTS =====
-    setRawUsers(dsNguoiDung);
-    setRawClasses(dsKhoaHoc);
-    setRawCards(dsBoThe);
+      // ===== DOANH THU - IMPROVED VERSION =====
+      console.log("\n=== TÍNH DOANH THU ===");
+      
+      // Kiểm tra các trạng thái có trong data
+      const allStatuses = [...new Set(ordersAll.map(o => o.trangThai))];
+      console.log("Các trạng thái đơn hàng có trong DB:", allStatuses);
+      
+      // Lọc đơn hàng đã thanh toán (case-insensitive)
+      const paidOrders = ordersAll.filter((o) => {
+        const status = o.trangThai?.toLowerCase?.();
+        return status === "paid" || status === "thành công" || status === "hoàn thành";
+      });
+      
+      console.log("Số đơn hàng đã thanh toán:", paidOrders.length);
+      if (paidOrders.length > 0) {
+        console.log("Sample đơn hàng đã thanh toán:", paidOrders[0]);
+      }
 
-    setRevenue({ total, monthRevenue, byMonth });
+      let total = 0;
+      const byMonth = {};
+      const debugInfo = [];
+
+      paidOrders.forEach((o, index) => {
+        console.log(`\n--- Xử lý đơn hàng ${index + 1} (ID: ${o.id}) ---`);
+        
+        // Xác định ngày thanh toán
+        let when = null;
+        let dateSource = "";
+        
+        if (o.paidAt) {
+          when = new Date(o.paidAt);
+          dateSource = "paidAt";
+          console.log("Sử dụng paidAt:", o.paidAt);
+        } else if (o.createdAt) {
+          when = new Date(o.createdAt);
+          dateSource = "createdAt";
+          console.log("Sử dụng createdAt:", o.createdAt);
+        } else if (o.NgayBatDau) {
+          when = parseVN(o.NgayBatDau);
+          dateSource = "NgayBatDau";
+          console.log("Sử dụng NgayBatDau:", o.NgayBatDau, "->", when);
+        }
+        
+        // Fallback to current date nếu không có ngày hợp lệ
+        if (!when || isNaN(when.getTime())) {
+          when = new Date();
+          dateSource = "current";
+          console.log("⚠️ Không có ngày hợp lệ, sử dụng ngày hiện tại");
+        }
+
+        const key = ymKey(when);
+        console.log("Key tháng-năm:", key);
+
+        // Xác định số tiền - improved
+        let amount = 0;
+        if (o.soTienThanhToanThucTe !== null && o.soTienThanhToanThucTe !== undefined) {
+          amount = Number(o.soTienThanhToanThucTe);
+          console.log("Sử dụng soTienThanhToanThucTe:", o.soTienThanhToanThucTe);
+        } else if (o.soTienThanhToan !== null && o.soTienThanhToan !== undefined) {
+          amount = Number(o.soTienThanhToan);
+          console.log("Sử dụng soTienThanhToan:", o.soTienThanhToan);
+        }
+        
+        console.log("Số tiền final:", amount);
+
+        if (amount > 0) {
+          total += amount;
+          byMonth[key] = (byMonth[key] || 0) + amount;
+          console.log("✅ Đã cộng vào tổng. Tổng hiện tại:", total.toLocaleString("vi-VN"));
+          
+          debugInfo.push({
+            orderId: o.id,
+            date: when.toLocaleDateString("vi-VN"),
+            monthKey: key,
+            amount: amount,
+            dateSource: dateSource
+          });
+        } else {
+          console.log("⚠️ Số tiền = 0 hoặc không hợp lệ, bỏ qua");
+        }
+      });
+
+      const nowKey = ymKey(new Date());
+      const monthRevenue = byMonth[nowKey] || 0;
+
+      console.log("\n=== KẾT QUẢ CUỐI CÙNG ===");
+      console.log("Tháng hiện tại:", nowKey);
+      console.log("Tổng doanh thu:", total.toLocaleString("vi-VN"), "đ");
+      console.log("Doanh thu tháng này:", monthRevenue.toLocaleString("vi-VN"), "đ");
+      console.log("Doanh thu theo tháng:", Object.entries(byMonth).map(([k,v]) => `${k}: ${v.toLocaleString("vi-VN")}đ`));
+      console.log("Debug info:", debugInfo);
+
+      // ===== CẬP NHẬT STATE =====
+      setUserStats([
+        { id: 1, name: "Người dùng", value: soNguoiDung, title: "Tổng số người dùng trong hệ thống" },
+        { id: 2, name: "Lớp học", value: soKhoaHoc, title: "Tổng số lớp học đã tạo" },
+        { id: 3, name: "Bộ thẻ", value: soBoThe, title: "Tổng số bộ thẻ hiện có" },
+        { id: 4, name: "Doanh thu (tháng này)", value: monthRevenue.toLocaleString("vi-VN") + " đ", title: "Tổng doanh thu tháng hiện tại (đơn đã thanh toán)" },
+      ]);
+
+      setRawUsers(dsNguoiDung);
+      setRawClasses(dsKhoaHoc);
+      setRawCards(dsBoThe);
+      setRevenue({ total, monthRevenue, byMonth });
+      
+    } catch (error) {
+      console.error("Lỗi khi load dữ liệu:", error);
+    }
   };
 
   useEffect(() => {
-    load();
-
-    // Tự reload khi dữ liệu thay đổi
-    const onStorage = (e) => {
-      if (
-        [
-          "nguoiDung",
-          "khoaHoc",
-          "boThe",
-          "donHangTraPhi",
-          "goiTraPhi",
-          "goiTraPhiCuaNguoiDung",
-        ].includes(e.key)
-      ) {
-        load();
-      }
-    };
-
-    // Các sự kiện tùy chỉnh app đang dùng rải rác
-    const onChanged = () => load();
-
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("subscriptionChanged", onChanged);
-    window.addEventListener("packsChanged", onChanged);
-    window.addEventListener("coursesChanged", onChanged);
-    window.addEventListener("khoaHocChanged", onChanged);
-    window.addEventListener("boTheUpdated", onChanged);
-    window.addEventListener("ordersChanged", onChanged);
-
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("subscriptionChanged", onChanged);
-      window.removeEventListener("packsChanged", onChanged);
-      window.removeEventListener("coursesChanged", onChanged);
-      window.removeEventListener("khoaHocChanged", onChanged);
-      window.removeEventListener("boTheUpdated", onChanged);
-      window.removeEventListener("ordersChanged", onChanged);
-    };
+    load(); // load 1 lần khi vào trang
   }, []);
 
   return (
