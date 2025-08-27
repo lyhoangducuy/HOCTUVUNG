@@ -1,21 +1,24 @@
 // src/components/Auth/AuthSync.jsx
 import { useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../../../lib/firebase";
 
 export default function AuthSync() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isPublicPath = (path) => {
+    return path === "/" || path === "/dang-nhap" || path === "/dang-ky" || path === "/quen-mat-khau";
+  };
+
   useEffect(() => {
     // 1) Bắt thay đổi trạng thái Firebase Auth (đăng xuất ở tab nào cũng bắn)
     const unsub = onAuthStateChanged(auth, (user) => {
       if (!user) {
         sessionStorage.removeItem("session");
-        // Không redirect khi đang ở các trang công khai
-        const publicPaths = ["/", "/dang-nhap", "/dang-ky", "/quen-mat-khau"];
-        if (!publicPaths.includes(location.pathname)) {
+        // Chỉ điều hướng khi không ở trang public
+        if (!isPublicPath(location.pathname)) {
           navigate("/dang-nhap", { replace: true });
         }
       }
@@ -25,7 +28,9 @@ export default function AuthSync() {
     const onStorage = (e) => {
       if (e.key === "auth:logout") {
         sessionStorage.removeItem("session");
-        navigate("/dang-nhap", { replace: true });
+        if (!isPublicPath(location.pathname)) {
+          navigate("/dang-nhap", { replace: true });
+        }
       }
       if (e.key === "auth:login") {
         // tuỳ bạn muốn làm gì khi tab khác login (chuyển hướng chẳng hạn)

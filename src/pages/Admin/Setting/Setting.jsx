@@ -13,66 +13,56 @@ const TRUONG_KHONG_CHO_DOI = ["idNguoiDung", "tenNguoiDung", "ngayTaoTaiKhoan", 
 export default function SettingAdmin() {
   const dieuHuong = useNavigate();
   const [nguoiDung, setNguoiDung] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  // Nạp người dùng theo session
+
+  // Nạp thông tin người dùng từ Firebase
   useEffect(() => {
-    let isMounted = true;
-    const run = async () => {
-      setLoading(true);
-      setError("");
+    const fetchUser = async () => {
       try {
         const phien = JSON.parse(sessionStorage.getItem("session") || "null");
-        if (!phien?.idNguoiDung) {
-          dieuHuong("/dang-nhap");
-          return;
-        }
+        if (!phien?.idNguoiDung) return dieuHuong("/dang-nhap");
 
-        const ref = doc(db, "nguoiDung", phien.idNguoiDung);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) {
-          setError("Không tìm thấy người dùng trong .");
-          setLoading(false);
-          return;
-        }
-        if (!isMounted) return;
+        const snap = await getDoc(doc(db, "nguoiDung", phien.idNguoiDung));
+        if (!snap.exists()) return dieuHuong("/dang-nhap");
+
         setNguoiDung({ idNguoiDung: phien.idNguoiDung, ...snap.data() });
-        setLoading(false);
-      } catch {
-        if (!isMounted) return;
-        setError("Có lỗi khi nạp dữ liệu người dùng.");
-        setLoading(false);
+      } catch (err) {
+        console.error("Lỗi load user:", err);
+        dieuHuong("/dang-nhap");
       }
     };
-    run();
-    return () => {
-      isMounted = false;
-    };
+
+    fetchUser();
   }, [dieuHuong]);
 
-  // Cập nhật người dùng vào Firestore (chặn field không cho đổi)
-  const capNhatNguoiDung = (banVa) => {
-    const banSao = { ...banVa };
-    TRUONG_KHONG_CHO_DOI.forEach(k => delete banSao[k]);
+  // Hàm cập nhật Firestore
+  const capNhatNguoiDung = async (banVa) => {
+    if (!nguoiDung?.idNguoiDung) return;
 
-    setNguoiDung(prev => {
-      if (!prev) return prev;
-      const moi = { ...prev, ...banSao };
-      // cập nhật Firestore nền
-      updateDoc(doc(db, "nguoiDung", prev.idNguoiDung), banSao).catch(() => {});
-      return moi;
-    });
+    try {
+      const banSao = { ...banVa };
+      TRUONG_KHONG_CHO_DOI.forEach((k) => delete banSao[k]);
+
+      await updateDoc(doc(db, "nguoiDung", nguoiDung.idNguoiDung), banSao);
+
+      setNguoiDung((prev) => ({ ...prev, ...banSao }));
+    } catch (err) {
+      console.error("Lỗi cập nhật user:", err);
+    }
   };
 
-  // Kiểm tra email trùng
-  const kiemTraEmailTrung = () => {
-    // Bỏ kiểm tra trên localStorage; chỉ kiểm tra định dạng cơ bản ở phần xacThuc
-    return true;
+  // Kiểm tra email trùng (tìm trong Firestore)
+  const kiemTraEmailTrung = async (emailMoi) => {
+    try {
+      // TODO: Nếu bạn có collection nguoiDung nhiều record,
+      // nên query để kiểm tra email trùng.
+      // Tạm thời chỉ return true.
+      return true;
+    } catch {
+      return "Lỗi kiểm tra email";
+    }
   };
 
-  if (loading) return <div style={{ padding: 16 }}>Đang tải...</div>;
-  if (error) return <div style={{ padding: 16, color: "#d33" }}>{error}</div>;
-  if (!nguoiDung) return <div style={{ padding: 16 }}>Không có dữ liệu người dùng.</div>;
+  if (!nguoiDung) return <p>Đang tải...</p>;
 
   return (
     <div className="settings-container">
@@ -114,9 +104,9 @@ export default function SettingAdmin() {
               giaTriBanDau={nguoiDung.email || ""}
               goiY="name@example.com"
               onLuu={(v) => capNhatNguoiDung({ email: v })}
-              xacThuc={(v) => {
+              xacThuc={async (v) => {
                 if (!/^\S+@\S+\.\S+$/.test(v)) return "Email không hợp lệ";
-                const duyNhat = kiemTraEmailTrung(v);
+                const duyNhat = await kiemTraEmailTrung(v);
                 return duyNhat === true ? true : duyNhat;
               }}
             />
@@ -124,12 +114,14 @@ export default function SettingAdmin() {
             <TruongChinhSua
               nhan="Mật khẩu"
               loai="password"
-              giaTriBanDau=""               // không hiển thị mật khẩu thật
-              hienThiGiaTri="********"      // hiển thị dạng ẩn
+              giaTriBanDau="" // không hiển thị mật khẩu thật
+              hienThiGiaTri="********" // hiển thị dạng ẩn
               laMatKhau
               goiY="Nhập mật khẩu mới"
               onLuu={(v) => capNhatNguoiDung({ matkhau: v })}
-              xacThuc={(v) => (v?.length ?? 0) >= 6 || "Mật khẩu tối thiểu 6 ký tự"}
+              xacThuc={(v) =>
+                (v?.length ?? 0) >= 6 || "Mật khẩu tối thiểu 6 ký tự"
+              }
             />
           </div>
         </div>
