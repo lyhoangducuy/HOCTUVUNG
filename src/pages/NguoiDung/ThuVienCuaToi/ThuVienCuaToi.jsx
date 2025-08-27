@@ -1,6 +1,9 @@
+// src/pages/Home/ThuVienCuaToi.jsx
 import { useEffect, useMemo, useState } from "react";
 import "./ThuVienCuaToi.css";
 import { useNavigate } from "react-router-dom";
+
+import ItemBo from "../../../components/BoThe/itemBo"; // <-- THÊM
 
 import { auth, db } from "../../../../lib/firebase";
 import {
@@ -18,8 +21,8 @@ function ThuVienCuaToi() {
   const [cardLib, setCardLib] = useState([]);
   const [actionTab, setActionTab] = useState("boThe");
 
-  const [khOwner, setKhOwner] = useState([]);   // khóa học do mình tạo
-  const [khMember, setKhMember] = useState([]); // khóa học mình là thành viên
+  const [khOwner, setKhOwner] = useState([]);
+  const [khMember, setKhMember] = useState([]);
   const [khoaHocList, setKhoaHocList] = useState([]);
 
   const [userMap, setUserMap] = useState({}); // { uid: {tenNguoiDung, anhDaiDien} }
@@ -46,6 +49,7 @@ function ThuVienCuaToi() {
               : Array.isArray(data.danhSachThe)
               ? data.danhSachThe.length
               : 0,
+          luotHoc: Number(data.luotHoc || 0),
         };
       });
       setCardLib(items);
@@ -116,17 +120,6 @@ function ThuVienCuaToi() {
   const handleStudy = (id) => navigate(`/flashcard/${id}`);
   const handleKhoaHoc = (id) => navigate(`/khoaHoc/${id}`);
 
-  const renderAvatarMini = (url, name) => {
-    return (
-      <div
-        className="mini-avatar"
-        style={url ? { backgroundImage: `url(${url})` } : {}}
-        aria-label={name || "user"}
-        title={name || ""}
-      />
-    );
-  };
-
   return (
     <div className="myLib-container">
       <h2 className="tittle-lib">Thư viện của tôi</h2>
@@ -149,37 +142,15 @@ function ThuVienCuaToi() {
       {actionTab === "boThe" && (
         <div className="myLibCard">
           {cardLib.map((item) => {
-            const owner = userMap[String(item.idNguoiDung)] || {};
-            const tenNguoiTao = owner.tenNguoiDung || "Ẩn danh";
-            const anhNguoiTao = owner.anhDaiDien || "";
-
+            const author = userMap[String(item.idNguoiDung)] || {};
             return (
-              <div
+              <ItemBo
                 key={item.idBoThe}
-                className="mini-card"
-                onClick={() => handleStudy(item.idBoThe)}
-              >
-                <div className="mini-title">{item?.tenBoThe || "Không tên"}</div>
-                <div className="mini-sub">
-                  {item.soTu ?? (Array.isArray(item.danhSachThe) ? item.danhSachThe.length : 0)} thẻ
-                </div>
-                <div className="mini-meta">
-                  {renderAvatarMini(anhNguoiTao, tenNguoiTao)}
-                  <span className="mini-name">{tenNguoiTao}</span>
-                </div>
-
-                <div className="mini-actions">
-                  <button
-                    className="btn ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStudy(item.idBoThe);
-                    }}
-                  >
-                    Học
-                  </button>
-                </div>
-              </div>
+                item={item}
+                author={author}                    // {tenNguoiDung, anhDaiDien}
+                onClick={(id) => handleStudy(id)} // click toàn card
+                // onLearn không truyền thì mặc định = onClick
+              />
             );
           })}
           {cardLib.length === 0 && <p className="emty">Không có bộ thẻ nào cả</p>}
@@ -205,7 +176,12 @@ function ThuVienCuaToi() {
                 </div>
 
                 <div className="mini-meta">
-                  {renderAvatarMini(anhNguoiTao, tenNguoiTao)}
+                  <div
+                    className="mini-avatar"
+                    style={anhNguoiTao ? { backgroundImage: `url(${anhNguoiTao})` } : {}}
+                    aria-label={tenNguoiTao}
+                    title={tenNguoiTao}
+                  />
                   <span className="mini-name">{tenNguoiTao}</span>
                 </div>
 

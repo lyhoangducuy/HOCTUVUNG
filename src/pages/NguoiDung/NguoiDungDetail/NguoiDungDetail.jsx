@@ -12,6 +12,17 @@ import {
   limit,
 } from "firebase/firestore";
 
+// ===== Mapping vai trò → nhãn & class CSS =====
+const ROLE_LABELS = {
+  HOC_VIEN: "Học viên",
+  GIANG_VIEN: "Giảng viên",
+  ADMIN: "Quản trị",
+};
+const roleLabel = (r) => ROLE_LABELS[r] || "Người dùng";
+const roleClass = (r) =>
+  ({ HOC_VIEN: "hoc_vien", GIANG_VIEN: "giang_vien", ADMIN: "admin" }[r] ||
+    "khac");
+
 export default function NguoiDungDetail() {
   const { uid } = useParams(); // route: /user/:uid
   const navigate = useNavigate();
@@ -69,7 +80,6 @@ export default function NguoiDungDetail() {
   // ===== Load khoaHoc nếu là GIANG_VIEN =====
   useEffect(() => {
     if (!uid) return;
-    // chỉ đăng ký listener khi profile báo là giảng viên
     if (profile?.vaiTro !== "GIANG_VIEN") {
       setCourses([]);
       setLoadingCourses(false);
@@ -129,7 +139,7 @@ export default function NguoiDungDetail() {
           </h2>
           <div className="user-fullname">{fullName}</div>
           <div className="user-email">{email}</div>
-          <div className={`user-role ${role?.toLowerCase()}`}>{role}</div>
+          <div className={`user-role ${roleClass(role)}`}>{roleLabel(role)}</div>
         </div>
       </section>
 
