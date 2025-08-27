@@ -10,6 +10,7 @@ export default function NewBoThe() {
 
   const [tenBoThe, setTenBoThe] = useState("");
   const [danhSachThe, setDanhSachThe] = useState([{ tu: "", nghia: "" }]);
+  const [cheDo, setCheDo] = useState("ca_nhan"); // ➕ chế độ: cong_khai | ca_nhan
   const [loi, setLoi] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -56,7 +57,9 @@ export default function NewBoThe() {
         soTu: dsHopLe.length,
         idNguoiDung: String(uid),
         danhSachThe: dsHopLe,
-        // ⬅️ không có createdAt
+        luotHoc: 0,
+        cheDo, // ➕ lưu chế độ
+        // (không đặt createdAt ở đây nếu bạn cố ý bỏ)
       };
 
       await setDoc(doc(db, "boThe", String(idBoThe)), boTheMoi, { merge: true });
@@ -89,6 +92,18 @@ export default function NewBoThe() {
             onChange={(e) => setTenBoThe(e.target.value)}
             placeholder="VD: Từ vựng buổi 1"
           />
+        </div>
+
+        {/* ➕ Chế độ hiển thị */}
+        <div className="form-group">
+          <label>Chế độ</label>
+          <select value={cheDo} onChange={(e) => setCheDo(e.target.value)}>
+            <option value="cong_khai">Công khai — ai cũng tìm & học được</option>
+            <option value="ca_nhan">Cá nhân — chỉ mình tôi thấy</option>
+          </select>
+          <div className="hint">
+            Chọn <b>Công khai</b> để mọi người có thể tìm thấy bộ thẻ của bạn trong kết quả tìm kiếm.
+          </div>
         </div>
 
         <div className="divider" />
