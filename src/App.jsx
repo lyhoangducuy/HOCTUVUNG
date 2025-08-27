@@ -44,6 +44,7 @@ import YeuCauTraPhi from "./router/phanQuyenTraPhi";
 import Checkout from "./pages/NguoiDung/Checkout/checkout";
 import CheckoutResult from "./pages/NguoiDung/Checkout/checkoutResult";
 import LichSuThanhToan from "./pages/NguoiDung/TraPhi/lichSuThanhToan";
+import NguoiDungDetail from "./pages/NguoiDung/NguoiDungDetail/NguoiDungDetail";
 
 
 export default function App() {
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/checkout/result" element={<CheckoutResult />} />
             <Route path="/lichSuThanhToan" element={<LichSuThanhToan />}/>
+            <Route path="/nguoiDung/:uid" element={<NguoiDungDetail />} />
 
             {/* 🔒 Chỉ người có gói trả phí còn hiệu lực mới truy cập được Video */}
             <Route element={<YeuCauTraPhi />}>
