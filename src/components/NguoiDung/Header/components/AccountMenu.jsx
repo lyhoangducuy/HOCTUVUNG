@@ -51,10 +51,10 @@ export default function AccountMenu({ user, prime, balanceText, onLogout, naviga
 
           <div
             className="confirg"
-            onClick={() => { setOpen(false); navigate("/so-du"); }}
+            onClick={() => { setOpen(false); navigate("/vi"); }}
           >
             <FontAwesomeIcon icon={faWallet} className="icon icon-setting" />
-            <span className="confirg-text">Số dư</span>
+            <span className="confirg-text">Ví</span>
             <span className="balance-text" style={{ marginLeft: 8, fontWeight: 600 }}>
               {balanceText}
             </span>
