@@ -25,9 +25,9 @@ export default function DangNhap() {
           "session",
           JSON.stringify({ idNguoiDung: user.uid, vaiTro: role })
         );  
-        navigate(role === "ADMIN" ? "/admin" : "/trangchu", { replace: true });
+        // navigate(role === "ADMIN" ? "/admin" : "/trangchu", { replace: true });
       } catch {
-        navigate("/trangchu", { replace: true });
+        // navigate("/trangchu", { replace: true });
       }
     });
 
@@ -35,7 +35,7 @@ export default function DangNhap() {
     const onAuthLogin = () => {
       const ss = JSON.parse(sessionStorage.getItem("session") || "null");
       const role = ss?.vaiTro || "HOC_VIEN";
-      navigate(role === "ADMIN" ? "/admin" : "/trangchu", { replace: true });
+      // navigate(role === "ADMIN" ? "/admin" : "/trangchu", { replace: true });
     };
     const onAuthLogout = () => {
       sessionStorage.removeItem("session");
