@@ -24,7 +24,7 @@ export default function DangNhap() {
         sessionStorage.setItem(
           "session",
           JSON.stringify({ idNguoiDung: user.uid, vaiTro: role })
-        );
+        );  
         navigate(role === "ADMIN" ? "/admin" : "/trangchu", { replace: true });
       } catch {
         navigate("/trangchu", { replace: true });
@@ -55,8 +55,11 @@ export default function DangNhap() {
   try {
     const cred = await signInWithEmailAndPassword(auth, form.email, form.matkhau);
 
-    const snap = await getDoc(doc(db, "nguoiDung", cred.user.uid));
-    if (!snap.exists()) throw new Error("Không tìm thấy hồ sơ người dùng!");
+      // Lấy hồ sơ người dùng để biết vai trò
+      console.log(db);
+      
+      const snap = await getDoc(doc(db, "nguoiDung", cred.user.uid));
+      if (!snap.exists()) throw new Error("Không tìm thấy hồ sơ người dùng!");
 
     const profile = snap.data();
     const role = profile?.vaiTro || "HOC_VIEN";
@@ -97,7 +100,7 @@ export default function DangNhap() {
             <label>Mật khẩu</label>
             <input type="password" {...register("matkhau")} />
 
-            {loginError && <span className="error">{loginError}</span>}
+            {loginError && <span className="error">{"email hoặc mật khẩu sai"}</span>}
 
             <div className="forgot">
               <Link to="/quen-mat-khau">Quên mật khẩu</Link>

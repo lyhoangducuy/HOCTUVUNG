@@ -36,7 +36,8 @@ export default function AIButton() {
   useEffect(() => {
     // đóng menu khi click ngoài
     const onClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target))
+        setOpen(false);
     };
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
@@ -233,7 +234,9 @@ export default function AIButton() {
           <div className="create-form-modal-content">
             <div className="create-form-modal-content-header">
               <h3>Tạo bộ thẻ</h3>
-              <button onClick={closeCreateForm}>X</button>
+              <button onClick={closeCreateForm} aria-label="Đóng">
+                X
+              </button>
             </div>
 
             <form onSubmit={handleSubmitCreate}>
@@ -296,15 +299,19 @@ export default function AIButton() {
             </div>
 
             <div className="preview-modal-body">
-              <strong>Từ</strong>
-              <strong>Nghĩa</strong>
-              <span />
+              <div className="preview-modal-body-header">
+                <strong>Từ</strong>
+                <strong>Nghĩa</strong>
+                <span />
+              </div>
               {previewList.map((item, idx) => (
                 <div className="preview-modal-row" key={idx}>
                   <input
                     type="text"
                     value={item.tu || ""}
-                    onChange={(e) => updatePreviewItem(idx, "tu", e.target.value)}
+                    onChange={(e) =>
+                      updatePreviewItem(idx, "tu", e.target.value)
+                    }
                     placeholder="apple"
                     style={{ padding: "8px 10px" }}
                   />

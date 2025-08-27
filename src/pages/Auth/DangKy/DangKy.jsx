@@ -36,20 +36,24 @@ export default function DangKy() {
     setLoading(true);
     try {
       // 1) Tạo tài khoản Auth (email/password)
-      const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const cred = await createUserWithEmailAndPassword(
+        auth,
+        data.email,
+        data.password
+      );
 
       // 2) Cập nhật displayName trong Auth (tuỳ chọn)
       await updateProfile(cred.user, { displayName: data.username });
 
       // 3) Lưu hồ sơ vào Firestore (collection: nguoiDung, docId = uid)
       await setDoc(doc(db, "nguoiDung", cred.user.uid), {
-        idNguoiDung: cred.user.uid,        // dùng luôn uid để đồng bộ với rule
+        idNguoiDung: cred.user.uid, // dùng luôn uid để đồng bộ với rule
         email: data.email,
         tenNguoiDung: data.username,
         hoten: "",
         anhDaiDien: "",
-        vaiTro: roleMap[data.role],        // ADMIN sẽ set ở trang quản trị
-        ngayTaoTaiKhoan: serverTimestamp()
+        vaiTro: roleMap[data.role], // ADMIN sẽ set ở trang quản trị
+        ngayTaoTaiKhoan: serverTimestamp(),
       });
 
       alert("Đăng ký thành công!");
@@ -79,7 +83,10 @@ export default function DangKy() {
             <span className="active" onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
               Đăng ký
             </span>
-            <span onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
+            <span
+              onClick={() => navigate("/dang-nhap")}
+              style={{ cursor: "pointer" }}
+            >
               Đăng nhập
             </span>
           </div>

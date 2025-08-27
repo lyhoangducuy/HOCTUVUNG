@@ -35,8 +35,8 @@ export default function AuthSync() {
       if (e.key === "auth:login") {
         // tuỳ bạn muốn làm gì khi tab khác login (chuyển hướng chẳng hạn)
         // ví dụ:
-        const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-        const role = ss?.vaiTro || "HOC_VIEN";
+        // const ss = JSON.parse(sessionStorage.getItem("session") || "null");
+        // const role = ss?.vaiTro || "HOC_VIEN";
         // navigate(role === "ADMIN" ? "/admin" : "/trangchu", { replace: true });
       }
     };
