@@ -8,15 +8,18 @@ import { fetchVocabulary } from "../ChatAI/ChatBot";
 import { auth, db } from "../../../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
+  getDocs,     // +++
+  query,       // +++
+  where,       // +++
+  setDoc,      // +++
   serverTimestamp,
   writeBatch,
 } from "firebase/firestore";
 
-// ===== Ngôn ngữ (thêm tối thiểu, không phá cấu trúc cũ) =====
+// ===== Ngôn ngữ (giữ nguyên) =====
 const LANGS = [
   { code: "vi", label: "Tiếng Việt (vi)" },
   { code: "en", label: "English (en)" },
@@ -40,38 +43,38 @@ export default function AIButton() {
   const [count, setCount] = useState(1);
   const [error, setError] = useState("");
 
-  // ===== state mới cho ngôn ngữ =====
+  // Ngôn ngữ
   const [langSrc, setLangSrc] = useState("vi");
   const [langDst, setLangDst] = useState("en");
+
+  // ➕ Chế độ hiển thị (để lưu giống NewBoThe)
+  const [cheDo, setCheDo] = useState("ca_nhan"); // "cong_khai" | "ca_nhan"
 
   // Preview modal
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTopic, setPreviewTopic] = useState("");
   const [previewList, setPreviewList] = useState([]); // [{tu, nghia}]
 
-  // User hiện tại (đồng bộ từ Firebase Auth + Firestore profile)
+  // User hiện tại
   const [user, setUser] = useState(null);
 
   /* ============= Effects ============= */
   useEffect(() => {
-    // Lắng nghe đăng nhập từ Firebase Auth
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (!fbUser) {
         setUser(null);
         return;
       }
       try {
-        // Đọc profile để lấy vaiTro, tên, ...
         const pRef = doc(db, "nguoiDung", fbUser.uid);
         const snap = await getDoc(pRef);
         const profile = snap.exists() ? snap.data() : {};
-
         setUser({
           idNguoiDung: fbUser.uid,
           email: fbUser.email || profile.email || "",
           tenNguoiDung: profile.tenNguoiDung || fbUser.displayName || "",
           hoten: profile.hoten || "",
-          vaiTro: profile.vaiTro || "HOC_VIEN", // mặc định
+          vaiTro: profile.vaiTro || "HOC_VIEN",
           anhDaiDien: profile.anhDaiDien || fbUser.photoURL || "",
         });
       } catch (e) {
@@ -86,12 +89,10 @@ export default function AIButton() {
         });
       }
     });
-
     return () => unsub();
   }, []);
 
   useEffect(() => {
-    // đóng menu khi click ngoài
     const onClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
     };
@@ -104,8 +105,9 @@ export default function AIButton() {
     if (loading) return;
     setTopic("");
     setCount(1);
-    setLangSrc("vi");   // reset về mặc định
-    setLangDst("en");   // reset về mặc định
+    setLangSrc("vi");
+    setLangDst("en");
+    setCheDo("ca_nhan"); // reset chế độ
     setError("");
     setShowForm(true);
     setOpen(false);
@@ -122,12 +124,10 @@ export default function AIButton() {
       alert("Vui lòng đăng nhập để tạo bộ thẻ.");
       return;
     }
-
     if (!topic.trim()) {
       setError("Vui lòng nhập chủ đề.");
       return;
     }
-
     const num = Number(count);
     if (!Number.isInteger(num) || num <= 0) {
       setError("Số lượng phải là số nguyên dương.");
@@ -161,14 +161,8 @@ export default function AIButton() {
   /* ============= ADMIN: thêm user ảo (Firestore) ============= */
   const addFakeUsers = async () => {
     try {
-      if (!user?.idNguoiDung) {
-        alert("Vui lòng đăng nhập.");
-        return;
-      }
-      if (user?.vaiTro !== "ADMIN") {
-        alert("Chức năng này chỉ dành cho ADMIN.");
-        return;
-      }
+      if (!user?.idNguoiDung) return alert("Vui lòng đăng nhập.");
+      if (user?.vaiTro !== "ADMIN") return alert("Chức năng này chỉ dành cho ADMIN.");
 
       const nStr = window.prompt("Thêm bao nhiêu người dùng ảo? (VD: 5)");
       const n = Number(nStr);
@@ -187,8 +181,7 @@ export default function AIButton() {
           tenNguoiDung: username,
           hoten: "Người dùng ảo " + (i + 1),
           email: `${username}@example.com`,
-          // CHÚ Ý: đây chỉ là "hồ sơ" trong Firestore, không tạo tài khoản Auth!
-          matkhau: "123123", // chỉ để mock hiển thị, KHÔNG dùng thật
+          matkhau: "123123", // chỉ để mock hiển thị
           vaiTro: "HOC_VIEN",
           ngayTaoTaiKhoan: serverTimestamp(),
           anhDaiDien: "",
@@ -204,6 +197,17 @@ export default function AIButton() {
     } finally {
       setOpen(false);
     }
+  };
+
+  /* ============= Helper: tạo idBoThe 6 số & check trùng ============= */
+  const genUniqueIdBoThe = async () => {
+    for (let i = 0; i < 5; i++) {
+      const id = Math.floor(100000 + Math.random() * 900000); // 100000..999999
+      const q = query(collection(db, "boThe"), where("idBoThe", "==", id));
+      const snap = await getDocs(q);
+      if (snap.empty) return id;
+    }
+    return Number(String(Date.now()).slice(-6)); // fallback
   };
 
   /* ============= Preview thao tác ============= */
@@ -223,6 +227,7 @@ export default function AIButton() {
     setPreviewOpen(false);
   };
 
+  /* ============= LƯU: flow GIỐNG NewBoThe ============= */
   const onSavePreview = async () => {
     const userCreated = user?.idNguoiDung;
 
@@ -234,32 +239,25 @@ export default function AIButton() {
       }))
       .filter((t) => t.tu && t.nghia);
 
-    if (!valid.length) {
-      alert("Danh sách thẻ trống hoặc không hợp lệ.");
-      return;
-    }
-    if (!userCreated) {
-      alert("Vui lòng đăng nhập.");
-      return;
-    }
+    if (!valid.length) return alert("Danh sách thẻ trống hoặc không hợp lệ.");
+    if (!userCreated) return alert("Vui lòng đăng nhập.");
 
     try {
-      // Lưu vào Firestore collection "boThe"
-      await addDoc(collection(db, "boThe"), {
-        tenBoThe: previewTopic,
-        idNguoiDung: userCreated,
-        danhSachThe: valid,
+      // idBoThe 6 chữ số + docId = idBoThe
+      const idBoThe = await genUniqueIdBoThe();
+
+      // LƯU ĐÚNG CẤU TRÚC: { idBoThe, tenBoThe, soTu, idNguoiDung, danhSachThe, luotHoc, cheDo }
+      await setDoc(doc(db, "boThe", String(idBoThe)), {
+        idBoThe,
+        tenBoThe: String(previewTopic || "").trim(),
         soTu: valid.length,
-        // ===== LƯU THÊM NGÔN NGỮ =====
-        langSrc,
-        langDst,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+        idNguoiDung: String(userCreated),
+        danhSachThe: valid,
+        luotHoc: 0,
+        cheDo, // "cong_khai" | "ca_nhan"
+      }, { merge: true });
 
-      // (Tuỳ app) phát event để nơi khác cập nhật lại data
       window.dispatchEvent(new Event("boTheUpdated"));
-
       setPreviewOpen(false);
       alert("Đã lưu bộ thẻ: " + previewTopic);
     } catch (e) {
@@ -306,9 +304,7 @@ export default function AIButton() {
           <div className="create-form-modal-content">
             <div className="create-form-modal-content-header">
               <h3>Tạo bộ thẻ</h3>
-              <button onClick={closeCreateForm} aria-label="Đóng">
-                X
-              </button>
+              <button onClick={closeCreateForm} aria-label="Đóng">X</button>
             </div>
 
             <form onSubmit={handleSubmitCreate}>
@@ -323,7 +319,7 @@ export default function AIButton() {
                   />
                 </label>
 
-                {/* ===== Thêm 2 select ngôn ngữ (giữ CSS cũ) ===== */}
+                {/* Ngôn ngữ */}
                 <label className="create-form-modal-content-form-label">
                   <span>Ngôn ngữ gốc</span>
                   <select value={langSrc} onChange={(e) => setLangSrc(e.target.value)}>
@@ -339,6 +335,15 @@ export default function AIButton() {
                     {LANGS.map((l) => (
                       <option key={l.code} value={l.code}>{l.label}</option>
                     ))}
+                  </select>
+                </label>
+
+                {/* ➕ Chế độ để lưu giống NewBoThe */}
+                <label className="create-form-modal-content-form-label">
+                  <span>Chế độ</span>
+                  <select value={cheDo} onChange={(e) => setCheDo(e.target.value)}>
+                    <option value="cong_khai">Công khai — ai cũng tìm & học được</option>
+                    <option value="ca_nhan">Cá nhân — chỉ mình tôi thấy</option>
                   </select>
                 </label>
 
@@ -360,17 +365,11 @@ export default function AIButton() {
                   />
                 </label>
 
-                {error && (
-                  <div style={{ color: "#d33", fontSize: 14 }}>{error}</div>
-                )}
+                {error && <div style={{ color: "#d33", fontSize: 14 }}>{error}</div>}
 
                 <div className="create-form-modal-content-form-button">
-                  <button type="button" onClick={closeCreateForm}>
-                    Hủy
-                  </button>
-                  <button type="submit" disabled={loading}>
-                    Tạo
-                  </button>
+                  <button type="button" onClick={closeCreateForm}>Hủy</button>
+                  <button type="submit" disabled={loading}>Tạo</button>
                 </div>
               </div>
             </form>
@@ -391,7 +390,6 @@ export default function AIButton() {
 
             <div className="preview-modal-body">
               <div className="preview-modal-body-header">
-                {/* ===== Cập nhật label cột theo ngôn ngữ ===== */}
                 <strong>Từ ({labelOf(langSrc)})</strong>
                 <strong>Nghĩa ({labelOf(langDst)})</strong>
                 <span />
@@ -408,9 +406,7 @@ export default function AIButton() {
                   <input
                     type="text"
                     value={item.nghia || ""}
-                    onChange={(e) =>
-                      updatePreviewItem(idx, "nghia", e.target.value)
-                    }
+                    onChange={(e) => updatePreviewItem(idx, "nghia", e.target.value)}
                     placeholder="quả táo"
                     style={{ padding: "8px 10px" }}
                   />
@@ -422,23 +418,15 @@ export default function AIButton() {
             <div className="preview-modal-footer">
               <button
                 className="preview-modal-footer-button"
-                onClick={() =>
-                  setPreviewList((prev) => [...prev, { tu: "", nghia: "" }])
-                }
+                onClick={() => setPreviewList((prev) => [...prev, { tu: "", nghia: "" }])}
               >
                 Thêm thẻ
               </button>
               <span style={{ flex: 1 }} />
-              <button
-                className="preview-modal-footer-button"
-                onClick={onCancelPreview}
-              >
+              <button className="preview-modal-footer-button" onClick={onCancelPreview}>
                 Hủy
               </button>
-              <button
-                className="preview-modal-footer-button save-button"
-                onClick={onSavePreview}
-              >
+              <button className="preview-modal-footer-button save-button" onClick={onSavePreview}>
                 Lưu
               </button>
             </div>
