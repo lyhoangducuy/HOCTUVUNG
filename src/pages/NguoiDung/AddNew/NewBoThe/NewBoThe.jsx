@@ -1,77 +1,88 @@
+// src/pages/.../NewBoThe.jsx
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./NewBoThe.css";
 
 import { auth, db } from "../../../../../lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 export default function NewBoThe() {
-  const navigate = useNavigate();
+  const điềuHướng = useNavigate();
 
-  const [tenBoThe, setTenBoThe] = useState("");
-  const [danhSachThe, setDanhSachThe] = useState([{ tu: "", nghia: "" }]);
-  const [cheDo, setCheDo] = useState("ca_nhan"); // ➕ chế độ: cong_khai | ca_nhan
-  const [loi, setLoi] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [tênBộThẻ, đặtTênBộThẻ] = useState("");
+  const [danhSáchThẻ, đặtDanhSáchThẻ] = useState([{ tu: "", nghia: "" }]);
+  const [chếĐộ, đặtChếĐộ] = useState("ca_nhan"); // cong_khai | ca_nhan
+  const [lỗi, đặtLỗi] = useState("");
+  const [đangLưu, đặtĐangLưu] = useState(false);
 
-  const idNgauNhien = useMemo(() => Math.floor(Math.random() * 1_000_000), []);
-  const themThe = () => setDanhSachThe((prev) => [...prev, { tu: "", nghia: "" }]);
-  const xoaThe = (i) => setDanhSachThe((prev) => prev.filter((_, idx) => idx !== i));
-  const doiNoiDungThe = (i, field, value) => {
-    setDanhSachThe((prev) => {
-      const next = [...prev];
-      next[i] = { ...next[i], [field]: value };
-      return next;
+  const idNgẫuNhiên = useMemo(() => Math.floor(Math.random() * 1_000_000), []);
+
+  const thêmThẻ = () =>
+    đặtDanhSáchThẻ((trước) => [...trước, { tu: "", nghia: "" }]);
+
+  const xoáThẻ = (i) =>
+    đặtDanhSáchThẻ((trước) => trước.filter((_, idx) => idx !== i));
+
+  const đổiNộiDungThẻ = (i, trường, giáTrị) => {
+    đặtDanhSáchThẻ((trước) => {
+      const sau = [...trước];
+      sau[i] = { ...sau[i], [trường]: giáTrị };
+      return sau;
     });
   };
 
-  const luuBoThe = async () => {
-    setLoi("");
+  const lưuBộThẻ = async () => {
+    đặtLỗi("");
 
-    const ten = tenBoThe.trim();
-    if (!ten) return setLoi("Vui lòng nhập tên bộ thẻ.");
+    const tên = String(tênBộThẻ || "").trim();
+    if (!tên) return đặtLỗi("Vui lòng nhập tên bộ thẻ.");
 
-    const dsHopLe = danhSachThe
-      .map((t) => ({ tu: t.tu.trim(), nghia: t.nghia.trim() }))
+    const danhSáchHợpLệ = danhSáchThẻ
+      .map((t) => ({ tu: String(t.tu || "").trim(), nghia: String(t.nghia || "").trim() }))
       .filter((t) => t.tu && t.nghia);
 
-    if (dsHopLe.length === 0)
-      return setLoi("Bộ thẻ phải có ít nhất 1 thẻ hợp lệ (điền đủ 'từ' và 'nghĩa').");
+    if (danhSáchHợpLệ.length === 0)
+      return đặtLỗi("Bộ thẻ phải có ít nhất 1 thẻ hợp lệ (điền đủ 'từ' và 'nghĩa').");
 
     const uid =
       auth.currentUser?.uid ||
       JSON.parse(sessionStorage.getItem("session") || "null")?.idNguoiDung;
+
     if (!uid) {
-      setLoi("Bạn cần đăng nhập để tạo bộ thẻ.");
-      navigate("/dang-nhap");
+      đặtLỗi("Bạn cần đăng nhập để tạo bộ thẻ.");
+      điềuHướng("/dang-nhap");
       return;
     }
 
     try {
-      setSaving(true);
+      đặtĐangLưu(true);
 
-      const idBoThe = idNgauNhien;
-      const boTheMoi = {
-        idBoThe,
-        tenBoThe: ten,
-        soTu: dsHopLe.length,
+      const idBộThẻ = idNgẫuNhiên;
+      const thờiĐiểm = serverTimestamp();
+
+      const bộThẻMới = {
+        idBoThe: idBộThẻ,
+        tenBoThe: tên,
+        soTu: danhSáchHợpLệ.length,
         idNguoiDung: String(uid),
-        danhSachThe: dsHopLe,
+        danhSachThe: danhSáchHợpLệ,
         luotHoc: 0,
-        cheDo, // ➕ lưu chế độ
-        // (không đặt createdAt ở đây nếu bạn cố ý bỏ)
+        cheDo: chếĐộ,
+        // === THÊM 2 TRƯỜNG TIẾNG VIỆT ===
+        ngayTao: thờiĐiểm,
+        ngayChinhSua: thờiĐiểm,
       };
 
-      await setDoc(doc(db, "boThe", String(idBoThe)), boTheMoi, { merge: true });
+      await setDoc(doc(db, "boThe", String(idBộThẻ)), bộThẻMới, { merge: true });
 
       window.dispatchEvent(new Event("boTheUpdated"));
       alert("Đã tạo bộ thẻ mới!");
-      navigate("/trangchu");
+      điềuHướng("/trangchu");
     } catch (e) {
       console.error(e);
-      setLoi("Có lỗi khi lưu dữ liệu.");
+      đặtLỗi("Có lỗi khi lưu dữ liệu.");
     } finally {
-      setSaving(false);
+      đặtĐangLưu(false);
     }
   };
 
@@ -82,22 +93,22 @@ export default function NewBoThe() {
           <h2>Tạo bộ thẻ mới</h2>
         </div>
 
-        {loi && <div className="alert">{loi}</div>}
+        {lỗi && <div className="alert">{lỗi}</div>}
 
         <div className="form-group">
           <label>Tên bộ thẻ</label>
           <input
             type="text"
-            value={tenBoThe}
-            onChange={(e) => setTenBoThe(e.target.value)}
+            value={tênBộThẻ}
+            onChange={(e) => đặtTênBộThẻ(e.target.value)}
             placeholder="VD: Từ vựng buổi 1"
           />
         </div>
 
-        {/* ➕ Chế độ hiển thị */}
+        {/* Chế độ hiển thị */}
         <div className="form-group">
           <label>Chế độ</label>
-          <select value={cheDo} onChange={(e) => setCheDo(e.target.value)}>
+          <select value={chếĐộ} onChange={(e) => đặtChếĐộ(e.target.value)}>
             <option value="cong_khai">Công khai — ai cũng tìm & học được</option>
             <option value="ca_nhan">Cá nhân — chỉ mình tôi thấy</option>
           </select>
@@ -110,15 +121,15 @@ export default function NewBoThe() {
 
         <div className="the-list">
           <div className="the-list-header">
-            <h3>Danh sách thẻ ({danhSachThe.length})</h3>
-            <button className="btn" onClick={themThe}>+ Thêm thẻ</button>
+            <h3>Danh sách thẻ ({danhSáchThẻ.length})</h3>
+            <button className="btn" onClick={thêmThẻ}>+ Thêm thẻ</button>
           </div>
 
-          {danhSachThe.length === 0 && (
+          {danhSáchThẻ.length === 0 && (
             <div className="empty">Chưa có thẻ nào. Nhấn “+ Thêm thẻ”.</div>
           )}
 
-          {danhSachThe.map((item, idx) => (
+          {danhSáchThẻ.map((item, idx) => (
             <div className="the-item" key={idx}>
               <div className="the-row">
                 <div className="col">
@@ -126,7 +137,7 @@ export default function NewBoThe() {
                   <input
                     type="text"
                     value={item.tu}
-                    onChange={(e) => doiNoiDungThe(idx, "tu", e.target.value)}
+                    onChange={(e) => đổiNộiDungThẻ(idx, "tu", e.target.value)}
                     placeholder="Ví dụ: apple"
                   />
                 </div>
@@ -135,14 +146,14 @@ export default function NewBoThe() {
                   <input
                     type="text"
                     value={item.nghia}
-                    onChange={(e) => doiNoiDungThe(idx, "nghia", e.target.value)}
+                    onChange={(e) => đổiNộiDungThẻ(idx, "nghia", e.target.value)}
                     placeholder="Ví dụ: quả táo"
                   />
                 </div>
               </div>
 
               <div className="the-actions">
-                <button className="btn danger ghost" onClick={() => xoaThe(idx)}>
+                <button className="btn danger ghost" onClick={() => xoáThẻ(idx)}>
                   Xoá thẻ
                 </button>
               </div>
@@ -151,9 +162,9 @@ export default function NewBoThe() {
         </div>
 
         <div className="footer-actions">
-          <button className="btn ghost" onClick={() => navigate(-1)}>Hủy</button>
-          <button className="btn primary" onClick={luuBoThe} disabled={saving}>
-            {saving ? "Đang lưu..." : "Lưu"}
+          <button className="btn ghost" onClick={() => điềuHướng(-1)}>Hủy</button>
+          <button className="btn primary" onClick={lưuBộThẻ} disabled={đangLưu}>
+            {đangLưu ? "Đang lưu..." : "Lưu"}
           </button>
         </div>
       </div>

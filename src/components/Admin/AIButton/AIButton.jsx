@@ -230,44 +230,54 @@ export default function AIButton() {
     setPreviewOpen(false);
   };
 
-  /* ============= LƯU: flow GIỐNG NewBoThe ============= */
-  const onSavePreview = async () => {
-    const userCreated = user?.idNguoiDung;
+  // --- giữ nguyên mọi thứ ở trên ---
 
-    // Lọc thẻ hợp lệ
-    const valid = previewList
-      .map((t) => ({
-        tu: String(t?.tu || "").trim(),
-        nghia: String(t?.nghia || "").trim(),
-      }))
-      .filter((t) => t.tu && t.nghia);
+/* ============= LƯU: flow GIỐNG NewBoThe, bổ sung ngày tạo/chỉnh sửa ============= */
+const onSavePreview = async () => {
+  const userCreated = user?.idNguoiDung;
 
-    if (!valid.length) return alert("Danh sách thẻ trống hoặc không hợp lệ.");
-    if (!userCreated) return alert("Vui lòng đăng nhập.");
+  // Lọc thẻ hợp lệ
+  const valid = previewList
+    .map((t) => ({
+      tu: String(t?.tu || "").trim(),
+      nghia: String(t?.nghia || "").trim(),
+    }))
+    .filter((t) => t.tu && t.nghia);
 
-    try {
-      // idBoThe 6 chữ số + docId = idBoThe
-      const idBoThe = await genUniqueIdBoThe();
+  if (!valid.length) return alert("Danh sách thẻ trống hoặc không hợp lệ.");
+  if (!userCreated) return alert("Vui lòng đăng nhập.");
 
-      // LƯU ĐÚNG CẤU TRÚC: { idBoThe, tenBoThe, soTu, idNguoiDung, danhSachThe, luotHoc, cheDo }
-      await setDoc(doc(db, "boThe", String(idBoThe)), {
+  try {
+    // idBoThe 6 chữ số + docId = idBoThe
+    const idBoThe = await genUniqueIdBoThe();
+
+    // LƯU ĐÚNG CẤU TRÚC:
+    // cheDo, danhSachThe, idBoThe, idNguoiDung, luotHoc, ngayChinhSua, ngayTao, soTu, tenBoThe
+    await setDoc(
+      doc(db, "boThe", String(idBoThe)),
+      {
         idBoThe,
         tenBoThe: String(previewTopic || "").trim(),
         soTu: valid.length,
         idNguoiDung: String(userCreated),
         danhSachThe: valid,
         luotHoc: 0,
-        cheDo, // "cong_khai" | "ca_nhan"
-      }, { merge: true });
+        cheDo,                          // "cong_khai" | "ca_nhan"
+        ngayTao: serverTimestamp(),     // ➕ thêm
+        ngayChinhSua: serverTimestamp() // ➕ thêm
+      },
+      { merge: true }
+    );
 
-      window.dispatchEvent(new Event("boTheUpdated"));
-      setPreviewOpen(false);
-      alert("Đã lưu bộ thẻ: " + previewTopic);
-    } catch (e) {
-      console.error("Lưu bộ thẻ thất bại:", e);
-      alert("Không thể lưu bộ thẻ. Vui lòng thử lại.");
-    }
-  };
+    window.dispatchEvent(new Event("boTheUpdated"));
+    setPreviewOpen(false);
+    alert("Đã lưu bộ thẻ: " + previewTopic);
+  } catch (e) {
+    console.error("Lưu bộ thẻ thất bại:", e);
+    alert("Không thể lưu bộ thẻ. Vui lòng thử lại.");
+  }
+};
+
 
   const isAdmin = user?.vaiTro === "ADMIN";
 
