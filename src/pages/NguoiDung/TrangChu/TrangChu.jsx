@@ -4,11 +4,23 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import "./TrangChu.css";
+
 // Lazy load AIButton để giảm bundle ban đầu
 const AIButton = lazy(() => import("../../../components/Admin/AIButton/AIButton"));
+// DÙNG ItemBo cho card bộ thẻ
+import ItemBo from "../../../components/BoThe/itemBo";
 
 import { auth, db } from "../../../../lib/firebase";
-import { collection, getDocs, onSnapshot, orderBy, limit, query, where, documentId } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  limit,
+  query,
+  where,
+  documentId,
+} from "firebase/firestore";
 
 export default function TrangChu() {
   const navigate = useNavigate();
@@ -29,9 +41,13 @@ export default function TrangChu() {
   };
   const denHoc = (id) => navigate(`/flashcard/${id}`);
 
-  // ====== RECENT: vẫn realtime nhưng giới hạn nhỏ ======
+  // ====== RECENT: realtime, giới hạn nhỏ ======
   useEffect(() => {
-    const qRecent = query(collection(db, "boThe"), orderBy("idBoThe", "desc"), limit(6));
+    const qRecent = query(
+      collection(db, "boThe"),
+      orderBy("idBoThe", "desc"),
+      limit(6)
+    );
     const unsubRecent = onSnapshot(qRecent, (snap) => {
       const items = snap.docs.map((d) => {
         const data = d.data();
@@ -51,76 +67,75 @@ export default function TrangChu() {
     return () => unsubRecent();
   }, []);
 
-  // ====== POPULAR: chỉ load khi vào + có sự kiện cập nhật, có Fallback khi thiếu index ======
-useEffect(() => {
-  let cancelled = false;
+  // ====== POPULAR: chỉ load khi vào + có sự kiện cập nhật, có fallback khi thiếu index ======
+  useEffect(() => {
+    let cancelled = false;
 
-  const mapSnap = (snap) =>
-    snap.docs.map((d) => {
-      const data = d.data();
-      return {
-        ...data,
-        soTu:
-          typeof data.soTu === "number"
-            ? data.soTu
-            : Array.isArray(data.danhSachThe)
-            ? data.danhSachThe.length
-            : 0,
-        luotHoc: Number(data.luotHoc || 0),
-      };
-    });
+    const mapSnap = (snap) =>
+      snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          ...data,
+          soTu:
+            typeof data.soTu === "number"
+              ? data.soTu
+              : Array.isArray(data.danhSachThe)
+              ? data.danhSachThe.length
+              : 0,
+          luotHoc: Number(data.luotHoc || 0),
+        };
+      });
 
-  const fetchPopular = async () => {
-    try {
-      // Truy vấn chuẩn (cần composite index): cheDo == 'cong_khai' + orderBy luotHoc desc
-      const qPopular = query(
-        collection(db, "boThe"),
-        where("cheDo", "==", "cong_khai"),
-        orderBy("luotHoc", "desc"),
-        limit(8)
-      );
-      const snap = await getDocs(qPopular);
-      if (cancelled) return;
-      setPhoBien(mapSnap(snap));
-    } catch (e) {
-      // Fallback khi thiếu index: lấy top theo luotHoc rồi lọc công khai trên client
-      if (e?.code === "failed-precondition" && /index/i.test(e?.message || "")) {
-        console.warn("Composite index chưa tạo, dùng fallback client-side filter.");
-        try {
-          // Lấy nhiều hơn (vd 64) để đảm bảo đủ 8 công khai sau khi lọc
-          const qNoFilter = query(
-            collection(db, "boThe"),
-            orderBy("luotHoc", "desc"),
-            limit(64)
-          );
-          const snap2 = await getDocs(qNoFilter);
-          if (cancelled) return;
-          const all = mapSnap(snap2)
-            .filter((x) => x.cheDo === "cong_khai")
-            .slice(0, 8);
-          setPhoBien(all);
-        } catch (e2) {
-          console.error("Fallback fetch failed:", e2);
+    const fetchPopular = async () => {
+      try {
+        // Truy vấn chuẩn (cần composite index): cheDo == 'cong_khai' + orderBy luotHoc desc
+        const qPopular = query(
+          collection(db, "boThe"),
+          where("cheDo", "==", "cong_khai"),
+          orderBy("luotHoc", "desc"),
+          limit(8)
+        );
+        const snap = await getDocs(qPopular);
+        if (cancelled) return;
+        setPhoBien(mapSnap(snap));
+      } catch (e) {
+        // Fallback khi thiếu index: lấy top theo luotHoc rồi lọc công khai trên client
+        if (e?.code === "failed-precondition" && /index/i.test(e?.message || "")) {
+          console.warn("Composite index chưa tạo, dùng fallback client-side filter.");
+          try {
+            const qNoFilter = query(
+              collection(db, "boThe"),
+              orderBy("luotHoc", "desc"),
+              limit(64)
+            );
+            const snap2 = await getDocs(qNoFilter);
+            if (cancelled) return;
+            const all = mapSnap(snap2)
+              .filter((x) => x.cheDo === "cong_khai")
+              .slice(0, 8);
+            setPhoBien(all);
+          } catch (e2) {
+            console.error("Fallback fetch failed:", e2);
+            if (!cancelled) setPhoBien([]);
+          }
+        } else {
+          console.error("Fetch popular failed:", e);
           if (!cancelled) setPhoBien([]);
         }
-      } else {
-        console.error("Fetch popular failed:", e);
-        if (!cancelled) setPhoBien([]);
       }
-    }
-  };
+    };
 
-  fetchPopular();
-  const onChanged = () => fetchPopular();
-  window.addEventListener("boTheUpdated", onChanged);
+    fetchPopular();
+    const onChanged = () => fetchPopular();
+    window.addEventListener("boTheUpdated", onChanged);
 
-  return () => {
-    cancelled = true;
-    window.removeEventListener("boTheUpdated", onChanged);
-  };
-}, []);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("boTheUpdated", onChanged);
+    };
+  }, []);
 
-  // ====== FETCH AUTHORS (nguoiDung) — chỉ tải UID CHƯA CÓ, chạy song song ======
+  // ====== FETCH AUTHORS (nguoiDung) — chỉ tải UID CHƯA CÓ ======
   useEffect(() => {
     const ownerIdsAll = [...ganDay, ...phoBien]
       .map((b) => (b?.idNguoiDung != null ? String(b.idNguoiDung) : null))
@@ -156,7 +171,7 @@ useEffect(() => {
     })();
   }, [ganDay, phoBien]);
 
-  // ====== PRIME: đọc gói đang hoạt động từ goiTraPhiCuaNguoiDung ======
+  // ====== PRIME: đọc gói đang hoạt động ======
   useEffect(() => {
     const session = JSON.parse(sessionStorage.getItem("session") || "null");
     const uid = auth.currentUser?.uid || session?.idNguoiDung || null;
@@ -198,7 +213,7 @@ useEffect(() => {
   };
 
   return (
-    <div className="home-wrap">
+    <>
       {/* Nút AI: chỉ tải khi Prime (lazy) */}
       {prime && (
         <div className="ai-strip">
@@ -238,7 +253,7 @@ useEffect(() => {
         )}
       </section>
 
-      {/* BỘ THẺ PHỔ BIẾN (công khai, lượt học cao nhất) */}
+      {/* BỘ THẺ PHỔ BIẾN — dùng ItemBo */}
       <section className="block">
         <div className="block-head">
           <h2 className="block-title">Bộ thẻ phổ biến</h2>
@@ -248,50 +263,18 @@ useEffect(() => {
           <div className="empty">Chưa có dữ liệu để hiển thị.</div>
         ) : (
           <div className="mini-grid">
-            {phoBien.map((raw) => {
-              const item = withAuthor(raw);
-              return (
-                <div
-                  key={item.idBoThe}
-                  className="mini-card"
-                  onClick={() => denHoc(item.idBoThe)}
-                >
-                  <div className="mini-title">{item.tenBoThe || "Không tên"}</div>
-                  <div className="mini-sub">
-                    {item.soTu ?? 0} thẻ • {item.luotHoc ?? 0} lượt học
-                  </div>
-
-                  <div className="mini-meta" onClick={(e) => e.stopPropagation()}>
-                    <div
-                      className="mini-avatar"
-                      style={
-                        item._anhNguoiTao
-                          ? { backgroundImage: `url(${item._anhNguoiTao})` }
-                          : {}
-                      }
-                    />
-                    <span className="mini-name">{item._tenNguoiTao}</span>
-                  </div>
-
-                  <div className="mini-actions">
-                    <button
-                      className="btn ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        denHoc(item.idBoThe);
-                      }}
-                    >
-                      Học
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {phoBien.map((item) => (
+              <ItemBo
+                key={item.idBoThe}
+                item={item}
+                author={userMap[String(item.idNguoiDung)]} // truyền thẳng user; ItemBo tự lấy tên hiển thị
+                onClick={denHoc}
+                onLearn={denHoc}
+              />
+            ))}
           </div>
         )}
       </section>
-      {/* Trợ lý hướng dẫn sử dụng */}
-      
-    </div>
+    </>
   );
 }
