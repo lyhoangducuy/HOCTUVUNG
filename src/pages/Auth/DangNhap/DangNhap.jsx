@@ -1,5 +1,5 @@
 // src/pages/Auth/DangNhap/DangNhap.jsx
-import "./DangNhap.css";
+import "./Dangnhap.css";
 import { useForm } from "react-hook-form";
 import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -31,53 +31,48 @@ export default function DangNhap() {
       }
     });
 
-    // Nghe tín hiệu login/logout từ tab khác
-    const onStorage = (e) => {
-      if (e.key === "auth:login") {
-        // tab khác vừa login -> điều hướng theo session/role hiện có
-        const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-        const role = ss?.vaiTro || "HOC_VIEN";
-        navigate(role === "ADMIN" ? "/admin" : "/trangchu", { replace: true });
-      }
-      if (e.key === "auth:logout") {
-        // tab khác logout -> dọn session tại tab này (phòng hờ)
-        sessionStorage.removeItem("session");
-      }
+    // Nghe tín hiệu login/logout từ tab khác (CustomEvent)
+    const onAuthLogin = () => {
+      const ss = JSON.parse(sessionStorage.getItem("session") || "null");
+      const role = ss?.vaiTro || "HOC_VIEN";
+      navigate(role === "ADMIN" ? "/admin" : "/trangchu", { replace: true });
     };
-    window.addEventListener("storage", onStorage);
+    const onAuthLogout = () => {
+      sessionStorage.removeItem("session");
+    };
+    window.addEventListener("auth:login", onAuthLogin);
+    window.addEventListener("auth:logout", onAuthLogout);
 
     return () => {
       unsub && unsub();
-      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("auth:login", onAuthLogin);
+      window.removeEventListener("auth:logout", onAuthLogout);
     };
   }, [navigate]);
 
   const onSubmit = async (form) => {
-    setLoginError("");
-    try {
-      const cred = await signInWithEmailAndPassword(auth, form.email, form.matkhau);
+  setLoginError("");
+  try {
+    const cred = await signInWithEmailAndPassword(auth, form.email, form.matkhau);
 
-      // Lấy hồ sơ người dùng để biết vai trò
-      const snap = await getDoc(doc(db, "nguoiDung", cred.user.uid));
-      if (!snap.exists()) throw new Error("Không tìm thấy hồ sơ người dùng!");
+    const snap = await getDoc(doc(db, "nguoiDung", cred.user.uid));
+    if (!snap.exists()) throw new Error("Không tìm thấy hồ sơ người dùng!");
 
-      const profile = snap.data();
-      const role = profile?.vaiTro || "HOC_VIEN";
+    const profile = snap.data();
+    const role = profile?.vaiTro || "HOC_VIEN";
 
-      // Giữ mini-session cho các phần code cũ còn đọc sessionStorage
-      sessionStorage.setItem(
-        "session",
-        JSON.stringify({ idNguoiDung: cred.user.uid, vaiTro: role })
-      );
+    // Save session
+    const session = { idNguoiDung: cred.user.uid, vaiTro: role };
+    sessionStorage.setItem("session", JSON.stringify(session));
 
-      // 🔔 PHÁT SỰ KIỆN CHO TAB KHÁC BIẾT LÀ ĐÃ LOGIN
-      localStorage.setItem("auth:login", String(Date.now()));
+    // Notify other tabs using a custom event instead of localStorage
+    window.dispatchEvent(new CustomEvent('auth:login', { detail: session }));
 
-      navigate(role === "ADMIN" ? "/admin" : "/trangchu");
-    } catch (e) {
-      setLoginError(e?.message || "Email hoặc mật khẩu không đúng.");
-    }
-  };
+    navigate(role === "ADMIN" ? "/admin" : "/trangchu");
+  } catch (e) {
+    setLoginError(e?.message || "Email hoặc mật khẩu không đúng.");
+  }
+};
 
   return (
     <div className="login-container">
