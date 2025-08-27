@@ -5,7 +5,7 @@ import "./DangKy.css";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { auth, db } from "../../../../lib/firebase"; // giữ nguyên đường dẫn config Firebase của bạn
+import { auth, db } from "../../../../lib/firebase";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
@@ -14,10 +14,7 @@ const schema = yup.object({
   username: yup.string().required("Vui lòng nhập tên người dùng"),
   role: yup.string().oneOf(["hocvien", "giangvien"], "Vui lòng chọn vai trò").required(),
   password: yup.string().min(6, "Mật khẩu tối thiểu 6 ký tự").required(),
-  passwordConfirm: yup
-    .string()
-    .oneOf([yup.ref("password")], "Mật khẩu không khớp")
-    .required(),
+  passwordConfirm: yup.string().oneOf([yup.ref("password")], "Mật khẩu không khớp").required(),
 });
 
 const roleMap = { giangvien: "GIANG_VIEN", hocvien: "HOC_VIEN" };
@@ -36,30 +33,37 @@ export default function DangKy() {
     setLoading(true);
     try {
       // 1) Tạo tài khoản Auth (email/password)
-      const cred = await createUserWithEmailAndPassword(
-        auth,
-        data.email,
-        data.password
-      );
+      const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
 
       // 2) Cập nhật displayName trong Auth (tuỳ chọn)
       await updateProfile(cred.user, { displayName: data.username });
 
-      // 3) Lưu hồ sơ vào Firestore (collection: nguoiDung, docId = uid)
-      await setDoc(doc(db, "nguoiDung", cred.user.uid), {
-        idNguoiDung: cred.user.uid, // dùng luôn uid để đồng bộ với rule
+      const uid = cred.user.uid;
+
+      // 3) Lưu hồ sơ người dùng
+      await setDoc(doc(db, "nguoiDung", uid), {
+        idNguoiDung: uid,
         email: data.email,
         tenNguoiDung: data.username,
         hoten: "",
         anhDaiDien: "",
-        vaiTro: roleMap[data.role], // ADMIN sẽ set ở trang quản trị
+        vaiTro: roleMap[data.role],
         ngayTaoTaiKhoan: serverTimestamp(),
+      });
+
+      // 4) TẠO VÍ mặc định (0đ)
+      // Collection: Vi, docId = uid
+      await setDoc(doc(db, "Vi", uid), {
+        idVi: uid,
+        idNguoiDung: uid,
+        soDu: 0,
+        ngayTao: serverTimestamp(),
+        ngayCapNhat: serverTimestamp(),
       });
 
       alert("Đăng ký thành công!");
       navigate("/dang-nhap");
     } catch (error) {
-      // Thông báo lỗi thân thiện hơn
       const code = error?.code || "";
       let msg = error?.message || "Đăng ký thất bại!";
       if (code === "auth/email-already-in-use") msg = "Email đã được sử dụng.";
@@ -83,10 +87,7 @@ export default function DangKy() {
             <span className="active" onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
               Đăng ký
             </span>
-            <span
-              onClick={() => navigate("/dang-nhap")}
-              style={{ cursor: "pointer" }}
-            >
+            <span onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
               Đăng nhập
             </span>
           </div>
@@ -113,11 +114,7 @@ export default function DangKy() {
             {errors.password && <span className="error">{errors.password.message}</span>}
 
             <label>Nhập lại mật khẩu</label>
-            <input
-              type="password"
-              {...register("passwordConfirm")}
-              className={errors.passwordConfirm ? "error" : ""}
-            />
+            <input type="password" {...register("passwordConfirm")} className={errors.passwordConfirm ? "error" : ""} />
             {errors.passwordConfirm && <span className="error">{errors.passwordConfirm.message}</span>}
 
             <button type="submit" className="signup-btn submit" disabled={loading}>
