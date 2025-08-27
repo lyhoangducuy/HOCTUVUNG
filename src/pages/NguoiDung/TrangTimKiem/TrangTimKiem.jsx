@@ -1,94 +1,21 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./TrangTimKiem.css";
-
 import { db } from "../../../../lib/firebase";
 import {
   collection,
   onSnapshot,
   query,
   limit,
-  where,          // <-- THÊM
+  where,
 } from "firebase/firestore";
+import ItemKhoaHoc from "../../../components/TimKiem/ItemKhoaHoc";
+import ItemUser from "../../../components/TimKiem/ItemUser";
+import ItemBoThe from "../../../components/TimKiem/ItemBoThe";
 
-/* ---------- Item components ---------- */
-function ItemBoThe({ item, dsNguoiDung, onClick }) {
-  const nguoiTao = dsNguoiDung.find(
-    (u) => String(u.idNguoiDung) === String(item.idNguoiDung)
-  );
-  const tenNguoiTao = nguoiTao?.tenNguoiDung || "Ẩn danh";
-  const anhNguoiTao = nguoiTao?.anhDaiDien || "";
 
-  return (
-    <div className="item-Search" onClick={() => onClick(item.idBoThe)}>
-      <h1>{item.tenBoThe || "Không tên"}</h1>
-      <p>{item.soTu ?? (item.danhSachThe?.length || 0)} thẻ</p>
-      <div className="user-item">
-        <div
-          className="mini-avatar"
-          style={anhNguoiTao ? { backgroundImage: `url(${anhNguoiTao})` } : {}}
-        />
-        <span>{tenNguoiTao}</span>
-      </div>
-      <button
-        className="btn-hoc"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick(item.idBoThe);
-        }}
-      >
-        Học
-      </button>
-    </div>
-  );
-}
 
-function ItemUser({ item }) {
-  return (
-    <div className="item-Search">
-      <div className="user-item">
-        <div
-          className="mini-avatar"
-          style={item.anhDaiDien ? { backgroundImage: `url(${item.anhDaiDien})` } : {}}
-        />
-        <span>{item.tenNguoiDung}</span>
-      </div>
-    </div>
-  );
-}
 
-function ItemKhoaHoc({ item, dsNguoiDung, onClick }) {
-  const nguoiTao = dsNguoiDung.find(
-    (u) => String(u.idNguoiDung) === String(item.idNguoiDung)
-  );
-  const tenNguoiTao = nguoiTao?.tenNguoiDung || "Ẩn danh";
-  const anhNguoiTao = nguoiTao?.anhDaiDien || "";
-
-  return (
-    <div className="item-Search" onClick={() => onClick(item.idKhoaHoc)}>
-      <h1>{item.tenKhoaHoc || "Khóa học"}</h1>
-      <p>
-        {(item.boTheIds?.length || 0)} bộ thẻ • {(item.thanhVienIds?.length || 0)} thành viên
-      </p>
-      {Array.isArray(item.kienThuc) && item.kienThuc.length > 0 && (
-        <div className="tags">
-          {item.kienThuc.map((t, i) => (
-            <span className="tag" key={i}>
-              {t}
-            </span>
-          ))}
-        </div>
-      )}
-      <div className="user-item">
-        <div
-          className="mini-avatar"
-          style={anhNguoiTao ? { backgroundImage: `url(${anhNguoiTao})` } : {}}
-        />
-        <span>{tenNguoiTao}</span>
-      </div>
-    </div>
-  );
-}
 
 /* ---------- Page ---------- */
 export default function TrangTimKiem() {
@@ -102,13 +29,9 @@ export default function TrangTimKiem() {
 
   // nạp dữ liệu từ Firestore
   useEffect(() => {
-    // >>> CHỈ LẤY BỘ THẺ CÔNG KHAI
+    // Bộ thẻ công khai
     const unsubBoThe = onSnapshot(
-      query(
-        collection(db, "boThe"),
-        where("cheDo", "==", "cong_khai"),
-        limit(200)
-      ),
+      query(collection(db, "boThe"), where("cheDo", "==", "cong_khai"), limit(200)),
       (snap) => {
         const list = snap.docs.map((d) => {
           const data = d.data();
@@ -127,12 +50,20 @@ export default function TrangTimKiem() {
       () => setBoThe([])
     );
 
+    // Người dùng (đảm bảo có idNguoiDung)
     const unsubNguoiDung = onSnapshot(
       query(collection(db, "nguoiDung"), limit(200)),
-      (snap) => setNguoiDung(snap.docs.map((d) => d.data())),
+      (snap) =>
+        setNguoiDung(
+          snap.docs.map((d) => {
+            const x = d.data();
+            return { ...x, idNguoiDung: x.idNguoiDung ?? d.id };
+          })
+        ),
       () => setNguoiDung([])
     );
 
+    // Khóa học
     const unsubKhoaHoc = onSnapshot(
       query(collection(db, "khoaHoc"), limit(200)),
       (snap) => {
@@ -184,15 +115,13 @@ export default function TrangTimKiem() {
   // điều hướng
   const denHoc = (idBoThe) => navigate(`/flashcard/${idBoThe}`);
   const denKhoaHoc = (idKhoaHoc) => navigate(`/khoaHoc/${idKhoaHoc}`);
+  const denNguoiDung = (uid) => navigate(`/nguoiDung/${uid}`);
 
   return (
     <div className="search-container">
       <div className="type-search">
         <ul>
-          <li
-            className={typeSearch === "All" ? "active" : ""}
-            onClick={() => setTypeSearch("All")}
-          >
+          <li className={typeSearch === "All" ? "active" : ""} onClick={() => setTypeSearch("All")}>
             All
           </li>
           <li
@@ -234,7 +163,11 @@ export default function TrangTimKiem() {
             <h3 className="list-Search-title">Người dùng</h3>
             {listUserTimKiem.length > 0
               ? listUserTimKiem.map((item) => (
-                  <ItemUser key={`user-${item.idNguoiDung}`} item={item} />
+                  <ItemUser
+                    key={`user-${item.idNguoiDung}`}
+                    item={item}
+                    onClick={denNguoiDung}
+                  />
                 ))
               : "Không tìm thấy người dùng nào"}
 
@@ -267,7 +200,11 @@ export default function TrangTimKiem() {
         {typeSearch === "User" &&
           (listUserTimKiem.length > 0
             ? listUserTimKiem.map((item) => (
-                <ItemUser key={`user-${item.idNguoiDung}`} item={item} />
+                <ItemUser
+                  key={`user-${item.idNguoiDung}`}
+                  item={item}
+                  onClick={denNguoiDung}
+                />
               ))
             : "Không tìm thấy người dùng nào")}
 
