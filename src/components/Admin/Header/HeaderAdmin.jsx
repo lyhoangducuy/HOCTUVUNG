@@ -9,7 +9,7 @@ import { auth, db } from "../../../../lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
-const DEFAULT_AVATAR = "/src/assets/image/formimg.png";
+const DEFAULT_AVATAR = "";
 
 export default function HeaderAdmin({ handleShowSidebar }) {
   const [isAdmin, setIsAdmin] = useState(false);

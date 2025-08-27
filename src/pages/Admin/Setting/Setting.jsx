@@ -5,7 +5,6 @@ import "./Setting.css";
 import TruongChiDoc from "./chucNang/chiDoc";
 import TruongChinhSua from "./chucNang/chinhSua";
 import ChonAnhDaiDien from "./chucNang/chonAnhDaiDien";
-
 import { db } from "../../../../lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 
