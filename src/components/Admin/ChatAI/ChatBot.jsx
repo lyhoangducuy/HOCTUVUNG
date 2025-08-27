@@ -88,3 +88,40 @@ export async function fetchVocabulary(topic, count = 1, langSrc = "vi", langDst 
     return "";
   }
 }
+
+// ===== HelpBot: gọi OpenRouter để hướng dẫn sử dụng web =====
+export async function helpAssistantReply(history, prompt) {
+  const apiKey = import.meta.env.VITE_API_CHATBOT_KEY;
+
+  const messages = [
+    {
+      role: "system",
+      content:
+        "Bạn là trợ lý ngắn gọn, thân thiện, hướng dẫn cách sử dụng website học từ vựng HOCTUVUNG. Trả lời bằng tiếng Việt, câu ngắn, kèm từng bước khi cần.",
+    },
+    ...history.map((m) => ({ role: m.role, content: m.content })),
+    { role: "user", content: prompt },
+  ];
+
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini", // model gọn nhẹ, phù hợp trợ lý hướng dẫn
+      temperature: 0.3,
+      messages,
+    }),
+  });
+
+  if (!res.ok) {
+    console.error("OpenRouter HTTP error:", res.status);
+    return "Xin lỗi, hiện mình không phản hồi được. Bạn thử lại sau nhé.";
+  }
+
+  const data = await res.json();
+  const content = data?.choices?.[0]?.message?.content || "Xin lỗi, mình chưa có câu trả lời.";
+  return content;
+}

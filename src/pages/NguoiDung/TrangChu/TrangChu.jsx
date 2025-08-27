@@ -8,17 +8,7 @@ import "./TrangChu.css";
 const AIButton = lazy(() => import("../../../components/Admin/AIButton/AIButton"));
 
 import { auth, db } from "../../../../lib/firebase";
-import {
-  collection,
-  doc,
-  getDocs,
-  onSnapshot,
-  orderBy,
-  limit,
-  query,
-  where,
-  documentId,
-} from "firebase/firestore";
+import { collection, getDocs, onSnapshot, orderBy, limit, query, where, documentId } from "firebase/firestore";
 
 export default function TrangChu() {
   const navigate = useNavigate();
@@ -300,6 +290,8 @@ useEffect(() => {
           </div>
         )}
       </section>
+      {/* Trợ lý hướng dẫn sử dụng */}
+      
     </div>
   );
 }
