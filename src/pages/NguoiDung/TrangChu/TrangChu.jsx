@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+// src/pages/Home/TrangChu.jsx
+import React, { useEffect, useMemo, useRef, useState, Suspense, lazy } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import "./TrangChu.css";
-import AIButton from "../../../components/Admin/AIButton/AIButton";
-import { FaRobot } from "react-icons/fa";
+// Lazy load AIButton để giảm bundle ban đầu
+const AIButton = lazy(() => import("../../../components/Admin/AIButton/AIButton"));
 
 import { auth, db } from "../../../../lib/firebase";
 import {
@@ -24,8 +25,9 @@ export default function TrangChu() {
 
   // ====== STATE ======
   const [ganDay, setGanDay] = useState([]);   // 6 bộ thẻ mới
-  const [phoBien, setPhoBien] = useState([]); // 8 bộ thẻ theo soTu
+  const [phoBien, setPhoBien] = useState([]); // 8 bộ thẻ công khai, lượt học cao nhất
   const [userMap, setUserMap] = useState({}); // {uid: {tenNguoiDung, anhDaiDien}}
+  const userMapRef = useRef({});              // cache để tránh tải lại profile đã có
   const [prime, setPrime] = useState(false);
 
   // ====== HELPERS ======
@@ -37,9 +39,8 @@ export default function TrangChu() {
   };
   const denHoc = (id) => navigate(`/flashcard/${id}`);
 
-  // ====== LOAD RECENT & POPULAR FROM FIRESTORE ======
+  // ====== RECENT: vẫn realtime nhưng giới hạn nhỏ ======
   useEffect(() => {
-    // Recent 6
     const qRecent = query(collection(db, "boThe"), orderBy("idBoThe", "desc"), limit(6));
     const unsubRecent = onSnapshot(qRecent, (snap) => {
       const items = snap.docs.map((d) => {
@@ -52,64 +53,116 @@ export default function TrangChu() {
               : Array.isArray(data.danhSachThe)
               ? data.danhSachThe.length
               : 0,
+          luotHoc: Number(data.luotHoc || 0),
         };
       });
       setGanDay(items);
     });
-
-    // Popular 8
-    const qPopular = query(collection(db, "boThe"), orderBy("soTu", "desc"), limit(8));
-    const unsubPopular = onSnapshot(qPopular, (snap) => {
-      const items = snap.docs.map((d) => {
-        const data = d.data();
-        return {
-          ...data,
-          soTu:
-            typeof data.soTu === "number"
-              ? data.soTu
-              : Array.isArray(data.danhSachThe)
-              ? data.danhSachThe.length
-              : 0,
-        };
-      });
-      setPhoBien(items);
-    });
-
-    return () => {
-      unsubRecent();
-      unsubPopular();
-    };
+    return () => unsubRecent();
   }, []);
 
-  // ====== FETCH AUTHORS (nguoiDung) FOR BOTH LISTS ======
-  useEffect(() => {
-    const ownerIds = [
-      ...new Set(
-        [...ganDay, ...phoBien]
-          .map((b) => (b?.idNguoiDung != null ? String(b.idNguoiDung) : null))
-          .filter(Boolean)
-      ),
-    ];
-    if (ownerIds.length === 0) {
-      setUserMap({});
-      return;
-    }
+  // ====== POPULAR: chỉ load khi vào + có sự kiện cập nhật, có Fallback khi thiếu index ======
+useEffect(() => {
+  let cancelled = false;
 
-    // Firestore 'in' chỉ tối đa 10 phần tử/lần → chia lô nếu cần
+  const mapSnap = (snap) =>
+    snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        ...data,
+        soTu:
+          typeof data.soTu === "number"
+            ? data.soTu
+            : Array.isArray(data.danhSachThe)
+            ? data.danhSachThe.length
+            : 0,
+        luotHoc: Number(data.luotHoc || 0),
+      };
+    });
+
+  const fetchPopular = async () => {
+    try {
+      // Truy vấn chuẩn (cần composite index): cheDo == 'cong_khai' + orderBy luotHoc desc
+      const qPopular = query(
+        collection(db, "boThe"),
+        where("cheDo", "==", "cong_khai"),
+        orderBy("luotHoc", "desc"),
+        limit(8)
+      );
+      const snap = await getDocs(qPopular);
+      if (cancelled) return;
+      setPhoBien(mapSnap(snap));
+    } catch (e) {
+      // Fallback khi thiếu index: lấy top theo luotHoc rồi lọc công khai trên client
+      if (e?.code === "failed-precondition" && /index/i.test(e?.message || "")) {
+        console.warn("Composite index chưa tạo, dùng fallback client-side filter.");
+        try {
+          // Lấy nhiều hơn (vd 64) để đảm bảo đủ 8 công khai sau khi lọc
+          const qNoFilter = query(
+            collection(db, "boThe"),
+            orderBy("luotHoc", "desc"),
+            limit(64)
+          );
+          const snap2 = await getDocs(qNoFilter);
+          if (cancelled) return;
+          const all = mapSnap(snap2)
+            .filter((x) => x.cheDo === "cong_khai")
+            .slice(0, 8);
+          setPhoBien(all);
+        } catch (e2) {
+          console.error("Fallback fetch failed:", e2);
+          if (!cancelled) setPhoBien([]);
+        }
+      } else {
+        console.error("Fetch popular failed:", e);
+        if (!cancelled) setPhoBien([]);
+      }
+    }
+  };
+
+  fetchPopular();
+  const onChanged = () => fetchPopular();
+  window.addEventListener("boTheUpdated", onChanged);
+
+  return () => {
+    cancelled = true;
+    window.removeEventListener("boTheUpdated", onChanged);
+  };
+}, []);
+
+  // ====== FETCH AUTHORS (nguoiDung) — chỉ tải UID CHƯA CÓ, chạy song song ======
+  useEffect(() => {
+    const ownerIdsAll = [...ganDay, ...phoBien]
+      .map((b) => (b?.idNguoiDung != null ? String(b.idNguoiDung) : null))
+      .filter(Boolean);
+
+    const unique = Array.from(new Set(ownerIdsAll));
+    const missing = unique.filter((uid) => !userMapRef.current[uid]);
+    if (missing.length === 0) return;
+
+    // Firestore 'in' chỉ tối đa 10 phần tử/lần → chia lô
     const chunks = [];
-    for (let i = 0; i < ownerIds.length; i += 10) chunks.push(ownerIds.slice(i, i + 10));
+    for (let i = 0; i < missing.length; i += 10) chunks.push(missing.slice(i, i + 10));
 
     (async () => {
-      const map = {};
-      for (const chunk of chunks) {
-        const qUsers = query(
-          collection(db, "nguoiDung"),
-          where(documentId(), "in", chunk)
+      try {
+        const results = await Promise.all(
+          chunks.map((chunk) =>
+            getDocs(
+              query(collection(db, "nguoiDung"), where(documentId(), "in", chunk))
+            )
+          )
         );
-        const rs = await getDocs(qUsers);
-        rs.forEach((d) => (map[d.id] = d.data()));
+
+        const nextMap = { ...userMapRef.current };
+        results.forEach((rs) => {
+          rs.forEach((d) => (nextMap[d.id] = d.data()));
+        });
+        userMapRef.current = nextMap;
+        setUserMap(nextMap);
+      } catch (e) {
+        console.error("Fetch authors failed:", e);
       }
-      setUserMap(map);
     })();
   }, [ganDay, phoBien]);
 
@@ -156,10 +209,12 @@ export default function TrangChu() {
 
   return (
     <div className="home-wrap">
-      {/* (Tuỳ chọn) Hiện nút AI cho Prime */}
+      {/* Nút AI: chỉ tải khi Prime (lazy) */}
       {prime && (
         <div className="ai-strip">
-          <AIButton />
+          <Suspense fallback={null}>
+            <AIButton />
+          </Suspense>
         </div>
       )}
 
@@ -193,7 +248,7 @@ export default function TrangChu() {
         )}
       </section>
 
-      {/* BỘ THẺ PHỔ BIẾN */}
+      {/* BỘ THẺ PHỔ BIẾN (công khai, lượt học cao nhất) */}
       <section className="block">
         <div className="block-head">
           <h2 className="block-title">Bộ thẻ phổ biến</h2>
@@ -212,7 +267,9 @@ export default function TrangChu() {
                   onClick={() => denHoc(item.idBoThe)}
                 >
                   <div className="mini-title">{item.tenBoThe || "Không tên"}</div>
-                  <div className="mini-sub">{item.soTu ?? 0} thẻ</div>
+                  <div className="mini-sub">
+                    {item.soTu ?? 0} thẻ • {item.luotHoc ?? 0} lượt học
+                  </div>
 
                   <div className="mini-meta" onClick={(e) => e.stopPropagation()}>
                     <div

@@ -3,7 +3,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import "./TrangTimKiem.css";
 
 import { db } from "../../../../lib/firebase";
-import { collection, onSnapshot, query, limit } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  query,
+  limit,
+  where,          // <-- THÊM
+} from "firebase/firestore";
 
 /* ---------- Item components ---------- */
 function ItemBoThe({ item, dsNguoiDung, onClick }) {
@@ -94,10 +100,15 @@ export default function TrangTimKiem() {
   const [nguoiDung, setNguoiDung] = useState([]);
   const [khoaHoc, setKhoaHoc] = useState([]);
 
-  // nạp dữ liệu từ Firestore (giới hạn để tránh kéo quá lớn — tùy bạn chỉnh)
+  // nạp dữ liệu từ Firestore
   useEffect(() => {
+    // >>> CHỈ LẤY BỘ THẺ CÔNG KHAI
     const unsubBoThe = onSnapshot(
-      query(collection(db, "boThe"), limit(200)),
+      query(
+        collection(db, "boThe"),
+        where("cheDo", "==", "cong_khai"),
+        limit(200)
+      ),
       (snap) => {
         const list = snap.docs.map((d) => {
           const data = d.data();
@@ -148,7 +159,7 @@ export default function TrangTimKiem() {
 
   const q = useMemo(() => String(id || "").trim().toLowerCase(), [id]);
 
-  // lọc kết quả (client-side, giống bản cũ)
+  // lọc kết quả (client-side)
   const listBoTheTimKiem = useMemo(() => {
     if (!q) return boThe;
     return boThe.filter((x) => (x.tenBoThe || "").toLowerCase().includes(q));
