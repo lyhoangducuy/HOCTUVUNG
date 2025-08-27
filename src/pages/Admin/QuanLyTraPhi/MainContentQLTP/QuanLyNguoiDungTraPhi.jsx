@@ -68,7 +68,7 @@ const dateVN = yup
   .test("ddmmyyyy", "Ngày phải dạng dd/mm/yyyy", (v) => !!parseVN(v || ""));
 
 const addSchema = yup.object({
-  idNguoiDung: yup.string().trim().required("Thiếu ID người dùng"),
+  idNguoiDung: yup.string().trim().required("Thiếu người dùng"),
   idGoi: yup.string().trim().required("Thiếu gói"),
   NgayBatDau: dateVN,
   NgayKetThuc: yup
@@ -187,6 +187,15 @@ export default function QuanLyNguoiDungTraPhi() {
       })),
     [packs]
   );
+  const userOptions = useMemo(
+    () =>
+      users.map((u) => ({
+        value: String(u.idNguoiDung),
+        label: String(u.tenNguoiDung || u.email || u.idNguoiDung),
+      })),
+    [users]
+  );
+
   const packValueSet = useMemo(
     () => new Set(packOptions.map((o) => String(o.value))),
     [packOptions]
@@ -214,14 +223,15 @@ export default function QuanLyNguoiDungTraPhi() {
     [packOptions, statusOptions]
   );
 
+  // >>> Đổi ID người dùng thành dropdown chọn <<<
   const ColumnsAdd = useMemo(
     () => [
-      { name: "ID người dùng (uid)", key: "idNguoiDung" },
+      { name: "Người dùng", key: "idNguoiDung", options: userOptions },
       { name: "Gói học", key: "idGoi", options: packOptions },
       { name: "Ngày bắt đầu (dd/mm/yyyy)", key: "NgayBatDau" },
       { name: "Ngày hết hạn (dd/mm/yyyy) (có thể để trống)", key: "NgayKetThuc" },
     ],
-    [packOptions]
+    [userOptions, packOptions]
   );
 
   /* ---- Delete ---- */
@@ -262,7 +272,7 @@ export default function QuanLyNguoiDungTraPhi() {
       const r = row._raw || {};
       setSelectedRow({
         id: row.id,
-        idNguoiDung: r.idNguoiDung,
+        idNguoiDung: r.idNguoiDung, // giữ lại cho đúng dữ liệu, không hiển thị trong ColumnsEdit
         idGoi: r.idGoi,
         status: displayStatus(r),
         NgayBatDau: toVNStr(r.NgayBatDau),
@@ -338,7 +348,7 @@ export default function QuanLyNguoiDungTraPhi() {
           return alert("Gói không hợp lệ.");
         }
         if (!userIdSet.has(String(data.idNguoiDung))) {
-          return alert("ID người dùng không tồn tại.");
+          return alert("Người dùng không hợp lệ.");
         }
 
         let start = parseVN(data.NgayBatDau);
@@ -424,30 +434,29 @@ export default function QuanLyNguoiDungTraPhi() {
         />
       )}
 
-     {showEdit && selectedRow && (
-  <Edit
-    user={selectedRow}
-    onClose={handleEditClose}
-    onSave={handleEditSave}
-    isEditMode={isEditMode}
-    Colums={ColumnsEdit}
-    showAvatar={false}
-    validationSchema={editSchema}   // <-- thêm
-    validateOnChange={false}        // bật true nếu muốn vừa gõ vừa hiện lỗi
-  />
-)}
+      {showEdit && selectedRow && (
+        <Edit
+          user={selectedRow}
+          onClose={handleEditClose}
+          onSave={handleEditSave}
+          isEditMode={isEditMode}
+          Colums={ColumnsEdit}
+          showAvatar={false}
+          validationSchema={editSchema}
+          validateOnChange={false}
+        />
+      )}
 
-{showAddDialog && (
-  <Add
-    onClose={handleAddClose}
-    onSave={handleAddSave}
-    Colums={ColumnsAdd}
-    showAvatar={false}
-    validationSchema={addSchema}     // <-- thêm
-    validateOnChange={false}
-  />
-)}
-
+      {showAddDialog && (
+        <Add
+          onClose={handleAddClose}
+          onSave={handleAddSave}
+          Colums={ColumnsAdd}
+          showAvatar={false}
+          validationSchema={addSchema}
+          validateOnChange={false}
+        />
+      )}
 
       {exportModal && (
         <ExportModal
