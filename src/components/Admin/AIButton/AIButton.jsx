@@ -1,7 +1,20 @@
+// src/components/AIButton.jsx
 import { useEffect, useRef, useState } from "react";
 import { FaRobot } from "react-icons/fa";
 import "./AIButton.css";
 import { fetchVocabulary } from "../ChatAI/ChatBot";
+
+// Firebase
+import { auth, db } from "../../../../lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
+  writeBatch,
+} from "firebase/firestore";
 
 export default function AIButton() {
   const [open, setOpen] = useState(false);
@@ -19,25 +32,51 @@ export default function AIButton() {
   const [previewTopic, setPreviewTopic] = useState("");
   const [previewList, setPreviewList] = useState([]); // [{tu, nghia}]
 
-  // User hiện tại
+  // User hiện tại (đồng bộ từ Firebase Auth + Firestore profile)
   const [user, setUser] = useState(null);
 
   /* ============= Effects ============= */
   useEffect(() => {
-    // nạp session
-    try {
-      const s = JSON.parse(sessionStorage.getItem("session") || "null");
-      setUser(s || null);
-    } catch {
-      setUser(null);
-    }
+    // Lắng nghe đăng nhập từ Firebase Auth
+    const unsub = onAuthStateChanged(auth, async (fbUser) => {
+      if (!fbUser) {
+        setUser(null);
+        return;
+      }
+      try {
+        // Đọc profile để lấy vaiTro, tên, ...
+        const pRef = doc(db, "nguoiDung", fbUser.uid);
+        const snap = await getDoc(pRef);
+        const profile = snap.exists() ? snap.data() : {};
+
+        setUser({
+          idNguoiDung: fbUser.uid,
+          email: fbUser.email || profile.email || "",
+          tenNguoiDung: profile.tenNguoiDung || fbUser.displayName || "",
+          hoten: profile.hoten || "",
+          vaiTro: profile.vaiTro || "HOC_VIEN", // mặc định
+          anhDaiDien: profile.anhDaiDien || fbUser.photoURL || "",
+        });
+      } catch (e) {
+        console.error("Lỗi nạp hồ sơ người dùng:", e);
+        setUser({
+          idNguoiDung: fbUser.uid,
+          email: fbUser.email || "",
+          tenNguoiDung: fbUser.displayName || "",
+          hoten: "",
+          vaiTro: "HOC_VIEN",
+          anhDaiDien: fbUser.photoURL || "",
+        });
+      }
+    });
+
+    return () => unsub();
   }, []);
 
   useEffect(() => {
     // đóng menu khi click ngoài
     const onClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target))
-        setOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
     };
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
@@ -60,6 +99,10 @@ export default function AIButton() {
 
   const handleSubmitCreate = async (e) => {
     e.preventDefault();
+    if (!user?.idNguoiDung) {
+      alert("Vui lòng đăng nhập để tạo bộ thẻ.");
+      return;
+    }
 
     if (!topic.trim()) {
       setError("Vui lòng nhập chủ đề.");
@@ -92,15 +135,14 @@ export default function AIButton() {
     }
   };
 
-  /* ============= ADMIN: thêm user ảo ============= */
-  const addFakeUsers = () => {
+  /* ============= ADMIN: thêm user ảo (Firestore) ============= */
+  const addFakeUsers = async () => {
     try {
-      const session = JSON.parse(sessionStorage.getItem("session") || "null");
-      if (!session?.idNguoiDung) {
+      if (!user?.idNguoiDung) {
         alert("Vui lòng đăng nhập.");
         return;
       }
-      if (session?.vaiTro !== "ADMIN") {
+      if (user?.vaiTro !== "ADMIN") {
         alert("Chức năng này chỉ dành cho ADMIN.");
         return;
       }
@@ -109,27 +151,30 @@ export default function AIButton() {
       const n = Number(nStr);
       const total = Number.isFinite(n) && n > 0 ? n : 3;
 
-      const ds = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-      const list = Array.isArray(ds) ? ds : [];
+      const batch = writeBatch(db);
       const now = Date.now();
 
-      const newOnes = Array.from({ length: total }).map((_, i) => {
-        const idNguoiDung = String(now + i);
-        const username = "user" + idNguoiDung.slice(-5);
-        return {
+      for (let i = 0; i < total; i++) {
+        const ref = doc(collection(db, "nguoiDung")); // id ngẫu nhiên
+        const idNguoiDung = ref.id;
+        const username = "user" + String(now + i).slice(-5);
+
+        batch.set(ref, {
           idNguoiDung,
           tenNguoiDung: username,
           hoten: "Người dùng ảo " + (i + 1),
           email: `${username}@example.com`,
-          matkhau: "123123",
+          // CHÚ Ý: đây chỉ là "hồ sơ" trong Firestore, không tạo tài khoản Auth!
+          matkhau: "123123", // chỉ để mock hiển thị, KHÔNG dùng thật
           vaiTro: "HOC_VIEN",
-          ngayTaoTaiKhoan: new Date().toISOString(),
+          ngayTaoTaiKhoan: serverTimestamp(),
           anhDaiDien: "",
-        };
-      });
+          isFake: true,
+        });
+      }
 
-      localStorage.setItem("nguoiDung", JSON.stringify([...list, ...newOnes]));
-      alert(`Đã thêm ${total} người dùng ảo.`);
+      await batch.commit();
+      alert(`Đã thêm ${total} người dùng ảo vào Firestore (collection "nguoiDung").`);
     } catch (e) {
       console.error("AI thêm người dùng ảo thất bại", e);
       alert("Không thể thêm người dùng ảo. Vui lòng thử lại.");
@@ -155,10 +200,9 @@ export default function AIButton() {
     setPreviewOpen(false);
   };
 
-  const onSavePreview = () => {
+  const onSavePreview = async () => {
     const userCreated = user?.idNguoiDung;
 
-    // Lọc thẻ hợp lệ
     const valid = previewList
       .map((t) => ({
         tu: String(t?.tu || "").trim(),
@@ -170,30 +214,31 @@ export default function AIButton() {
       alert("Danh sách thẻ trống hoặc không hợp lệ.");
       return;
     }
+    if (!userCreated) {
+      alert("Vui lòng đăng nhập.");
+      return;
+    }
 
-    // Lấy danh sách cũ
-    const raw = localStorage.getItem("boThe");
-    const cards = raw ? JSON.parse(raw) : [];
-    const list = Array.isArray(cards) ? cards : [];
+    try {
+      // Lưu vào Firestore collection "boThe"
+      await addDoc(collection(db, "boThe"), {
+        tenBoThe: previewTopic,
+        idNguoiDung: userCreated,
+        danhSachThe: valid,
+        soTu: valid.length,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
 
-    // Tạo id tăng dần
-    const ids = list.map((c) => Number(c.idBoThe)).filter(Number.isFinite);
-    const nextId = ids.length ? Math.max(...ids) + 1 : 1;
+      // (Tuỳ app) phát event để nơi khác cập nhật lại data
+      window.dispatchEvent(new Event("boTheUpdated"));
 
-    const newCard = {
-      idBoThe: String(nextId),
-      tenBoThe: previewTopic,
-      idNguoiDung: userCreated,
-      danhSachThe: valid, // dùng key chuẩn danhSachThe
-      soTu: valid.length,
-    };
-
-    localStorage.setItem("boThe", JSON.stringify([...list, newCard]));
-    // cho các trang khác reload ngay
-    window.dispatchEvent(new Event("boTheUpdated"));
-
-    setPreviewOpen(false);
-    alert("Đã lưu bộ thẻ: " + previewTopic);
+      setPreviewOpen(false);
+      alert("Đã lưu bộ thẻ: " + previewTopic);
+    } catch (e) {
+      console.error("Lưu bộ thẻ thất bại:", e);
+      alert("Không thể lưu bộ thẻ. Vui lòng thử lại.");
+    }
   };
 
   const isAdmin = user?.vaiTro === "ADMIN";
@@ -309,9 +354,7 @@ export default function AIButton() {
                   <input
                     type="text"
                     value={item.tu || ""}
-                    onChange={(e) =>
-                      updatePreviewItem(idx, "tu", e.target.value)
-                    }
+                    onChange={(e) => updatePreviewItem(idx, "tu", e.target.value)}
                     placeholder="apple"
                     style={{ padding: "8px 10px" }}
                   />
