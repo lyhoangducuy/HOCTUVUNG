@@ -7,6 +7,7 @@ import {
   faGear,
   faClone,
   faReceipt,
+  faWallet,
 } from "@fortawesome/free-solid-svg-icons";
 import "./header.css";
 import { useRef, useState, useEffect } from "react";
@@ -16,7 +17,6 @@ import { auth, db } from "../../../../lib/firebase";
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   onSnapshot,
   query,
@@ -31,7 +31,7 @@ const boTheCol = () => collection(db, "boThe");
 const khoaHocCol = () => collection(db, "khoaHoc");
 const subCol = () => collection(db, "goiTraPhiCuaNguoiDung");
 
-/* Nhận diện trạng thái đã hủy: không kén dấu/biến thể */
+/* Trạng thái hủy */
 const isCanceled = (s) => {
   const t = String(s || "").toLowerCase();
   const noAccent = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -44,13 +44,12 @@ const isCanceled = (s) => {
   );
 };
 
-/* Chuyển mọi kiểu ngày -> Date */
+/* Chuẩn hóa ngày */
 const toDateFlexible = (v) => {
   if (!v) return null;
   if (v instanceof Date) return v;
   if (typeof v?.toDate === "function") return v.toDate(); // Firestore Timestamp
   if (typeof v === "string") {
-    // "dd/MM/yyyy" hoặc ISO
     const [d, m, y] = v.split("/").map(Number);
     if (y) return new Date(y, (m || 1) - 1, d || 1);
     const dISO = new Date(v);
@@ -59,53 +58,68 @@ const toDateFlexible = (v) => {
   return null;
 };
 
+/* Format tiền VND ngắn gọn: 12.345đ */
+const formatVND = (val) => {
+  const n = Number(val || 0);
+  return `${n.toLocaleString("vi-VN")}đ`;
+};
+
 export default function Header() {
   const navigate = useNavigate();
 
   const menuRef = useRef(null);
   const plusRef = useRef(null);
   const searchRef = useRef(null);
-  const unsubSubRef = useRef(null); // giữ unsub của onSnapshot để huỷ khi nhận logout từ tab khác
+  const unsubSubRef = useRef(null);
+  const unsubUserRef = useRef(null);
 
   // user + prime
   const [user, setUser] = useState(null);
   const [prime, setPrime] = useState(false);
 
-  // UI state
+  // UI
   const [showMenu, setShowMenu] = useState(false);
   const [showPlus, setShowPlus] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
 
-  // Search state
+  // Search
   const [keyword, setKeyword] = useState("");
-  const [resCards, setResCards] = useState([]); // boThe
-  const [resCourses, setResCourses] = useState([]); // khoaHoc
+  const [resCards, setResCards] = useState([]);
+  const [resCourses, setResCourses] = useState([]);
 
-  /* 1) Nạp user từ Auth/Session + theo dõi Prime realtime */
+  /* 1) Nạp user + theo dõi số dư & prime realtime */
   useEffect(() => {
     let unsubSub = null;
 
-    const loadUserAndPrime = async () => {
-      try {
-        const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-        const uid = auth.currentUser?.uid || ss?.idNguoiDung;
-        if (!uid) {
-          setUser(null);
-          setPrime(false);
-          return;
-        }
+    const init = async () => {
+      const ss = JSON.parse(sessionStorage.getItem("session") || "null");
+      const uid = auth.currentUser?.uid || ss?.idNguoiDung;
+      if (!uid) {
+        setUser(null);
+        setPrime(false);
+        return;
+      }
 
-        // Lấy hồ sơ người dùng
-        const snap = await getDoc(userRef(uid));
-        if (snap.exists()) setUser(snap.data());
-        else setUser({ idNguoiDung: uid, tenNguoiDung: "Người dùng" });
+      // 🔴 Realtime hồ sơ user (để số dư cập nhật trực tiếp)
+      unsubUserRef.current = onSnapshot(
+        userRef(uid),
+        (snap) => {
+          if (snap.exists()) {
+            setUser({ idNguoiDung: uid, ...snap.data() });
+          } else {
+            setUser({ idNguoiDung: uid, tenNguoiDung: "Người dùng", soDu: 0 });
+          }
+        },
+        () => setUser({ idNguoiDung: uid, tenNguoiDung: "Người dùng", soDu: 0 })
+      );
 
-        // Realtime theo dõi mọi sub của user (KHÔNG lọc theo ngày ở query để chắc chắn nhận được cập nhật hủy)
-        const qSubs = query(subCol(), where("idNguoiDung", "==", String(uid)));
-        unsubSub = onSnapshot(qSubs, (ssnap) => {
+      // Realtime gói đang hoạt động
+      const qSubs = query(subCol(), where("idNguoiDung", "==", String(uid)));
+      unsubSub = onSnapshot(
+        qSubs,
+        (ssnap) => {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-
           const hasActive = ssnap.docs.some((d) => {
             const row = d.data();
             if (isCanceled(row?.status)) return false;
@@ -114,20 +128,19 @@ export default function Header() {
             end.setHours(0, 0, 0, 0);
             return end >= today;
           });
-
           setPrime(hasActive);
-        });
-        unsubSubRef.current = unsubSub;
-      } catch {
-        setUser(null);
-        setPrime(false);
-      }
+        },
+        () => setPrime(false)
+      );
+      unsubSubRef.current = unsubSub;
     };
 
-    loadUserAndPrime();
+    init();
     return () => {
-      if (unsubSub) unsubSub();
+      unsubSub?.();
       unsubSubRef.current = null;
+      unsubUserRef.current?.();
+      unsubUserRef.current = null;
     };
   }, []);
 
@@ -142,7 +155,7 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", outside);
   }, []);
 
-  /* 3) Tìm kiếm nhanh (boThe + khoaHoc) – lọc client */
+  /* 3) Search nhanh (client filter) */
   const doSearch = async (q) => {
     setKeyword(q);
     const queryText = q.trim().toLowerCase();
@@ -151,9 +164,7 @@ export default function Header() {
       setResCourses([]);
       return;
     }
-
     try {
-      // Lấy một lượng giới hạn rồi lọc client
       const [cardsSnap, coursesSnap] = await Promise.all([
         getDocs(query(boTheCol(), limit(50))),
         getDocs(query(khoaHocCol(), limit(50))),
@@ -181,28 +192,30 @@ export default function Header() {
     }
   };
 
-  /* 4) Logout (Auth) — đồng bộ đa tab bằng localStorage 'auth:logout' */
+  /* 4) Logout */
   const logout = async () => {
     try {
       await signOut(auth);
     } finally {
       sessionStorage.removeItem("session");
-      localStorage.setItem("auth:logout", String(Date.now())); // 🔔 phát tín hiệu cho tab khác
+      localStorage.setItem("auth:logout", String(Date.now()));
       navigate("/dang-nhap", { replace: true });
     }
   };
 
-  // avatar & tên hiển thị
   const avatarSrc = user?.anhDaiDien || "";
   const displayName = user?.tenNguoiDung || "Người dùng";
+  const balanceText = formatVND(user?.soDu);
 
-  /* 5) Nghe tín hiệu logout từ tab khác */
+  /* 5) Đồng bộ logout đa tab */
   useEffect(() => {
     const onStorage = (e) => {
       if (e.key === "auth:logout") {
         sessionStorage.removeItem("session");
-        unsubSubRef.current?.(); // huỷ theo dõi realtime nếu có
+        unsubSubRef.current?.();
         unsubSubRef.current = null;
+        unsubUserRef.current?.();
+        unsubUserRef.current = null;
 
         setUser(null);
         setPrime(false);
@@ -333,7 +346,7 @@ export default function Header() {
           )}
         </div>
 
-        {/* Ẩn nút nâng cấp nếu đã có gói hoạt động */}
+        {/* Nâng cấp (ẩn nếu Prime) */}
         {!prime && (
           <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
             Nâng cấp tài khoản
@@ -367,6 +380,23 @@ export default function Header() {
                   {prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
                 </div>
                 <h2 className="tittle">{displayName}</h2>
+              </div>
+
+              <div className="divide" />
+
+              {/* SỐ DƯ — realtime từ user.soDu */}
+              <div
+                className="confirg"
+                onClick={() => {
+                  setShowMenu(false);
+                  navigate("/so-du");
+                }}
+              >
+                <FontAwesomeIcon icon={faWallet} className="icon icon-setting" />
+                <span className="confirg-text">Số dư</span>
+                <span className="balance-text" style={{ marginLeft: 8, fontWeight: 600 }}>
+                  {balanceText}
+                </span>
               </div>
 
               <div className="divide" />

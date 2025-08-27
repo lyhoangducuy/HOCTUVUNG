@@ -161,47 +161,6 @@ export default function AIButton() {
     }
   };
 
-  /* ============= ADMIN: thêm user ảo (Firestore) ============= */
-  const addFakeUsers = async () => {
-    try {
-      if (!user?.idNguoiDung) return alert("Vui lòng đăng nhập.");
-      if (user?.vaiTro !== "ADMIN") return alert("Chức năng này chỉ dành cho ADMIN.");
-
-      const nStr = window.prompt("Thêm bao nhiêu người dùng ảo? (VD: 5)");
-      const n = Number(nStr);
-      const total = Number.isFinite(n) && n > 0 ? n : 3;
-
-      const batch = writeBatch(db);
-      const now = Date.now();
-
-      for (let i = 0; i < total; i++) {
-        const ref = doc(collection(db, "nguoiDung")); // id ngẫu nhiên
-        const idNguoiDung = ref.id;
-        const username = "user" + String(now + i).slice(-5);
-
-        batch.set(ref, {
-          idNguoiDung,
-          tenNguoiDung: username,
-          hoten: "Người dùng ảo " + (i + 1),
-          email: `${username}@example.com`,
-          matkhau: "123123", // chỉ để mock hiển thị
-          vaiTro: "HOC_VIEN",
-          ngayTaoTaiKhoan: serverTimestamp(),
-          anhDaiDien: "",
-          isFake: true,
-        });
-      }
-
-      await batch.commit();
-      alert(`Đã thêm ${total} người dùng ảo vào Firestore (collection "nguoiDung").`);
-    } catch (e) {
-      console.error("AI thêm người dùng ảo thất bại", e);
-      alert("Không thể thêm người dùng ảo. Vui lòng thử lại.");
-    } finally {
-      setOpen(false);
-    }
-  };
-
   /* ============= Helper: tạo idBoThe 6 số & check trùng ============= */
   const genUniqueIdBoThe = async () => {
     for (let i = 0; i < 5; i++) {
@@ -312,12 +271,6 @@ const onSavePreview = async () => {
           >
             {loading ? "Đang tạo..." : "Tạo bộ thẻ theo chủ đề"}
           </div>
-
-          {isAdmin && (
-            <div className="ai-item" onClick={addFakeUsers}>
-              Thêm người dùng ảo
-            </div>
-          )}
         </div>
       )}
        {showHelp && <HelpBot defaultOpen={true} />} {/* chỉ render khi click */}
