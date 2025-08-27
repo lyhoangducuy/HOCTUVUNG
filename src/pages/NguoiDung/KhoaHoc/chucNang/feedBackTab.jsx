@@ -1,126 +1,270 @@
 import { useEffect, useMemo, useState } from "react";
 import "./FeedbackTab.css";
 
+import { auth, db } from "../../../../../lib/firebase";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+  arrayUnion,
+} from "firebase/firestore";
+
+/* ========== Helpers ========== */
+const toVNDateTime = (d) =>
+  d instanceof Date && !Number.isNaN(d) ? d.toLocaleString("vi-VN") : "";
+
+const fromMaybeTs = (val) => {
+  if (!val) return null;
+  if (typeof val?.toDate === "function") return val.toDate(); // Firestore Timestamp
+  const d = new Date(val);
+  return Number.isNaN(d) ? null : d;
+};
+
+const chunk = (arr, n = 10) => {
+  const rs = [];
+  for (let i = 0; i < arr.length; i += n) rs.push(arr.slice(i, i + n));
+  return rs;
+};
+
+async function getCourseDocRefByAnyId(id) {
+  const idStr = String(id);
+  const refById = doc(db, "khoaHoc", idStr);
+  const s1 = await getDoc(refById);
+  if (s1.exists()) return refById;
+
+  const rs = await getDocs(query(collection(db, "khoaHoc"), where("idKhoaHoc", "==", idStr)));
+  if (!rs.empty) return rs.docs[0].ref;
+
+  return null;
+}
+
+async function getUserProfile(uid) {
+  try {
+    const snap = await getDoc(doc(db, "nguoiDung", String(uid)));
+    return snap.exists() ? { _docId: snap.id, ...snap.data() } : null;
+  } catch {
+    return null;
+  }
+}
+
+/* ========== Component ========== */
 export default function FeedbackTab({ idKhoaHoc }) {
+  // Auth + profile/lightweight
+  const [uid, setUid] = useState(null);
+  const [altId, setAltId] = useState(null); // nếu DB cũ dùng idNguoiDung ≠ auth.uid
+  const myId = useMemo(() => String(altId || uid || ""), [uid, altId]);
+  const [myRole, setMyRole] = useState(null); // HOC_VIEN | GIANG_VIEN | ADMIN | null
+
+  // Course
+  const [courseRef, setCourseRef] = useState(null);
+  const [course, setCourse] = useState(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [laThanhVien, setLaThanhVien] = useState(false);
+
+  // Feedbacks
   const [feedbacks, setFeedbacks] = useState([]);
+  const [userCache, setUserCache] = useState(new Map()); // idNguoiDung -> { tenNguoiDung, anhDaiDien }
+
+  // Form states
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [replyInputs, setReplyInputs] = useState({}); // key = idNguoiDung của feedback
 
-  // ===== Helpers =====
-  const readJSON = (k, fb) => {
-    try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? fb; }
-    catch { return fb; }
-  };
-  const writeJSON = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-  const fmtTime = (s) => new Date(s).toLocaleString();
+  /* ===== 1) Lấy uid từ Auth + altId (idNguoiDung) và vai trò ===== */
+  useEffect(() => {
+    const _uid = auth.currentUser?.uid || null;
+    setUid(_uid);
 
-  // ===== Session & data =====
-  const session = useMemo(() => {
-    try { return JSON.parse(sessionStorage.getItem("session") || "null"); }
-    catch { return null; }
+    (async () => {
+      if (!_uid) {
+        setAltId(null);
+        setMyRole(null);
+        return;
+      }
+      const prof = await getUserProfile(_uid);
+      const idField = prof?.idNguoiDung;
+      setAltId(idField && String(idField) !== String(_uid) ? String(idField) : null);
+      setMyRole(prof?.vaiTro || null);
+    })();
   }, []);
 
-  const dsNguoiDung = useMemo(() => readJSON("nguoiDung", []), []);
-
-  const khoaHoc = useMemo(() => {
-    const ds = readJSON("khoaHoc", []);
-    return ds.find((k) => String(k.idKhoaHoc) === String(idKhoaHoc)) || null;
-  }, [idKhoaHoc]);
-
-  const isOwner = !!session?.idNguoiDung &&
-                  String(khoaHoc?.idNguoiDung) === String(session.idNguoiDung);
-
-  const role = useMemo(() => {
-    if (!session) return null;
-    const u = dsNguoiDung.find((x) => x.idNguoiDung === session.idNguoiDung);
-    return u?.vaiTro || null;
-  }, [session, dsNguoiDung]);
-
-  const laThanhVien = useMemo(
-    () => khoaHoc?.thanhVienIds?.includes(session?.idNguoiDung),
-    [khoaHoc, session]
-  );
-
-  // ===== Load feedback =====
+  /* ===== 2) Load thông tin khóa học + quyền owner/member ===== */
   useEffect(() => {
-    const all = readJSON("feedback", []);
-    setFeedbacks(all.filter((f) => String(f.idKhoaHoc) === String(idKhoaHoc)));
-  }, [idKhoaHoc]);
+    (async () => {
+      if (!idKhoaHoc) return;
+      const ref = await getCourseDocRefByAnyId(idKhoaHoc);
+      setCourseRef(ref);
 
-  // ===== Thêm/cập nhật feedback của học viên =====
-  const themFeedback = (e) => {
-    e.preventDefault();
-    if (!session?.idNguoiDung) return;
-    if (!rating) { alert("Vui lòng chọn số sao!"); return; }
+      if (!ref) {
+        setCourse(null);
+        setIsOwner(false);
+        setLaThanhVien(false);
+        return;
+      }
 
-    const fb = {
-      idKhoaHoc,
-      idNguoiDung: session.idNguoiDung,
-      rating,
-      comment: (comment || "").trim(),
-      ngay: new Date().toISOString(),
-      // giữ replies cũ nếu đã có
-      replies: [],
-    };
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        setCourse(null);
+        setIsOwner(false);
+        setLaThanhVien(false);
+        return;
+      }
+      const kh = { _docId: ref.id, ...snap.data() };
+      setCourse(kh);
 
-    const all = readJSON("feedback", []);
-    const idx = all.findIndex(
-      (f) =>
-        String(f.idKhoaHoc) === String(idKhoaHoc) &&
-        String(f.idNguoiDung) === String(session.idNguoiDung)
+      const ownerId = String(kh.idNguoiDung || "");
+      const members = Array.isArray(kh.thanhVienIds) ? kh.thanhVienIds.map(String) : [];
+
+      setIsOwner(ownerId === myId || ownerId === String(uid)); // phòng khi altId/uid khác
+      setLaThanhVien(members.includes(myId) || members.includes(String(uid)));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idKhoaHoc, uid, altId, myId]);
+
+  /* ===== 3) Realtime feedback của khóa học ===== */
+  useEffect(() => {
+    if (!idKhoaHoc) return;
+    const qFb = query(
+      collection(db, "feedbackKhoaHoc"),
+      where("idKhoaHoc", "==", String(idKhoaHoc)),
+      orderBy("ngay", "desc")
     );
 
-    if (idx > -1) {
-      fb.replies = all[idx]?.replies || [];
-      all[idx] = fb;
-    } else {
-      all.push(fb);
+    const unsub = onSnapshot(
+      qFb,
+      async (snap) => {
+        const rows = snap.docs.map((d) => {
+          const x = d.data();
+          const when = fromMaybeTs(x.ngay) || new Date();
+          const replies = Array.isArray(x.replies) ? x.replies.map((r) => ({
+            ...r,
+            date: fromMaybeTs(r?.date) || null,
+          })) : [];
+        return {
+            idNguoiDung: String(x.idNguoiDung || ""),
+            rating: Number(x.rating || 0),
+            comment: String(x.comment || ""),
+            ngay: when,
+            replies,
+          };
+        });
+        setFeedbacks(rows);
+
+        // nạp thông tin người dùng cho tên/avatar (tác giả & người trả lời)
+        const authorIds = new Set(rows.map((r) => r.idNguoiDung));
+        rows.forEach((r) => r.replies?.forEach((rr) => authorIds.add(String(rr.userId || ""))));
+        // bỏ id rỗng và id đã có trong cache
+        const need = Array.from(authorIds).filter(
+          (id) => id && !userCache.has(id)
+        );
+        if (need.length > 0) {
+          const batches = chunk(need, 10);
+          const newMap = new Map(userCache);
+          for (const ids of batches) {
+            const rs = await Promise.all(ids.map((id) => getDoc(doc(db, "nguoiDung", id))));
+            rs.forEach((snap) => {
+              if (snap.exists()) {
+                const u = snap.data();
+                newMap.set(snap.id, {
+                  tenNguoiDung: u?.tenNguoiDung || u?.hoten || u?.email || "Người dùng",
+                  anhDaiDien: u?.anhDaiDien || "",
+                });
+              } else {
+                newMap.set(snap.id, { tenNguoiDung: "Người dùng", anhDaiDien: "" });
+              }
+            });
+          }
+          setUserCache(newMap);
+        }
+      },
+      (err) => {
+        console.error("Lỗi đọc feedback:", err);
+        setFeedbacks([]);
+      }
+    );
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idKhoaHoc, userCache]);
+
+  /* ===== 4) Gửi / cập nhật feedback của học viên ===== */
+  const themFeedback = async (e) => {
+    e.preventDefault();
+    if (!myId) return;
+    if (!rating) {
+      alert("Vui lòng chọn số sao!");
+      return;
+    }
+    if (!laThanhVien) {
+      alert("Chỉ thành viên của khóa học mới được đánh giá.");
+      return;
     }
 
-    writeJSON("feedback", all);
-    setFeedbacks(all.filter((f) => String(f.idKhoaHoc) === String(idKhoaHoc)));
-    setRating(0);
-    setComment("");
+    const key = `${String(idKhoaHoc)}_${myId}`;
+    try {
+      // dùng merge để không xoá mảng replies hiện có
+      await setDoc(
+        doc(db, "feedbackKhoaHoc", key),
+        {
+          idKhoaHoc: String(idKhoaHoc),
+          idNguoiDung: myId,
+          rating: Number(rating),
+          comment: String(comment || "").trim(),
+          ngay: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      setRating(0);
+      setComment("");
+    } catch (err) {
+      console.error("Thêm/cập nhật feedback thất bại:", err);
+      alert("Không thể gửi đánh giá. Vui lòng thử lại.");
+    }
   };
 
-  // ===== Chủ khóa học phản hồi =====
-  const submitReply = (idNguoiDung) => {
+  /* ===== 5) Chủ khóa học phản hồi ===== */
+  const submitReply = async (idNguoiDung) => {
     const text = (replyInputs[idNguoiDung] || "").trim();
     if (!text) return;
-
-    const all = readJSON("feedback", []);
-    const idx = all.findIndex(
-      (f) =>
-        String(f.idKhoaHoc) === String(idKhoaHoc) &&
-        String(f.idNguoiDung) === String(idNguoiDung)
-    );
-    if (idx === -1) return;
-
-    const entry = { ...(all[idx] || {}) };
-    const list = Array.isArray(entry.replies) ? entry.replies : [];
-    list.push({
-      userId: session?.idNguoiDung,
-      text,
-      date: new Date().toISOString(),
-    });
-    entry.replies = list;
-    all[idx] = entry;
-
-    writeJSON("feedback", all);
-    setFeedbacks(all.filter((f) => String(f.idKhoaHoc) === String(idKhoaHoc)));
-    setReplyInputs((s) => ({ ...s, [idNguoiDung]: "" }));
+    if (!isOwner) {
+      alert("Chỉ giảng viên/chủ khóa học mới được phản hồi.");
+      return;
+    }
+    const key = `${String(idKhoaHoc)}_${String(idNguoiDung)}`;
+    try {
+      await updateDoc(doc(db, "feedbackKhoaHoc", key), {
+        replies: arrayUnion({
+          userId: myId || uid,
+          text,
+          date: serverTimestamp(),
+        }),
+      });
+      setReplyInputs((s) => ({ ...s, [idNguoiDung]: "" }));
+    } catch (err) {
+      console.error("Gửi phản hồi thất bại:", err);
+      alert("Không thể gửi phản hồi. Vui lòng thử lại.");
+    }
   };
+
+  /* ===== Render ===== */
+  const count = feedbacks.length;
 
   return (
     <div className="fb-wrap">
       <div className="fb-head">
         <h3>Đánh giá & phản hồi</h3>
-        <span className="fb-count">{feedbacks.length} đánh giá</span>
+        <span className="fb-count">{count} đánh giá</span>
       </div>
 
       {/* Form học viên */}
-      {role === "HOC_VIEN" && laThanhVien && (
+      {myRole === "HOC_VIEN" && laThanhVien && (
         <form onSubmit={themFeedback} className="fb-form">
           <div className="fb-stars">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -151,21 +295,25 @@ export default function FeedbackTab({ idKhoaHoc }) {
       )}
 
       {/* Danh sách feedback */}
-      {feedbacks.length === 0 ? (
+      {count === 0 ? (
         <p className="fb-empty">Chưa có feedback nào.</p>
       ) : (
         <ul className="fb-list">
           {feedbacks.map((fb) => {
-            const user = dsNguoiDung.find((u) => u.idNguoiDung === fb.idNguoiDung);
-            const name = user?.tenNguoiDung || "Ẩn danh";
-            const replies = Array.isArray(fb.replies) ? fb.replies : [];
+            const u = userCache.get(fb.idNguoiDung) || {};
+            const name = u.tenNguoiDung || "Người dùng";
+            const avatar = u.anhDaiDien || "";
 
             return (
               <li key={fb.idNguoiDung} className="fb-item">
                 <div className="fb-item-head">
                   <div className="fb-user">
                     <div className="fb-avatar">
-                      {(name || "U").charAt(0).toUpperCase()}
+                      {avatar ? (
+                        <img src={avatar} alt={name} />
+                      ) : (
+                        (name || "U").charAt(0).toUpperCase()
+                      )}
                     </div>
                     <div>
                       <div className="fb-user-name">{name}</div>
@@ -176,7 +324,7 @@ export default function FeedbackTab({ idKhoaHoc }) {
                             {"★".repeat(5 - fb.rating)}
                           </span>
                         </span>
-                        <span>· {fmtTime(fb.ngay)}</span>
+                        <span>· {toVNDateTime(fb.ngay)}</span>
                       </div>
                     </div>
                   </div>
@@ -185,17 +333,17 @@ export default function FeedbackTab({ idKhoaHoc }) {
                 <div className="fb-body">{fb.comment}</div>
 
                 {/* Replies list */}
-                {replies.length > 0 && (
+                {Array.isArray(fb.replies) && fb.replies.length > 0 && (
                   <div className="fb-replies">
-                    {replies.map((r, i) => {
-                      const owner = dsNguoiDung.find(
-                        (u) => String(u.idNguoiDung) === String(r.userId)
-                      );
+                    {fb.replies.map((r, i) => {
+                      const owner = userCache.get(String(r.userId || "")) || {};
                       return (
                         <div key={i} className="fb-reply">
                           <div className="fb-reply-badge">Phản hồi của giảng viên</div>
                           <div className="fb-reply-text">{r.text}</div>
-                          <div className="fb-reply-time">{fmtTime(r.date)}</div>
+                          <div className="fb-reply-time">
+                            {toVNDateTime(fromMaybeTs(r.date))}
+                          </div>
                         </div>
                       );
                     })}

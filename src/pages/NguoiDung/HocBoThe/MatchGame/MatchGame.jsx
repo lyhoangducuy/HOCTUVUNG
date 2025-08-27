@@ -3,6 +3,9 @@ import { useParams } from "react-router-dom";
 import HocBoThe_Header from "../../../../components/HocBoThe/HocBoThe_Header";
 import "./MatchGame.css";
 
+import { db } from "../../../../../lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+
 /* Trộn mảng đơn giản */
 function tronMang(arr) {
   const a = arr.slice();
@@ -16,32 +19,38 @@ function tronMang(arr) {
 export default function MatchGame() {
   const { id } = useParams();
 
-  // ===== State tiếng Việt =====
+  // ===== State =====
   const [boThe, setBoThe] = useState(null);             // bộ thẻ đã chọn
   const [capTuNghia, setCapTuNghia] = useState([]);     // [{id, tu, nghia}]
-  const [oLuoi, setOLuoi] = useState([]);               // mảng ô hiển thị: [{id, loai:'tu'|'nghia', vanBan}]
-  const [chiSoDangChon, setChiSoDangChon] = useState([]); // các index đang chọn (tối đa 2)
-  const [idDaGhep, setIdDaGhep] = useState(new Set());  // id cặp đã ghép đúng (để style nếu muốn)
+  const [oLuoi, setOLuoi] = useState([]);               // [{id, loai:'tu'|'nghia', vanBan}]
+  const [chiSoDangChon, setChiSoDangChon] = useState([]); // index đang chọn (<=2)
+  const [idDaGhep, setIdDaGhep] = useState(new Set());  // id cặp đã ghép đúng
   const [viTriAn, setViTriAn] = useState(new Set());    // index đã ẩn (giữ chỗ)
   const [thongBao, setThongBao] = useState("");         // "ĐÚNG" | "SAI" | ""
   const [khoaClick, setKhoaClick] = useState(false);    // khoá khi đang xử lý
+  const [loading, setLoading] = useState(true);
 
-  // ===== Lấy bộ thẻ theo id URL =====
+  // ===== Lấy bộ thẻ từ Firestore =====
   useEffect(() => {
-    try {
-      const ds = JSON.parse(localStorage.getItem("boThe") || "[]");
-      const tim = Array.isArray(ds)
-        ? ds.find((x) => String(x.idBoThe) === String(id))
-        : null;
+    if (!id) return;
+    setLoading(true);
+    setBoThe(null);
 
-      if (tim?.danhSachThe?.length) {
-        setBoThe(tim);
-      } else {
+    const ref = doc(db, "boThe", String(id));
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        const data = snap.exists() ? snap.data() : null;
+        setBoThe(data);
+        setLoading(false);
+      },
+      () => {
         setBoThe(null);
+        setLoading(false);
       }
-    } catch {
-      setBoThe(null);
-    }
+    );
+
+    return () => unsub();
   }, [id]);
 
   // Tạo cặp {id, tu, nghia}
@@ -51,7 +60,9 @@ export default function MatchGame() {
       return;
     }
     const base = boThe.danhSachThe.map((t, i) => ({
-      id: i, tu: t.tu, nghia: t.nghia,
+      id: i,
+      tu: t.tu,
+      nghia: t.nghia,
     }));
     setCapTuNghia(base);
   }, [boThe]);
@@ -75,8 +86,8 @@ export default function MatchGame() {
   const chonO = (index) => {
     if (khoaClick) return;
     if (!oLuoi[index]) return;
-    if (viTriAn.has(index)) return;              // đã ẩn
-    if (chiSoDangChon.includes(index)) return;   // không chọn lại ô đang chọn
+    if (viTriAn.has(index)) return;
+    if (chiSoDangChon.includes(index)) return;
 
     const tiepTheo = [...chiSoDangChon, index].slice(-2);
     setChiSoDangChon(tiepTheo);
@@ -90,7 +101,6 @@ export default function MatchGame() {
       if (dung) {
         setThongBao("ĐÚNG");
         setIdDaGhep((prev) => new Set(prev).add(a.id));
-        // Ẩn 2 ô nhưng giữ chỗ (CSS .gone dùng visibility:hidden)
         setViTriAn((prev) => {
           const s = new Set(prev);
           s.add(i1); s.add(i2);
@@ -121,7 +131,9 @@ export default function MatchGame() {
         </div>
 
         <div className="study">
-          {!oLuoi.length ? (
+          {loading ? (
+            <p>Đang tải...</p>
+          ) : !oLuoi.length ? (
             <p>Không có dữ liệu để chơi.</p>
           ) : (
             <>
@@ -129,8 +141,7 @@ export default function MatchGame() {
                 {oLuoi.map((o, idx) => {
                   const dangChon = chiSoDangChon.includes(idx);
                   const daAn = viTriAn.has(idx);
-                  const daGhep = idDaGhep.has(o.id); // nếu muốn style riêng
-
+                  const daGhep = idDaGhep.has(o.id);
                   return (
                     <div
                       key={`${o.loai}-${o.id}-${idx}`}

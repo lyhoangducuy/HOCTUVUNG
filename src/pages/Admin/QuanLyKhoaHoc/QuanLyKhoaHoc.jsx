@@ -1,61 +1,77 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MainConTentQKH from "./MainConTentKH/MainConTentQLKH";
 
-/* Helpers */
-const readJSON = (key, fallback = []) => {
-  try {
-    const v = JSON.parse(localStorage.getItem(key) || "null");
-    return v ?? fallback;
-  } catch {
-    return fallback;
-  }
-};
+import { db } from "../../../../lib/firebase";
+import { collection, onSnapshot } from "firebase/firestore";
 
-const dateFromMaybeTs = (val) => {
-  if (val == null) return null;
-  const n = Number(val);
-  if (Number.isFinite(n)) {
-    // nếu là giây thì *1000, nếu là mili-giây thì dùng luôn
-    return new Date(n > 1e12 ? n : n * 1000);
-  }
-  // chuỗi "dd/MM/yyyy"
+// utils
+const toVN = (date) =>
+  date instanceof Date && !isNaN(date) ? date.toLocaleDateString("vi-VN") : "";
+
+const fromMaybeTsOrString = (val) => {
+  if (!val) return null;
+  // Firestore Timestamp
+  if (typeof val?.toDate === "function") return val.toDate();
+  // dd/MM/yyyy
   if (typeof val === "string" && val.includes("/")) {
     const [d, m, y] = val.split("/").map(Number);
     if (d && m && y) return new Date(y, m - 1, d);
+  }
+  // number (ms or s)
+  if (Number.isFinite(Number(val))) {
+    const n = Number(val);
+    return new Date(n > 1e12 ? n : n * 1000);
   }
   const d = new Date(val);
   return isNaN(d) ? null : d;
 };
 
-const toVN = (date) =>
-  date instanceof Date && !isNaN(date) ? date.toLocaleDateString("vi-VN") : "";
-
-/* build hàm tra tên user theo idNguoiDung */
-const userNameLookup = () => {
-  const users = readJSON("nguoiDung", []);
-  const map = new Map();
-  users.forEach((u) => {
-    const id = u?.idNguoiDung ?? u?.id;
-    const name =
-      u?.tenNguoiDung ?? u?.name ?? u?.displayName ?? u?.username ?? u?.email;
-    if (id != null) map.set(String(id), name || `ID: ${id}`);
-  });
-  return (id) => map.get(String(id)) || (id != null ? `ID: ${id}` : "—");
-};
-
 const QuanLyKhoaHoc = () => {
-  const [data, setData] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [users, setUsers] = useState([]);
 
-  const load = () => {
-    const courses = readJSON("khoaHoc", []);
-    const getUserName = userNameLookup();
+  // Realtime: khóa học
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, "khoaHoc"),
+      (snap) => {
+        const list = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+        setCourses(list);
+      },
+      () => setCourses([])
+    );
+    return () => unsub();
+  }, []);
+
+  // Realtime: người dùng (bảng bạn đã liệt kê là `nguoiDung`)
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, "nguoiDung"),
+      (snap) => {
+        const list = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+        setUsers(list);
+      },
+      () => setUsers([])
+    );
+    return () => unsub();
+  }, []);
+
+  const data = useMemo(() => {
+    const nameById = new Map(
+      users.map((u) => [
+        String(u.idNguoiDung ?? u._docId),
+        u.tenNguoiDung || u.username || u.email || "Ẩn danh",
+      ])
+    );
 
     const mapped = (Array.isArray(courses) ? courses : []).map((c, i) => {
-      const id = c?.idKhoaHoc ?? c?.id ?? `course_${i + 1}`;
-      const name = c?.tenKhoaHoc ?? c?.name ?? "(Không tên)";
+      const id = c.idKhoaHoc ?? c._docId ?? `course_${i + 1}`;
+      const name = c.tenKhoaHoc ?? c.name ?? "(Không tên)";
       const createdDate =
-        dateFromMaybeTs(c?.createdAt ?? c?.ngayTao ?? c?.created ?? c?.idKhoaHoc);
-      const userCreated = getUserName(c?.idNguoiDung);
+        fromMaybeTsOrString(c.createdAt) ||
+        fromMaybeTsOrString(c.ngayTao) ||
+        fromMaybeTsOrString(c._docId); // fallback nhẹ
+      const userCreated = nameById.get(String(c.idNguoiDung)) || "Ẩn danh";
 
       return {
         id,
@@ -66,28 +82,10 @@ const QuanLyKhoaHoc = () => {
       };
     });
 
-    // sort mới -> cũ
+    // sort: mới -> cũ
     mapped.sort((a, b) => b._sortKey - a._sortKey);
-
-    // bỏ trường phụ
-    setData(mapped.map(({ _sortKey, ...rest }) => rest));
-  };
-
-  useEffect(() => {
-    load();
-    const onStorage = (e) => {
-      if (!e || !e.key) return;
-      if (e.key === "khoaHoc" || e.key === "nguoiDung") load();
-    };
-    const onCoursesChanged = () => load();
-
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("coursesChanged", onCoursesChanged);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("coursesChanged", onCoursesChanged);
-    };
-  }, []);
+    return mapped.map(({ _sortKey, ...rest }) => rest);
+  }, [courses, users]);
 
   return <MainConTentQKH Data={data} />;
 };

@@ -5,50 +5,67 @@ import {
   faBookOpen,
   faCirclePlus,
   faGear,
-  faFolderOpen,
   faClone,
   faReceipt,
 } from "@fortawesome/free-solid-svg-icons";
 import "./header.css";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import AIButton from "../../Admin/AIButton/AIButton";
 
-/* helpers */
-const readJSON = (key, fallback = []) => {
-  try {
-    const v = JSON.parse(localStorage.getItem(key) || "null");
-    return v ?? fallback;
-  } catch {
-    return fallback;
+import { auth, db } from "../../../../lib/firebase";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+  limit,
+} from "firebase/firestore";
+import { signOut } from "firebase/auth";
+
+/* ===== Firestore helpers ===== */
+const userRef = (id) => doc(db, "nguoiDung", String(id));
+const boTheCol = () => collection(db, "boThe");
+const khoaHocCol = () => collection(db, "khoaHoc");
+const subCol = () => collection(db, "goiTraPhiCuaNguoiDung");
+
+/* Nhận diện trạng thái đã hủy: không kén dấu/biến thể */
+const isCanceled = (s) => {
+  const t = String(s || "").toLowerCase();
+  const noAccent = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (t === "đã hủy" || noAccent === "da huy") return true;
+  return (
+    t.includes("hủy") ||
+    t.includes("huỷ") ||
+    noAccent.includes("huy") ||
+    /cancel|canceled|cancelled/.test(noAccent)
+  );
+};
+
+/* Chuyển mọi kiểu ngày -> Date */
+const toDateFlexible = (v) => {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  if (typeof v?.toDate === "function") return v.toDate(); // Firestore Timestamp
+  if (typeof v === "string") {
+    // "dd/MM/yyyy" hoặc ISO
+    const [d, m, y] = v.split("/").map(Number);
+    if (y) return new Date(y, (m || 1) - 1, d || 1);
+    const dISO = new Date(v);
+    return isNaN(dISO) ? null : dISO;
   }
-};
-const parseVNDate = (dmy) => {
-  if (!dmy || typeof dmy !== "string") return null; // "dd/mm/yyyy"
-  const [d, m, y] = dmy.split("/").map(Number);
-  if (!d || !m || !y) return null;
-  return new Date(y, m - 1, d);
-};
-// Prime: đúng user + chưa "Đã hủy" + còn hạn
-const isPrime = (userId) => {
-  const list = readJSON("goiTraPhiCuaNguoiDung", []);
-  const today = new Date();
-  return list.some((p) => {
-    if (p.idNguoiDung !== userId) return false;
-    if (p.status === "Đã hủy") return false;
-    const end = parseVNDate(p.NgayKetThuc);
-    return end && end >= today;
-  });
+  return null;
 };
 
 export default function Header() {
   const navigate = useNavigate();
 
-  const [chatPro, setChatPro] = useState(false);
-
   const menuRef = useRef(null);
   const plusRef = useRef(null);
   const searchRef = useRef(null);
+  const unsubSubRef = useRef(null); // giữ unsub của onSnapshot để huỷ khi nhận logout từ tab khác
 
   // user + prime
   const [user, setUser] = useState(null);
@@ -61,36 +78,56 @@ export default function Header() {
 
   // Search state
   const [keyword, setKeyword] = useState("");
-  const [resCards, setResCards] = useState([]); // bộ thẻ
-  const [resCourses, setResCourses] = useState([]); // khóa học
+  const [resCards, setResCards] = useState([]); // boThe
+  const [resCourses, setResCourses] = useState([]); // khoaHoc
 
-  /* 1) Nạp user + prime */
+  /* 1) Nạp user từ Auth/Session + theo dõi Prime realtime */
   useEffect(() => {
-    const load = () => {
-      const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-      if (!ss?.idNguoiDung) {
+    let unsubSub = null;
+
+    const loadUserAndPrime = async () => {
+      try {
+        const ss = JSON.parse(sessionStorage.getItem("session") || "null");
+        const uid = auth.currentUser?.uid || ss?.idNguoiDung;
+        if (!uid) {
+          setUser(null);
+          setPrime(false);
+          return;
+        }
+
+        // Lấy hồ sơ người dùng
+        const snap = await getDoc(userRef(uid));
+        if (snap.exists()) setUser(snap.data());
+        else setUser({ idNguoiDung: uid, tenNguoiDung: "Người dùng" });
+
+        // Realtime theo dõi mọi sub của user (KHÔNG lọc theo ngày ở query để chắc chắn nhận được cập nhật hủy)
+        const qSubs = query(subCol(), where("idNguoiDung", "==", String(uid)));
+        unsubSub = onSnapshot(qSubs, (ssnap) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const hasActive = ssnap.docs.some((d) => {
+            const row = d.data();
+            if (isCanceled(row?.status)) return false;
+            const end = toDateFlexible(row?.NgayKetThuc);
+            if (!(end instanceof Date) || isNaN(end)) return false;
+            end.setHours(0, 0, 0, 0);
+            return end >= today;
+          });
+
+          setPrime(hasActive);
+        });
+        unsubSubRef.current = unsubSub;
+      } catch {
         setUser(null);
         setPrime(false);
-        return;
       }
-      const users = readJSON("nguoiDung", []);
-      const u = users.find((x) => String(x.idNguoiDung) === String(ss.idNguoiDung)) || null;
-      setUser(u || ss); // fallback: nếu không có trong local thì dùng session
-      setPrime(isPrime(ss.idNguoiDung));
     };
-    load();
 
-    // Nếu dữ liệu đổi từ tab khác -> cập nhật
-    const onStorage = (e) => {
-      if (!e || !e.key) return;
-      if (["nguoiDung", "goiTraPhiCuaNguoiDung"].includes(e.key)) load();
-    };
-    const onDangKy = () => load();
-    window.addEventListener("subscriptionChanged", onDangKy);
-    window.addEventListener("storage", onStorage);
+    loadUserAndPrime();
     return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("subscriptionChanged", onDangKy);
+      if (unsubSub) unsubSub();
+      unsubSubRef.current = null;
     };
   }, []);
 
@@ -105,69 +142,80 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", outside);
   }, []);
 
-  /* 3) Tìm kiếm nhanh (boThe + khoaHoc) */
-  const doSearch = (q) => {
+  /* 3) Tìm kiếm nhanh (boThe + khoaHoc) – lọc client */
+  const doSearch = async (q) => {
     setKeyword(q);
-    const query = q.trim().toLowerCase();
-    if (!query) {
+    const queryText = q.trim().toLowerCase();
+    if (!queryText) {
       setResCards([]);
       setResCourses([]);
       return;
     }
 
-    const cards = readJSON("boThe", []).filter((x) =>
-      (x.tenBoThe || "").toLowerCase().includes(query)
-    );
+    try {
+      // Lấy một lượng giới hạn rồi lọc client
+      const [cardsSnap, coursesSnap] = await Promise.all([
+        getDocs(query(boTheCol(), limit(50))),
+        getDocs(query(khoaHocCol(), limit(50))),
+      ]);
 
-    const courses = readJSON("khoaHoc", []).filter((k) => {
-      const byName = (k.tenKhoaHoc || "").toLowerCase().includes(query);
-      const byTag =
-        Array.isArray(k.kienThuc) &&
-        k.kienThuc.some((t) => String(t).toLowerCase().includes(query));
-      return byName || byTag;
-    });
+      const cards = cardsSnap.docs
+        .map((d) => d.data())
+        .filter((x) => (x.tenBoThe || "").toLowerCase().includes(queryText));
 
-    setResCards(cards);
-    setResCourses(courses);
+      const courses = coursesSnap.docs
+        .map((d) => d.data())
+        .filter((k) => {
+          const byName = (k.tenKhoaHoc || "").toLowerCase().includes(queryText);
+          const byTag =
+            Array.isArray(k.kienThuc) &&
+            k.kienThuc.some((t) => String(t).toLowerCase().includes(queryText));
+          return byName || byTag;
+        });
+
+      setResCards(cards);
+      setResCourses(courses);
+    } catch {
+      setResCards([]);
+      setResCourses([]);
+    }
   };
 
-  /* 4) Logout */
-  const logout = () => {
-    sessionStorage.clear();
-    navigate("/dang-nhap", { replace: true });
+  /* 4) Logout (Auth) — đồng bộ đa tab bằng localStorage 'auth:logout' */
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } finally {
+      sessionStorage.removeItem("session");
+      localStorage.setItem("auth:logout", String(Date.now())); // 🔔 phát tín hiệu cho tab khác
+      navigate("/dang-nhap", { replace: true });
+    }
   };
 
   // avatar & tên hiển thị
   const avatarSrc = user?.anhDaiDien || "";
   const displayName = user?.tenNguoiDung || "Người dùng";
 
-  /* 5) Tính quyền dùng AI dựa vào gói (Prime) */
+  /* 5) Nghe tín hiệu logout từ tab khác */
   useEffect(() => {
-    const compute = () => {
-      try {
-        const session = JSON.parse(sessionStorage.getItem("session") || "null");
-        const list = JSON.parse(localStorage.getItem("goiTraPhiCuaNguoiDung") || "[]");
-        const today = new Date();
-        const ok = list.some(
-          (s) =>
-            s.idNguoiDung === session?.idNguoiDung &&
-            parseVNDate(s.NgayKetThuc) &&
-            parseVNDate(s.NgayKetThuc) >= today &&
-            s.status !== "Đã hủy"
-        );
-        setChatPro(ok);
-      } catch {
-        setChatPro(false);
-      }
-    };
-
-    compute();
     const onStorage = (e) => {
-      if (e.key === "goiTraPhiCuaNguoiDung") compute();
+      if (e.key === "auth:logout") {
+        sessionStorage.removeItem("session");
+        unsubSubRef.current?.(); // huỷ theo dõi realtime nếu có
+        unsubSubRef.current = null;
+
+        setUser(null);
+        setPrime(false);
+        setShowMenu(false);
+        setShowPlus(false);
+        setShowSearch(false);
+
+        navigate("/dang-nhap", { replace: true });
+      }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="header-container">
@@ -194,7 +242,10 @@ export default function Header() {
           }}
           onFocus={() => setShowSearch(true)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") navigate(`/timkiem/${keyword}`);
+            if (e.key === "Enter") {
+              setShowSearch(false);
+              navigate(`/timkiem/${keyword}`);
+            }
           }}
         />
 
@@ -266,16 +317,6 @@ export default function Header() {
                 <FontAwesomeIcon icon={faClone} />
                 <span>Bộ thẻ mới</span>
               </div>
-              <div
-                className="plus-item"
-                onClick={() => {
-                  navigate("/newfolder");
-                  setShowPlus(false);
-                }}
-              >
-                <FontAwesomeIcon icon={faFolderOpen} />
-                <span>Thư mục mới</span>
-              </div>
               {(user?.vaiTro === "GIANG_VIEN" || user?.vaiTro === "ADMIN") && (
                 <div
                   className="plus-item"
@@ -292,12 +333,12 @@ export default function Header() {
           )}
         </div>
 
-        {/* Chỉ Prime mới có AIButton (nếu muốn hiện cho tất cả role, bỏ điều kiện chatPro) */}
-        {chatPro && <AIButton />}
-
-        <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
-          Nâng cấp tài khoản
-        </button>
+        {/* Ẩn nút nâng cấp nếu đã có gói hoạt động */}
+        {!prime && (
+          <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
+            Nâng cấp tài khoản
+          </button>
+        )}
 
         {/* Account */}
         <div className="inforContainer" ref={menuRef}>

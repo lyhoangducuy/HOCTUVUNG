@@ -12,10 +12,14 @@ import ChiTietLopModal from "./chucNang/chiTietLop";
 import ChonBoThe from "./chucNang/chonBoThe";
 import FeedbackTab from "./chucNang/feedBackTab";
 
-const readJSON = (k, fb) => {
-  try { const v = JSON.parse(localStorage.getItem(k) || "null"); return v ?? fb; }
-  catch { return fb; }
-};
+import { auth, db } from "../../../../lib/firebase";
+import {
+  doc,
+  onSnapshot,
+  updateDoc,
+  deleteDoc,
+  arrayUnion,
+} from "firebase/firestore";
 
 export default function Lop() {
   const { id } = useParams(); // idKhoaHoc từ route /lop/:id
@@ -30,108 +34,108 @@ export default function Lop() {
   const [moChonBoThe, setMoChonBoThe] = useState(false);
   const [daYeuCau, setDaYeuCau] = useState(false);
 
-  // nạp khóa học theo id
-  useEffect(() => {
-    const dsKH = readJSON("khoaHoc", []);
-    const kh = dsKH.find((x) => String(x.idKhoaHoc) === String(id)) || null;
-    if (kh) {
-      if (!Array.isArray(kh.thanhVienIds)) kh.thanhVienIds = [];
-      if (!Array.isArray(kh.boTheIds)) kh.boTheIds = [];
-      if (!Array.isArray(kh.folderIds)) kh.folderIds = [];
-      if (!Array.isArray(kh.kienThuc)) kh.kienThuc = [];
-      if (!Array.isArray(kh.yeuCauThamGiaIds)) kh.yeuCauThamGiaIds = [];
-    }
-    setChiTietKhoaHoc(kh);
-  }, [id]);
-
-  // reload khi nơi khác sửa khóa học
-  useEffect(() => {
-    const reload = () => {
-      const ds = readJSON("khoaHoc", []);
-      const kh = ds.find((k) => String(k.idKhoaHoc) === String(id)) || null;
-      setChiTietKhoaHoc(kh);
-    };
-    window.addEventListener("khoaHocChanged", reload);
-    return () => window.removeEventListener("khoaHocChanged", reload);
-  }, [id]);
-
-  const dsNguoiDung = useMemo(() => readJSON("nguoiDung", []), []);
+  // session hiện tại (fallback nếu chưa có auth.currentUser)
   const session = useMemo(() => {
     try { return JSON.parse(sessionStorage.getItem("session") || "null"); }
     catch { return null; }
   }, []);
+  const uid = auth.currentUser?.uid || session?.idNguoiDung || null;
+
+  // nạp khóa học theo id (Firestore)
+  useEffect(() => {
+    if (!id) return;
+    const ref = doc(db, "khoaHoc", String(id));
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) {
+          setChiTietKhoaHoc(null);
+          return;
+        }
+        const kh = snap.data() || null;
+
+        // đảm bảo các trường mảng tồn tại
+        ["thanhVienIds", "boTheIds", "folderIds", "kienThuc", "yeuCauThamGiaIds"].forEach((k) => {
+          if (!Array.isArray(kh[k])) kh[k] = [];
+        });
+
+        setChiTietKhoaHoc(kh);
+      },
+      () => setChiTietKhoaHoc(null)
+    );
+    return () => unsub();
+  }, [id]);
 
   const isOwner = useMemo(() => {
-    if (!chiTietKhoaHoc || !session?.idNguoiDung) return false;
-    return String(chiTietKhoaHoc.idNguoiDung) === String(session.idNguoiDung);
-  }, [chiTietKhoaHoc, session]);
+    if (!chiTietKhoaHoc || !uid) return false;
+    return String(chiTietKhoaHoc.idNguoiDung) === String(uid);
+  }, [chiTietKhoaHoc, uid]);
 
   const canLeave = useMemo(() => {
-    if (!chiTietKhoaHoc || !session?.idNguoiDung) return false;
-    if (String(chiTietKhoaHoc.idNguoiDung) === String(session.idNguoiDung)) return false; // chủ không rời
+    if (!chiTietKhoaHoc || !uid) return false;
+    if (String(chiTietKhoaHoc.idNguoiDung) === String(uid)) return false; // chủ không rời
     const tv = Array.isArray(chiTietKhoaHoc.thanhVienIds) ? chiTietKhoaHoc.thanhVienIds : [];
-    return tv.some(x => String(x) === String(session.idNguoiDung));
-  }, [chiTietKhoaHoc, session]);
+    return tv.some((x) => String(x) === String(uid));
+  }, [chiTietKhoaHoc, uid]);
 
-  const isMember = canLeave || isOwner;
+  const isMember = isOwner || canLeave;
   const canViewInside = isOwner || isMember;
 
   // đã gửi yêu cầu?
   useEffect(() => {
-    if (!chiTietKhoaHoc || !session?.idNguoiDung) { setDaYeuCau(false); return; }
-    setDaYeuCau((chiTietKhoaHoc.yeuCauThamGiaIds || []).includes(session.idNguoiDung));
-  }, [chiTietKhoaHoc, session]);
-
-  const thanhVien = useMemo(() => {
-    if (!chiTietKhoaHoc?.thanhVienIds?.length) return [];
-    return chiTietKhoaHoc.thanhVienIds
-      .map((uid) => dsNguoiDung.find((u) => u.idNguoiDung === uid))
-      .filter(Boolean);
-  }, [chiTietKhoaHoc, dsNguoiDung]);
+    if (!chiTietKhoaHoc || !uid) { setDaYeuCau(false); return; }
+    setDaYeuCau((chiTietKhoaHoc.yeuCauThamGiaIds || []).includes(uid));
+  }, [chiTietKhoaHoc, uid]);
 
   const doiTrangThaiDropdown = () => setHienDropdown((prev) => !prev);
   const moHopThoaiChiTiet = () => setMoChiTietKhoaHoc(true);
 
-  const xoaKhoaHoc = () => {
+  // Xoá khóa học (Firestore)
+  const xoaKhoaHoc = async () => {
     if (!chiTietKhoaHoc) return;
+    if (!isOwner) return;
     const xacNhan = window.confirm(`Xóa khóa học "${chiTietKhoaHoc.tenKhoaHoc || ""}"?`);
     if (!xacNhan) return;
-    const ds = readJSON("khoaHoc", []);
-    const dsMoi = ds.filter((k) => String(k.idKhoaHoc) !== String(chiTietKhoaHoc.idKhoaHoc));
-    localStorage.setItem("khoaHoc", JSON.stringify(dsMoi));
-    alert("Đã xóa khóa học.");
-    navigate("/thuviencuatoi");
+    try {
+      await deleteDoc(doc(db, "khoaHoc", String(chiTietKhoaHoc.idKhoaHoc)));
+      alert("Đã xóa khóa học.");
+      navigate("/thuviencuatoi");
+    } catch (e) {
+      console.error(e);
+      alert("Không thể xóa khóa học. Vui lòng thử lại.");
+    }
   };
 
-  const saveCourse = (kh) => {
-    const ds = readJSON("khoaHoc", []);
-    const idx = ds.findIndex((k) => String(k.idKhoaHoc) === String(kh.idKhoaHoc));
-    if (idx > -1) ds[idx] = { ...ds[idx], ...kh };
-    else ds.push(kh);
-    localStorage.setItem("khoaHoc", JSON.stringify(ds));
-    window.dispatchEvent(new Event("khoaHocChanged"));
+  // Lưu chi tiết khóa học (từ modal)
+  const luuChiTietKhoaHoc = async (khDaSua) => {
+    try {
+      if (!khDaSua?.idKhoaHoc) return;
+      await updateDoc(doc(db, "khoaHoc", String(khDaSua.idKhoaHoc)), khDaSua);
+      // onSnapshot sẽ tự cập nhật UI
+      setMoChiTietKhoaHoc(false);
+    } catch (e) {
+      console.error(e);
+      alert("Không thể lưu chi tiết khóa học.");
+    }
   };
 
-  const luuChiTietKhoaHoc = (khDaSua) => {
-    saveCourse(khDaSua);
-    setChiTietKhoaHoc(khDaSua);
-  };
-
-  const guiYeuCau = () => {
-    if (!session?.idNguoiDung) {
+  // Gửi yêu cầu tham gia
+  const guiYeuCau = async () => {
+    if (!uid) {
       if (window.confirm("Bạn cần đăng nhập để gửi yêu cầu. Đi đến trang đăng nhập?")) {
         navigate("/dang-nhap");
       }
       return;
     }
-    const kh = { ...(chiTietKhoaHoc || {}) };
-    kh.yeuCauThamGiaIds = Array.isArray(kh.yeuCauThamGiaIds) ? kh.yeuCauThamGiaIds : [];
-    if (!kh.yeuCauThamGiaIds.includes(session.idNguoiDung)) {
-      kh.yeuCauThamGiaIds.push(session.idNguoiDung);
-      saveCourse(kh);
-      setChiTietKhoaHoc(kh);
+    try {
+      await updateDoc(doc(db, "khoaHoc", String(id)), {
+        yeuCauThamGiaIds: arrayUnion(String(uid)),
+      });
       setDaYeuCau(true);
       alert("Đã gửi yêu cầu tham gia. Vui lòng chờ giảng viên duyệt.");
+    } catch (e) {
+      console.error(e);
+      alert("Không thể gửi yêu cầu. Vui lòng thử lại.");
     }
   };
 
@@ -238,10 +242,7 @@ export default function Lop() {
               isOwner={isOwner}
               canLeave={canLeave}
               onLeft={() => {
-                // sau khi rời, đọc lại và hiển thị GateCard
-                const ds = readJSON("khoaHoc", []);
-                const kh = ds.find(k => String(k.idKhoaHoc) === String(id)) || null;
-                setChiTietKhoaHoc(kh);
+                // Không cần làm gì: onSnapshot sẽ tự cập nhật sau khi rời lớp
               }}
             />
           </div>
@@ -280,7 +281,7 @@ export default function Lop() {
             {canViewInside ? (
               <ThuVienLop
                 khoaHoc={chiTietKhoaHoc}
-                onCapNhat={(khMoi) => setChiTietKhoaHoc(khMoi)}
+                onCapNhat={(khMoi) => setChiTietKhoaHoc(khMoi)} // hoặc để onSnapshot cập nhật
               />
             ) : (
               <GateCard />

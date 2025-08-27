@@ -5,28 +5,45 @@ import { faArrowLeft, faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import "./FlashCard.css";
 import HocBoThe_Header from "../../../../components/HocBoThe/HocBoThe_Header";
 
+import { db } from "../../../../../lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+
 export default function FlashCard() {
   const { id } = useParams();
   const [pack, setPack] = useState(null); // bộ thẻ đã chọn
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [flip, setFlip] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // Nạp bộ thẻ từ Firestore: collection "boThe", docId = id
   useEffect(() => {
-    try {
-      const list = JSON.parse(localStorage.getItem("boThe") || "[]");
-      const selected = Array.isArray(list)
-        ? list.find((x) => String(x.idBoThe) === String(id))
-        : null;
+    if (!id) return;
 
-      setPack(selected || null);
-      setCurrentCardIndex(0);
-      setFlip(false);
-    } catch {
-      setPack(null);
-    }
+    setLoading(true);
+    setPack(null);
+    setCurrentCardIndex(0);
+    setFlip(false);
+
+    const ref = doc(db, "boThe", String(id));
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (snap.exists()) setPack(snap.data());
+        else setPack(null);
+        setCurrentCardIndex(0);
+        setFlip(false);
+        setLoading(false);
+      },
+      () => {
+        setPack(null);
+        setLoading(false);
+      }
+    );
+
+    return () => unsub();
   }, [id]);
 
-  const cards = pack?.danhSachThe || [];
+  const cards = Array.isArray(pack?.danhSachThe) ? pack.danhSachThe : [];
   const currentCard = cards[currentCardIndex];
 
   const handleNext = () => {
@@ -53,7 +70,11 @@ export default function FlashCard() {
         </div>
 
         <div className="study">
-          {currentCard ? (
+          {loading ? (
+            <p>Đang tải...</p>
+          ) : !pack ? (
+            <p>Không tìm thấy bộ thẻ.</p>
+          ) : currentCard ? (
             <div
               className={`card ${flip ? "flipped" : ""}`}
               onClick={() => setFlip(!flip)}
@@ -77,7 +98,7 @@ export default function FlashCard() {
             <button
               className="left"
               onClick={handlePrev}
-              disabled={currentCardIndex === 0}
+              disabled={currentCardIndex === 0 || loading || !pack}
             >
               <FontAwesomeIcon icon={faArrowLeft} />
             </button>
@@ -87,7 +108,7 @@ export default function FlashCard() {
             <button
               className="right"
               onClick={handleNext}
-              disabled={currentCardIndex >= cards.length - 1}
+              disabled={currentCardIndex >= cards.length - 1 || loading || !pack}
             >
               <FontAwesomeIcon icon={faArrowRight} />
             </button>

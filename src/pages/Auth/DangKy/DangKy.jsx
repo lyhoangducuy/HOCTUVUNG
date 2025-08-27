@@ -5,6 +5,10 @@ import "./DangKy.css";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { auth, db } from "../../../../lib/firebase"; // giữ nguyên đường dẫn config Firebase của bạn
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+
 const schema = yup.object({
   email: yup
     .string()
@@ -22,55 +26,51 @@ const schema = yup.object({
     .required(),
 });
 
-function DangKy() {
+const roleMap = { giangvien: "GIANG_VIEN", hocvien: "HOC_VIEN" };
+
+export default function DangKy() {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm({
-    resolver: yupResolver(schema),
-  });
+  } = useForm({ resolver: yupResolver(schema) });
 
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // map role UI -> role hệ thống
-  const roleMap = { giangvien: "GIANG_VIEN", hocvien: "HOC_VIEN" };
-
-  // lưu danh sách user demo trong localStorage
-  const [nguoiDung, setNguoiDung] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-    } catch {
-      return [];
-    }
-  });
-
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const newUser = {
-        idNguoiDung: Math.floor(Math.random() * 1000000),
+      // 1) Tạo tài khoản Auth (email/password)
+      const cred = await createUserWithEmailAndPassword(
+        auth,
+        data.email,
+        data.password
+      );
+
+      // 2) Cập nhật displayName trong Auth (tuỳ chọn)
+      await updateProfile(cred.user, { displayName: data.username });
+
+      // 3) Lưu hồ sơ vào Firestore (collection: nguoiDung, docId = uid)
+      await setDoc(doc(db, "nguoiDung", cred.user.uid), {
+        idNguoiDung: cred.user.uid, // dùng luôn uid để đồng bộ với rule
         email: data.email,
         tenNguoiDung: data.username,
         hoten: "",
         anhDaiDien: "",
-        matkhau: data.password,
-        vaiTro: roleMap[data.role],
-        ngayTaoTaiKhoan: new Date().toISOString(),
-      };
-
-      const next = [...nguoiDung, newUser];
-      setNguoiDung(next);
-      localStorage.setItem("nguoiDung", JSON.stringify(next));
+        vaiTro: roleMap[data.role], // ADMIN sẽ set ở trang quản trị
+        ngayTaoTaiKhoan: serverTimestamp(),
+      });
 
       alert("Đăng ký thành công!");
-      navigate("/dang-nhap"); // trang đăng nhập theo routes của bạn
+      navigate("/dang-nhap");
     } catch (error) {
-      const msg =
-        error?.response?.data?.message ||
-        error?.response?.data ||
-        "Đăng ký thất bại!";
+      // Thông báo lỗi thân thiện hơn
+      const code = error?.code || "";
+      let msg = error?.message || "Đăng ký thất bại!";
+      if (code === "auth/email-already-in-use") msg = "Email đã được sử dụng.";
+      else if (code === "auth/invalid-email") msg = "Email không hợp lệ.";
+      else if (code === "auth/weak-password") msg = "Mật khẩu quá yếu.";
       alert(msg);
     } finally {
       setLoading(false);
@@ -83,6 +83,7 @@ function DangKy() {
         <div className="signup-left">
           <img src="/src/assets/image/logo.jpg" alt="imgsignupform" />
         </div>
+
         <div className="signup-right">
           <div className="signup-tabs">
             <span
@@ -92,7 +93,10 @@ function DangKy() {
             >
               Đăng ký
             </span>
-            <span onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
+            <span
+              onClick={() => navigate("/dang-nhap")}
+              style={{ cursor: "pointer" }}
+            >
               Đăng nhập
             </span>
           </div>
@@ -164,5 +168,3 @@ function DangKy() {
     </div>
   );
 }
-
-export default DangKy;

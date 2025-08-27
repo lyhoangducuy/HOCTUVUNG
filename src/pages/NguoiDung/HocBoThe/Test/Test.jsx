@@ -4,6 +4,9 @@ import HocBoThe_Header from "../../../../components/HocBoThe/HocBoThe_Header";
 import TextInput from "../../../../components/inputs/TextInput";
 import "./Test.css";
 
+import { db } from "../../../../../lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+
 function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -32,32 +35,40 @@ export default function Test() {
   const [result, setResult] = useState(null);
   const [statuses, setStatuses] = useState([]);
   const [seed, setSeed] = useState(0); // để “làm lại” trộn mới
+  const [loading, setLoading] = useState(true);
 
-  // Chỉ lấy theo id URL
+  // Lấy bộ thẻ từ Firestore theo id URL (collection: boThe)
   useEffect(() => {
-    try {
-      const list = JSON.parse(localStorage.getItem("boThe") || "[]");
-      const found = Array.isArray(list)
-        ? list.find((x) => String(x.idBoThe) === String(id))
-        : null;
+    if (!id) return;
+    setLoading(true);
+    setPack(null);
 
-      if (found?.danhSachThe?.length) {
-        setPack(found);
-      } else {
+    const ref = doc(db, "boThe", String(id));
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        const data = snap.exists() ? snap.data() : null;
+        setPack(data);
+        setLoading(false);
+      },
+      () => {
         setPack(null);
-        setQuestions([]);
-        setAnswers([]);
+        setLoading(false);
       }
-    } catch {
-      setPack(null);
-      setQuestions([]);
-      setAnswers([]);
-    }
+    );
+
+    return () => unsub();
   }, [id]);
 
   // Tạo danh sách câu hỏi từ pack (đảo thứ tự nếu pack.shuffle === true)
   useEffect(() => {
-    if (!pack?.danhSachThe?.length) return;
+    if (!pack?.danhSachThe?.length) {
+      setQuestions([]);
+      setAnswers([]);
+      setResult(null);
+      setStatuses([]);
+      return;
+    }
 
     const base = pack.danhSachThe.slice();
     const source = pack.shuffle ? shuffle(base) : base;
@@ -119,7 +130,9 @@ export default function Test() {
       <div className="main">
         <h2 className="title">Bộ thẻ: {pack?.tenBoThe || "—"}</h2>
 
-        {!pack ? (
+        {loading ? (
+          <p>Đang tải...</p>
+        ) : !pack ? (
           <p>Không tìm thấy bộ thẻ.</p>
         ) : (
           <>
@@ -127,8 +140,7 @@ export default function Test() {
               {questions.map((q, idx) => (
                 <div key={idx} className="question-item">
                   <p className="question-text">
-                    Câu {idx + 1}: Nhập{" "}
-                    {q.isReversed ? "đáp án" : "đáp án"} cho:{" "}
+                    Câu {idx + 1}: Nhập đáp án cho:{" "}
                     <strong>{q.isReversed ? q.nghia : q.tu}</strong>
                   </p>
 

@@ -4,6 +4,7 @@ import TopContent from "./TopContentAdmin";
 import AISummary from "./AISummary";
 import MiniCharts from "./MiniCharts";
 
+/* ---------- Helpers ---------- */
 const read = (k, def = []) => {
   try {
     const raw = localStorage.getItem(k);
@@ -14,18 +15,17 @@ const read = (k, def = []) => {
   }
 };
 
-// dd/mm/yyyy -> Date
+// dd/mm/yyyy -> Date (để fallback nếu cần)
 const parseVN = (dmy) => {
-  if (!dmy) return null;
+  if (!dmy || typeof dmy !== "string") return null;
   const [d, m, y] = dmy.split("/").map(Number);
   return y ? new Date(y, (m || 1) - 1, d || 1) : null;
 };
-const toNum = (v, d = 0) => (Number.isFinite(+v) ? +v : d);
-const priceAfter = (p) =>
-  Math.max(0, Math.round(toNum(p.giaGoi) * (1 - toNum(p.giamGia) / 100)));
+
 const ymKey = (dt) =>
   `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
 
+/* ---------- Component ---------- */
 export default function MainContent() {
   const [userStats, setUserStats] = useState([]);
   const [rawUsers, setRawUsers] = useState([]);
@@ -40,73 +40,96 @@ export default function MainContent() {
   });
 
   const load = () => {
-    // dữ liệu chính
+    // ===== DỮ LIỆU CHUẨN HOÁ KEY =====
     const dsNguoiDung = read("nguoiDung", []);
-    const dsLop = read("lop", read("class", []));
-    const dsBoThe = read("cards", read("boThe", []));
-    const dsGoi = read("goiTraPhi", []);
-    const dsSub = read("goiTraPhiCuaNguoiDung", []);
+    const dsKhoaHoc = read("khoaHoc", []);      // trước đây dùng "lop"/"class"
+    const dsBoThe   = read("boThe", []);        // trước đây fallback "cards"
 
-    // thống kê số lượng
+    // ===== THỐNG KÊ SỐ LƯỢNG =====
     const soNguoiDung = dsNguoiDung.length;
-    const soLop = dsLop.length;
-    const soBoThe = dsBoThe.length;
+    const soKhoaHoc   = dsKhoaHoc.length;
+    const soBoThe     = dsBoThe.length;
 
-    // ============ TÍNH DOANH THU ============
-    // map idGoi -> giá sau giảm
-    const mapGia = new Map(dsGoi.map((g) => [g.idGoi, priceAfter(g)]));
+    // ===== DOANH THU: TÍNH TỪ ĐƠN HÀNG "paid" =====
+    // - nguồn: localStorage.donHangTraPhi
+    // - số tiền: ưu tiên soTienThanhToanThucTe, fallback soTienThanhToan
+    // - thời điểm: ưu tiên paidAt, fallback createdAt
+    const ordersAll = read("donHangTraPhi", []);
+    const paidOrders = ordersAll.filter((o) => o.trangThai === "paid");
 
     let total = 0;
     const byMonth = {};
-    dsSub.forEach((s) => {
-      const dt = parseVN(s.NgayBatDau) || new Date();
-      const key = ymKey(dt);
-      const money = mapGia.get(s.idGoi) || 0;
-      total += money;
-      byMonth[key] = (byMonth[key] || 0) + money;
+    paidOrders.forEach((o) => {
+      const when =
+        (o.paidAt && new Date(o.paidAt)) ||
+        (o.createdAt && new Date(o.createdAt)) ||
+        parseVN(o.NgayBatDau) ||
+        new Date();
+      const key = ymKey(when);
+      const amount = Number(
+        o.soTienThanhToanThucTe ?? o.soTienThanhToan ?? 0
+      );
+      total += amount;
+      byMonth[key] = (byMonth[key] || 0) + amount;
     });
+
     const nowKey = ymKey(new Date());
     const monthRevenue = byMonth[nowKey] || 0;
 
-    // cập nhật card thống kê
+    // ===== CẬP NHẬT CARDS =====
     setUserStats([
       { id: 1, name: "Người dùng", value: soNguoiDung, title: "Tổng số người dùng trong hệ thống" },
-      { id: 2, name: "Lớp học", value: soLop, title: "Tổng số lớp học đã tạo" },
+      { id: 2, name: "Lớp học", value: soKhoaHoc, title: "Tổng số lớp học đã tạo" },
       { id: 3, name: "Bộ thẻ", value: soBoThe, title: "Tổng số bộ thẻ hiện có" },
-      { id: 4, name: "Doanh thu (tháng này)", value: monthRevenue.toLocaleString("vi-VN") + " đ", title: "Tổng doanh thu tháng hiện tại" },
+      { id: 4, name: "Doanh thu (tháng này)", value: monthRevenue.toLocaleString("vi-VN") + " đ", title: "Tổng doanh thu tháng hiện tại (đơn đã thanh toán)" },
     ]);
 
-    // raw cho AI
+    // ===== DỮ LIỆU THÔ CHO AI/CHARTS =====
     setRawUsers(dsNguoiDung);
-    setRawClasses(dsLop);
+    setRawClasses(dsKhoaHoc);
     setRawCards(dsBoThe);
 
-    // revenue state
     setRevenue({ total, monthRevenue, byMonth });
   };
 
   useEffect(() => {
     load();
-    // tự động reload khi localStorage đổi (mở tab khác thêm/sửa…)
+
+    // Tự reload khi dữ liệu thay đổi
     const onStorage = (e) => {
       if (
-        ["nguoiDung", "lop", "class", "cards", "boThe", "goiTraPhi", "goiTraPhiCuaNguoiDung"]
-          .includes(e.key)
+        [
+          "nguoiDung",
+          "khoaHoc",
+          "boThe",
+          "donHangTraPhi",
+          "goiTraPhi",
+          "goiTraPhiCuaNguoiDung",
+        ].includes(e.key)
       ) {
         load();
       }
     };
-    // sự kiện tùy chỉnh (nếu trang khác có dispatch)
+
+    // Các sự kiện tùy chỉnh app đang dùng rải rác
     const onChanged = () => load();
 
     window.addEventListener("storage", onStorage);
     window.addEventListener("subscriptionChanged", onChanged);
     window.addEventListener("packsChanged", onChanged);
+    window.addEventListener("coursesChanged", onChanged);
+    window.addEventListener("khoaHocChanged", onChanged);
+    window.addEventListener("boTheUpdated", onChanged);
+    window.addEventListener("ordersChanged", onChanged);
 
     return () => {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("subscriptionChanged", onChanged);
       window.removeEventListener("packsChanged", onChanged);
+      window.removeEventListener("coursesChanged", onChanged);
+      window.removeEventListener("khoaHocChanged", onChanged);
+      window.removeEventListener("boTheUpdated", onChanged);
+      window.removeEventListener("ordersChanged", onChanged);
     };
   }, []);
 
@@ -126,7 +149,7 @@ export default function MainContent() {
           users={rawUsers}
           classes={rawClasses}
           cards={rawCards}
-          revenue={revenue} // <-- truyền thêm (tùy bạn dùng trong component)
+          revenue={revenue}
         />
       </div>
 
@@ -136,7 +159,7 @@ export default function MainContent() {
           users={rawUsers}
           classes={rawClasses}
           cards={rawCards}
-          revenue={revenue} // <-- truyền thêm
+          revenue={revenue}
         />
       </div>
     </div>

@@ -1,47 +1,172 @@
-import React, { useMemo, useState } from "react";
+// src/components/ChonBoThe/ChonBoThe.jsx
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { auth, db } from "../../../../../lib/firebase";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  limit,
+  doc,
+  getDoc,
+  updateDoc,
+  arrayUnion,
+} from "firebase/firestore";
 
-/* Helpers gọn */
-const docJSON = (k, fb = []) => {
-  try { const v = JSON.parse(localStorage.getItem(k)); return v ?? fb; }
-  catch { return fb; }
-};
-const ghiJSON = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+// ===== Helpers Firestore =====
+const boTheCol = () => collection(db, "boThe");
+const khoaHocCol = () => collection(db, "khoaHoc");
 
-export default function chonBoThe({
-  idKhoaHoc,     // 🔹 ID khóa học (bắt buộc)
-  onDong,        // đóng popup
-  onCapNhat,     // trả khóa học mới lên cha
-}) {
+/** Tìm docRef theo docId hoặc field idKhoaHoc */
+async function getCourseDocRefByAnyId(id) {
+  const idStr = String(id);
+  // 1) thử docId
+  const refById = doc(db, "khoaHoc", idStr);
+  const s1 = await getDoc(refById);
+  if (s1.exists()) return refById;
+
+  // 2) thử field idKhoaHoc
+  const q1 = query(khoaHocCol(), where("idKhoaHoc", "==", idStr), limit(1));
+  const rs = await getDocs(q1);
+  if (!rs.empty) return rs.docs[0].ref;
+
+  return null;
+}
+
+/** Lấy hồ sơ người dùng (để đọc altId nếu DB cũ dùng idNguoiDung ≠ auth.uid) */
+async function getUserProfile(uid) {
+  try {
+    const snap = await getDoc(doc(db, "nguoiDung", String(uid)));
+    return snap.exists() ? { _docId: snap.id, ...snap.data() } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Chọn bộ thẻ để thêm vào khóa học (Firebase)
+ * Props:
+ * - idKhoaHoc: string|number (bắt buộc)
+ * - onDong: () => void
+ * - onCapNhat: (khoaHocMoi) => void  // callback sau khi cập nhật Firestore (đọc lại doc và trả lên)
+ */
+export default function ChonBoThe({ idKhoaHoc, onDong, onCapNhat }) {
   const navigate = useNavigate();
 
-  // phiên đăng nhập
-  const session = useMemo(() => {
-    try { return JSON.parse(sessionStorage.getItem("session") || "null"); }
-    catch { return null; }
-  }, []);
-  const idNguoiDung = session?.idNguoiDung;
+  const [uid, setUid] = useState(null);
+  const [altId, setAltId] = useState(null); // nếu hồ sơ có idNguoiDung khác uid
 
-  // danh sách bộ thẻ của user hiện tại
-  const danhSachBoThe = useMemo(() => {
-    const all = docJSON("boThe", []);
-    if (!idNguoiDung) return [];
-    return all.filter((b) => b?.idNguoiDung === idNguoiDung);
-  }, [idNguoiDung]);
+  // Khóa học hiện tại
+  const [courseRef, setCourseRef] = useState(null);
+  const [khoaHoc, setKhoaHoc] = useState(null);
 
-  // khóa học hiện tại
-  const khoaHocHienTai = useMemo(() => {
-    const dsKH = docJSON("khoaHoc", []);
-    return dsKH.find((kh) => String(kh.idKhoaHoc) === String(idKhoaHoc)) || null;
-  }, [idKhoaHoc]);
+  // Danh sách bộ thẻ của user
+  const [dsBoThe, setDsBoThe] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const boTheDaCo = useMemo(
-    () => new Set(Array.isArray(khoaHocHienTai?.boTheIds) ? khoaHocHienTai.boTheIds : []),
-    [khoaHocHienTai]
-  );
-
+  // UI state
   const [daChon, setDaChon] = useState(new Set()); // idBoThe đã chọn
   const [tim, setTim] = useState("");
+
+  // ==== 1) Lấy uid từ Firebase Auth & altId từ hồ sơ ====
+  useEffect(() => {
+    const _uid = auth.currentUser?.uid || null;
+    if (!_uid) {
+      alert("Vui lòng đăng nhập.");
+      navigate("/dang-nhap");
+      return;
+    }
+    setUid(_uid);
+    (async () => {
+      const prof = await getUserProfile(_uid);
+      const idField = prof?.idNguoiDung;
+      setAltId(idField && String(idField) !== String(_uid) ? String(idField) : null);
+    })();
+  }, [navigate]);
+
+  // ==== 2) Lấy khóa học theo id ====
+  useEffect(() => {
+    (async () => {
+      if (!idKhoaHoc) return;
+      const ref = await getCourseDocRefByAnyId(idKhoaHoc);
+      if (!ref) {
+        setCourseRef(null);
+        setKhoaHoc(null);
+        return;
+      }
+      setCourseRef(ref);
+      const snap = await getDoc(ref);
+      setKhoaHoc(snap.exists() ? { _docId: ref.id, ...snap.data() } : null);
+    })();
+  }, [idKhoaHoc]);
+
+  // === 3) Lấy danh sách bộ thẻ thuộc user hiện tại ===
+  useEffect(() => {
+    (async () => {
+      if (!uid) return;
+      setLoading(true);
+      try {
+        let qs = [];
+        if (altId && String(altId) !== String(uid)) {
+          // Dùng 'in' nếu có altId khác uid
+          // Cần index nếu Firestore yêu cầu.
+          const qIn = query(boTheCol(), where("idNguoiDung", "in", [String(uid), String(altId)]));
+          qs.push(qIn);
+        } else {
+          const q1 = query(boTheCol(), where("idNguoiDung", "==", String(uid)));
+          qs.push(q1);
+        }
+
+        // gom kết quả từ 1 hoặc 2 query (nếu Firestore không support 'in' ở dự án của bạn,
+        // có thể tách ra 2 query riêng where("==", uid) & where("==", altId) rồi merge)
+        const allDocs = [];
+        for (const qx of qs) {
+          const rs = await getDocs(qx);
+          allDocs.push(...rs.docs);
+        }
+
+        // map -> normalize
+        const list = allDocs.map((d) => {
+          const x = d.data();
+          const idBoThe = String(x.idBoThe || d.id);
+          const tenBoThe = x.tenBoThe || "";
+          const soTu = Number.isFinite(x.soTu) ? x.soTu : (Array.isArray(x.danhSachThe) ? x.danhSachThe.length : 0);
+          return { idBoThe, tenBoThe, soTu };
+        });
+
+        // loại trùng theo idBoThe
+        const seen = new Set();
+        const uniq = [];
+        for (const it of list) {
+          if (seen.has(it.idBoThe)) continue;
+          seen.add(it.idBoThe);
+          uniq.push(it);
+        }
+
+        setDsBoThe(uniq);
+      } catch (e) {
+        console.error("Lỗi tải bộ thẻ:", e);
+        setDsBoThe([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [uid, altId]);
+
+  // ==== Tập id bộ thẻ đã có trong khóa học ====
+  const boTheDaCo = useMemo(() => {
+    return new Set(Array.isArray(khoaHoc?.boTheIds) ? khoaHoc.boTheIds.map(String) : []);
+  }, [khoaHoc]);
+
+  // ==== Filter theo ô tìm kiếm ====
+  const danhSachLoc = useMemo(() => {
+    const q = tim.trim().toLowerCase();
+    if (!q) return dsBoThe;
+    return dsBoThe.filter(
+      (b) => b.tenBoThe.toLowerCase().includes(q) || String(b.idBoThe).includes(q)
+    );
+  }, [tim, dsBoThe]);
 
   const toggleChon = (idBoThe) => {
     setDaChon((prev) => {
@@ -52,30 +177,29 @@ export default function chonBoThe({
     });
   };
 
-  const danhSachLoc = useMemo(() => {
-    const q = tim.trim().toLowerCase();
-    if (!q) return danhSachBoThe;
-    return danhSachBoThe.filter(
-      (b) => b.tenBoThe?.toLowerCase().includes(q) || String(b.idBoThe).includes(q)
-    );
-  }, [tim, danhSachBoThe]);
+  // ==== 4) Xác nhận: arrayUnion vào khóa học ====
+  const xuLyXacNhan = async () => {
+    try {
+      if (!courseRef || !khoaHoc) return;
+      const them = Array.from(daChon).filter((id) => !boTheDaCo.has(String(id)));
+      if (them.length === 0) {
+        onDong?.();
+        return;
+      }
 
-  const xuLyXacNhan = () => {
-    if (!khoaHocHienTai) return;
+      // cập nhật Firestore
+      await updateDoc(courseRef, { boTheIds: arrayUnion(...them.map(String)) });
 
-    const dsKH = docJSON("khoaHoc", []);
-    const i = dsKH.findIndex((kh) => String(kh.idKhoaHoc) === String(idKhoaHoc));
-    if (i === -1) return;
+      // đọc lại doc để trả về UI cha (nếu cần)
+      const snap = await getDoc(courseRef);
+      const khMoi = snap.exists() ? { _docId: courseRef.id, ...snap.data() } : null;
 
-    const cu = Array.isArray(dsKH[i].boTheIds) ? dsKH[i].boTheIds : [];
-    const them = Array.from(daChon).filter((id) => !boTheDaCo.has(id));
-    dsKH[i] = { ...dsKH[i], boTheIds: Array.from(new Set([...cu, ...them])) };
-
-    ghiJSON("khoaHoc", dsKH);
-    window.dispatchEvent(new Event("khoaHocUpdated"));
-
-    onCapNhat?.(dsKH[i]); // cập nhật UI cha
-    onDong?.();
+      onCapNhat?.(khMoi);
+      onDong?.();
+    } catch (e) {
+      console.error("Cập nhật khóa học thất bại:", e);
+      alert("Không thể thêm bộ thẻ vào khóa học. Vui lòng thử lại.");
+    }
   };
 
   const diTaoBoThe = () => {
@@ -83,7 +207,7 @@ export default function chonBoThe({
     navigate("/newBoThe");
   };
 
-  if (!khoaHocHienTai) {
+  if (!khoaHoc) {
     return (
       <div className="popup-overlay">
         <div className="popup-content" style={{ width: 520 }}>
@@ -125,13 +249,15 @@ export default function chonBoThe({
               padding: 8,
             }}
           >
-            {danhSachLoc.length === 0 ? (
+            {loading ? (
+              <div style={{ padding: 12, opacity: 0.7 }}>Đang tải…</div>
+            ) : danhSachLoc.length === 0 ? (
               <div style={{ padding: 12, opacity: 0.7 }}>Chưa có bộ thẻ nào.</div>
             ) : (
               <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                 {danhSachLoc.map((bt) => {
-                  const daCo = boTheDaCo.has(bt.idBoThe);
-                  const checked = daChon.has(bt.idBoThe);
+                  const daCo = boTheDaCo.has(String(bt.idBoThe));
+                  const checked = daChon.has(String(bt.idBoThe));
                   return (
                     <li
                       key={bt.idBoThe}
@@ -148,14 +274,14 @@ export default function chonBoThe({
                         type="checkbox"
                         disabled={daCo}
                         checked={checked || daCo}
-                        onChange={() => toggleChon(bt.idBoThe)}
+                        onChange={() => toggleChon(String(bt.idBoThe))}
                       />
                       <div>
                         <div style={{ fontWeight: 700 }}>
                           {bt.tenBoThe || `Bộ thẻ #${bt.idBoThe}`}
                         </div>
                         <div style={{ fontSize: 12, opacity: 0.7 }}>
-                          {bt.soTu ?? (bt.danhSachThe?.length || 0)} từ • ID: {bt.idBoThe}
+                          {bt.soTu ?? 0} từ • ID: {bt.idBoThe}
                         </div>
                       </div>
                       {daCo && (
@@ -186,7 +312,7 @@ export default function chonBoThe({
           >
             Tạo bộ thẻ mới
           </button>
-          <button className="btn-primary" onClick={xuLyXacNhan}>
+          <button className="btn-primary" onClick={xuLyXacNhan} disabled={daChon.size === 0}>
             Thêm vào khóa học
           </button>
         </div>
