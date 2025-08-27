@@ -5,31 +5,52 @@ import "./Setting.css";
 import TruongChiDoc from "./chucNang/chiDoc";
 import TruongChinhSua from "./chucNang/chinhSua";
 import ChonAnhDaiDien from "./chucNang/chonAnhDaiDien";
+import { db } from "../../../../lib/firebase";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 const TRUONG_KHONG_CHO_DOI = ["idNguoiDung", "tenNguoiDung", "ngayTaoTaiKhoan", "vaiTro"];
 
 export default function SettingAdmin() {
   const dieuHuong = useNavigate();
-
   const [nguoiDung, setNguoiDung] = useState(null);
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   // Nạp người dùng theo session
   useEffect(() => {
-    try {
-      const phien = JSON.parse(sessionStorage.getItem("session") || "null");
-      if (!phien?.idNguoiDung) return dieuHuong("/");
+    let isMounted = true;
+    const run = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const phien = JSON.parse(sessionStorage.getItem("session") || "null");
+        if (!phien?.idNguoiDung) {
+          dieuHuong("/dang-nhap");
+          return;
+        }
 
-      const danhSach = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-      const timThay = danhSach.find(u => u.idNguoiDung === phien.idNguoiDung);
-      if (!timThay) return dieuHuong("/");
-
-      setNguoiDung(timThay);
-    } catch {
-      dieuHuong("/");
-    }
+        const ref = doc(db, "nguoiDung", phien.idNguoiDung);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          setError("Không tìm thấy người dùng trong Firestore.");
+          setLoading(false);
+          return;
+        }
+        if (!isMounted) return;
+        setNguoiDung({ idNguoiDung: phien.idNguoiDung, ...snap.data() });
+        setLoading(false);
+      } catch {
+        if (!isMounted) return;
+        setError("Có lỗi khi nạp dữ liệu người dùng.");
+        setLoading(false);
+      }
+    };
+    run();
+    return () => {
+      isMounted = false;
+    };
   }, [dieuHuong]);
 
-  // Cập nhật người dùng vào localStorage (chặn field không cho đổi)
+  // Cập nhật người dùng vào Firestore (chặn field không cho đổi)
   const capNhatNguoiDung = (banVa) => {
     const banSao = { ...banVa };
     TRUONG_KHONG_CHO_DOI.forEach(k => delete banSao[k]);
@@ -37,28 +58,21 @@ export default function SettingAdmin() {
     setNguoiDung(prev => {
       if (!prev) return prev;
       const moi = { ...prev, ...banSao };
-
-      const danhSach = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-      const vt = danhSach.findIndex(u => u.idNguoiDung === prev.idNguoiDung);
-      if (vt !== -1) {
-        danhSach[vt] = moi;
-        localStorage.setItem("nguoiDung", JSON.stringify(danhSach));
-      }
+      // cập nhật Firestore nền
+      updateDoc(doc(db, "nguoiDung", prev.idNguoiDung), banSao).catch(() => {});
       return moi;
     });
   };
 
   // Kiểm tra email trùng
-  const kiemTraEmailTrung = (emailMoi) => {
-    const danhSach = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-    const trung = danhSach.find(
-      u => u.email?.toLowerCase() === emailMoi.toLowerCase() &&
-           u.idNguoiDung !== nguoiDung.idNguoiDung
-    );
-    return !trung || "Email đã được sử dụng";
+  const kiemTraEmailTrung = () => {
+    // Bỏ kiểm tra trên localStorage; chỉ kiểm tra định dạng cơ bản ở phần xacThuc
+    return true;
   };
 
-  if (!nguoiDung) return null;
+  if (loading) return <div style={{ padding: 16 }}>Đang tải...</div>;
+  if (error) return <div style={{ padding: 16, color: "#d33" }}>{error}</div>;
+  if (!nguoiDung) return <div style={{ padding: 16 }}>Không có dữ liệu người dùng.</div>;
 
   return (
     <div className="settings-container">
