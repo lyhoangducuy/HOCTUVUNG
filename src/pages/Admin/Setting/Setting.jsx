@@ -31,7 +31,7 @@ export default function SettingAdmin() {
         const ref = doc(db, "nguoiDung", phien.idNguoiDung);
         const snap = await getDoc(ref);
         if (!snap.exists()) {
-          setError("Không tìm thấy người dùng trong Firestore.");
+          setError("Không tìm thấy người dùng trong .");
           setLoading(false);
           return;
         }
