@@ -1,8 +1,7 @@
-import React from "react";
-
-export async function fetchVocabulary(topic, count = 10) {
+// src/ChatAI/ChatBot.js
+export async function fetchVocabulary(topic, count = 1, langSrc = "vi", langDst = "en") {
   const apiKey = import.meta.env.VITE_API_CHATBOT_KEY;
-  
+
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -11,31 +10,81 @@ export async function fetchVocabulary(topic, count = 10) {
     },
     body: JSON.stringify({
       model: "deepseek/deepseek-r1:free",
+      temperature: 0.2, // giảm "bay"
       messages: [
         {
           role: "user",
           content:
-            `Hãy tạo ${count} cặp thẻ JSON với topic "${topic}". ` +
-            `Mỗi object: {"tu":"...","nghia":"..."}. ` +
-            `Chỉ trả về JSON thuần, KHÔNG dùng \`\`\` và KHÔNG thêm chữ nào khác.`,
+            `Tạo CHÍNH XÁC ${count} cặp thẻ JSON theo chủ đề "${topic}". ` +
+            `- "tu": từ/phrase ở ngôn ngữ gốc (${langSrc}). ` +
+            `- "nghia": bản dịch ở ngôn ngữ muốn học (${langDst}). ` +
+            `Trả về DUY NHẤT một JSON array thuần: ` +
+            `[{"tu":"...","nghia":"..."}]. ` +
+            `KHÔNG dùng \`\`\`, KHÔNG thêm chữ nào khác.`,
         },
       ],
     }),
   });
 
+  // Nếu HTTP fail: trả mảng rỗng (giữ nguyên pattern cũ)
+  if (!res.ok) {
+    console.error("OpenRouter HTTP error:", res.status);
+    return [];
+  }
+
   const data = await res.json();
   const raw = data?.choices?.[0]?.message?.content || "[]";
+
+  // 1) DeepSeek R1 hay chèn <think>...</think> → loại bỏ trước
+  const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+
+  // 2) Thử parse trực tiếp; nếu fail, bóc JSON lớn nhất trong chuỗi rồi parse
+  let parsed = [];
   try {
-    const parsed = JSON.parse(raw);
-    // Đảm bảo format {tu, nghia}
-    return Array.isArray(parsed)
-      ? parsed.map((x) => ({
-          tu: x.tu ?? x.question ?? "",
-          nghia: x.nghia ?? x.answer ?? "",
-        }))
-      : [];
-  } catch (e) {
-    console.error("Lỗi parse JSON:", e, raw);
-    return [];
+    parsed = JSON.parse(cleaned);
+  } catch {
+    const extracted = extractTopLevelJSON(cleaned);
+    try {
+      parsed = JSON.parse(extracted);
+    } catch (e2) {
+      console.error("Lỗi parse JSON:", e2, raw);
+      parsed = [];
+    }
+  }
+
+  // 3) Chuẩn hoá và CẮT đúng số lượng yêu cầu
+  const list = (Array.isArray(parsed) ? parsed : [])
+    .map((x) => ({
+      tu: (x?.tu ?? x?.question ?? x?.word ?? x?.front ?? "").toString().trim(),
+      nghia: (x?.nghia ?? x?.answer ?? x?.meaning ?? x?.back ?? "").toString().trim(),
+    }))
+    .filter((x) => x.tu && x.nghia)
+    .slice(0, Number(count) || 1);
+
+  return list;
+
+  // ===== Helpers (nhỏ gọn, không đổi cấu trúc gọi) =====
+  function extractTopLevelJSON(s) {
+    if (!s) return "[]";
+    const arr = byBrackets(s, "[", "]");
+    if (arr) return arr;
+    const obj = byBrackets(s, "{", "}");
+    return obj || "[]";
+  }
+  function byBrackets(s, open, close) {
+    let start = -1, depth = 0;
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+      if (ch === open) { if (depth === 0) start = i; depth++; }
+      else if (ch === close) {
+        depth = Math.max(0, depth - 1);
+        if (depth === 0 && start !== -1) {
+          const cand = s.slice(start, i + 1);
+          try { JSON.parse(cand); return cand; } catch { /* tiếp tục tìm */ }
+          start = -1;
+        }
+      }
+    }
+    return "";
   }
 }

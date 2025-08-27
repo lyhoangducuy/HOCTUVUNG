@@ -16,6 +16,19 @@ import {
   writeBatch,
 } from "firebase/firestore";
 
+// ===== Ngôn ngữ (thêm tối thiểu, không phá cấu trúc cũ) =====
+const LANGS = [
+  { code: "vi", label: "Tiếng Việt (vi)" },
+  { code: "en", label: "English (en)" },
+  { code: "ja", label: "日本語 (ja)" },
+  { code: "ko", label: "한국어 (ko)" },
+  { code: "zh", label: "中文 (zh)" },
+  { code: "fr", label: "Français (fr)" },
+  { code: "de", label: "Deutsch (de)" },
+  { code: "es", label: "Español (es)" },
+];
+const labelOf = (code) => LANGS.find((l) => l.code === code)?.label || code;
+
 export default function AIButton() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
@@ -26,6 +39,10 @@ export default function AIButton() {
   const [topic, setTopic] = useState("");
   const [count, setCount] = useState(1);
   const [error, setError] = useState("");
+
+  // ===== state mới cho ngôn ngữ =====
+  const [langSrc, setLangSrc] = useState("vi");
+  const [langDst, setLangDst] = useState("en");
 
   // Preview modal
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -87,6 +104,8 @@ export default function AIButton() {
     if (loading) return;
     setTopic("");
     setCount(1);
+    setLangSrc("vi");   // reset về mặc định
+    setLangDst("en");   // reset về mặc định
     setError("");
     setShowForm(true);
     setOpen(false);
@@ -118,14 +137,18 @@ export default function AIButton() {
       setError("Số lượng tối đa là 9.");
       return;
     }
+    if (langSrc === langDst) {
+      setError("Vui lòng chọn 2 ngôn ngữ khác nhau (gốc & muốn học).");
+      return;
+    }
 
     setShowForm(false);
     setError("");
     setLoading(true);
     try {
-      const ds = await fetchVocabulary(topic, num);
+      const ds = await fetchVocabulary(topic, num, langSrc, langDst);
       setPreviewTopic(topic);
-      setPreviewList(Array.isArray(ds) ? ds : []);
+      setPreviewList((Array.isArray(ds) ? ds : []).slice(0, num));
       setPreviewOpen(true);
     } catch (err) {
       console.error(err);
@@ -203,6 +226,7 @@ export default function AIButton() {
   const onSavePreview = async () => {
     const userCreated = user?.idNguoiDung;
 
+    // Lọc thẻ hợp lệ
     const valid = previewList
       .map((t) => ({
         tu: String(t?.tu || "").trim(),
@@ -226,6 +250,9 @@ export default function AIButton() {
         idNguoiDung: userCreated,
         danhSachThe: valid,
         soTu: valid.length,
+        // ===== LƯU THÊM NGÔN NGỮ =====
+        langSrc,
+        langDst,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -296,6 +323,25 @@ export default function AIButton() {
                   />
                 </label>
 
+                {/* ===== Thêm 2 select ngôn ngữ (giữ CSS cũ) ===== */}
+                <label className="create-form-modal-content-form-label">
+                  <span>Ngôn ngữ gốc</span>
+                  <select value={langSrc} onChange={(e) => setLangSrc(e.target.value)}>
+                    {LANGS.map((l) => (
+                      <option key={l.code} value={l.code}>{l.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="create-form-modal-content-form-label">
+                  <span>Ngôn ngữ muốn học</span>
+                  <select value={langDst} onChange={(e) => setLangDst(e.target.value)}>
+                    {LANGS.map((l) => (
+                      <option key={l.code} value={l.code}>{l.label}</option>
+                    ))}
+                  </select>
+                </label>
+
                 <label>
                   <span>Số lượng (tối đa 9 vì dùng chatbot free -_-)</span>
                   <input
@@ -345,8 +391,9 @@ export default function AIButton() {
 
             <div className="preview-modal-body">
               <div className="preview-modal-body-header">
-                <strong>Từ</strong>
-                <strong>Nghĩa</strong>
+                {/* ===== Cập nhật label cột theo ngôn ngữ ===== */}
+                <strong>Từ ({labelOf(langSrc)})</strong>
+                <strong>Nghĩa ({labelOf(langDst)})</strong>
                 <span />
               </div>
               {previewList.map((item, idx) => (
