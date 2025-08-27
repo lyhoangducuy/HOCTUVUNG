@@ -1,123 +1,206 @@
+// src/pages/Admin/BoThe/MainContentQLBT.jsx
 import TableAdmin from "../../../../components/Admin/TableAdmin/TableAdmin";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Search from "../../../../components/Admin/Search/Search";
 import Delete from "../../../../components/Admin/Delete/Delete";
 import Edit from "../../../../components/Admin/Edit/Edit";
-import Add from "../../../../components/Admin/Add/Add";
 import ExportModal from "../../../../components/Admin/ExportModal/ExportModal";
+import * as yup from "yup";
 import "./MainContent.css";
 
-const MainContentQLBT = ({ Data = [] }) => {
-  const ColumsBoThe = [
-    { name: "ID", key: "id" },
-    { name: "Tên bộ thẻ", key: "name" },
-    { name: "Người tạo", key: "userCreated" },
-    { name: "Số thẻ", key: "numBer" },
-  ];
+import { db } from "../../../../../lib/firebase";
+import {
+  doc,
+  getDoc,
+  deleteDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  limit,
+  getDocs,
+} from "firebase/firestore";
 
+/* ================== Columns ================== */
+const ColumsBoThe = [
+  { name: "ID", key: "id" },
+  { name: "Tên bộ thẻ", key: "name" },
+  { name: "Người tạo", key: "userCreated" }, // để readonly
+  { name: "Số thẻ", key: "numBer" },
+];
+
+/* ================== Helpers ================== */
+// Tìm docRef theo docId hoặc field idBoThe
+async function getDeckDocRefByAnyId(id) {
+  const ref1 = doc(db, "boThe", String(id));
+  const snap1 = await getDoc(ref1);
+  if (snap1.exists()) return ref1;
+
+  const q1 = query(collection(db, "boThe"), where("idBoThe", "==", String(id)), limit(1));
+  const rs = await getDocs(q1);
+  if (!rs.empty) return rs.docs[0].ref;
+
+  return null;
+}
+
+/* Yup: validate ngay dưới ô trong Edit.jsx */
+const validationSchema = yup.object({
+  name: yup
+    .string()
+    .trim()
+    .required("Vui lòng nhập tên bộ thẻ")
+    .min(2, "Tên quá ngắn")
+    .max(120, "Tên tối đa 120 ký tự"),
+  numBer: yup
+    .number()
+    .typeError("Số thẻ phải là số")
+    .integer("Số thẻ phải là số nguyên")
+    .min(0, "Số thẻ không âm")
+    .nullable(),
+  // userCreated giữ readonly ⇒ không cần rule
+});
+
+const MainContentQLBT = ({ Data = [] }) => {
+  /* Data từ parent (realtime) */
   const [data, setData] = useState(Data);
   const [filteredData, setFilteredData] = useState(Data);
+  useEffect(() => {
+    setData(Data);
+    setFilteredData(Data);
+  }, [Data]);
 
-  // Delete dialog
+  /* Delete dialog */
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
-  // Edit dialog
+  /* Edit dialog */
   const [showEdit, setShowEdit] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedDeck, setSelectedDeck] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // Export
+  /* Export */
   const [exportModal, setExportModal] = useState(false);
 
-  useEffect(() => {
-    setFilteredData(data);
-  }, [data]);
-
+  /* ===== Delete flow (có check tham chiếu) ===== */
   const handleDelete = (id) => {
     setDeleteId(id);
     setShowDeleteDialog(true);
   };
-
-  const onClose = () => {
+  const onCloseDelete = () => {
     setShowDeleteDialog(false);
     setDeleteId(null);
   };
 
-  // ✅ FIX: dùng fallback từ state nếu modal không truyền id
-  const onConfirmDelete = (idFromModal) => {
+  const onConfirmDelete = async (idFromModal) => {
     const id = idFromModal ?? deleteId;
-    if (id == null) return;
+    if (!id) return;
 
-    // Cập nhật state list hiển thị
-    const updated = data.filter((item) => String(item.id) !== String(id));
-    setData(updated);
-    setFilteredData(updated); // ✅ cập nhật ngay UI
-
-    // Xoá trong localStorage "boThe" (idBoThe phải trùng với item.id)
     try {
-      const raw = localStorage.getItem("boThe");
-      const list = raw ? JSON.parse(raw) : [];
-      const next = (Array.isArray(list) ? list : []).filter(
-        (bt) => String(bt.idBoThe) !== String(id)
-      );
-      localStorage.setItem("boThe", JSON.stringify(next));
+      const ref = await getDeckDocRefByAnyId(id);
+      if (!ref) {
+        console.warn("Không tìm thấy tài liệu boThe để xoá:", id);
+        onCloseDelete();
+        return;
+      }
+      const snap = await getDoc(ref);
+      const deck = { _docId: ref.id, ...snap.data() };
+      const customId = String(deck.idBoThe ?? deck._docId);
+
+      // Kiểm tra bảng thẻ (điều chỉnh tên collection nếu bạn dùng khác):
+      // Thử cả theo idBoThe (custom) và theo docId
+      const cardsCol = collection(db, "the");
+      const q1 = query(cardsCol, where("idBoThe", "==", customId));
+      const q2 =
+        customId !== deck._docId
+          ? query(cardsCol, where("idBoThe", "==", deck._docId))
+          : null;
+
+      // (tuỳ chọn) nếu bạn dùng "tuVung" thay cho "the", thêm 2 query tương tự:
+      const wordsCol = collection(db, "tuVung");
+      const q3 = query(wordsCol, where("idBoThe", "==", customId));
+      const q4 =
+        customId !== deck._docId
+          ? query(wordsCol, where("idBoThe", "==", deck._docId))
+          : null;
+
+      const [s1, s2, s3, s4] = await Promise.all([
+        getDocs(q1),
+        q2 ? getDocs(q2) : Promise.resolve({ size: 0 }),
+        getDocs(q3),
+        q4 ? getDocs(q4) : Promise.resolve({ size: 0 }),
+      ]);
+
+      const linkedCount = (s1?.size || 0) + (s2?.size || 0) + (s3?.size || 0) + (s4?.size || 0);
+      if (linkedCount > 0) {
+        alert(
+          `Không thể xoá: còn ${linkedCount} thẻ/ từ vựng tham chiếu tới bộ thẻ này.\n` +
+          `Hãy xoá/di chuyển các thẻ trước.`
+        );
+        onCloseDelete();
+        return;
+      }
+
+      await deleteDoc(ref);
+      // Không cần tự setData – parent realtime sẽ cập nhật lại
     } catch (e) {
-      console.error("Xoá bộ thẻ trong localStorage thất bại:", e);
+      console.error("Xoá bộ thẻ thất bại:", e);
+      alert("Xoá bộ thẻ thất bại.");
     }
 
-    onClose();
+    onCloseDelete();
   };
 
+  /* ===== Edit flow (validate + cập nhật Firestore) ===== */
   const handleEdit = (id) => {
-    const user = data.find((item) => String(item.id) === String(id));
-    if (!user) return;
-    setSelectedUser(user);
+    const deck = data.find((item) => String(item.id) === String(id));
+    if (!deck) return;
+
+    // selectedDeck khớp với ColumsBoThe
+    setSelectedDeck({
+      id: deck.id,
+      name: deck.name ?? "",
+      userCreated: deck.userCreated ?? "", // readonly
+      numBer: deck.numBer ?? "",           // có thể sửa
+    });
     setShowEdit(true);
     setIsEditMode(false);
   };
 
   const handleUserDetailClose = () => {
     setShowEdit(false);
-    setSelectedUser(null);
+    setSelectedDeck(null);
     setIsEditMode(false);
   };
-  
 
-  const handleUserDetailSave = (updatedUser, flagIsEditMode = false) => {
-    if (flagIsEditMode) { setIsEditMode(true); return; }
-
-    const updated = data.map((it) =>
-      String(it.id) === String(updatedUser.id) ? updatedUser : it
-    );
-    setData(updated);
-    setFilteredData(updated);
-
-    // Đồng bộ localStorage/boThe (map các field phù hợp schema thực tế)
+  const handleUserDetailSave = async (updated, flagIsEditMode = false) => {
+    if (flagIsEditMode) {
+      setIsEditMode(true); // bật input trong Edit.jsx
+      return;
+    }
+    // Lưu Firestore
     try {
-      const raw = localStorage.getItem("boThe");
-      const list = raw ? JSON.parse(raw) : [];
-      const idx = list.findIndex(
-        (c) => String(c.idBoThe) === String(updatedUser.id)
-      );
-      if (idx !== -1) {
-        const cur = { ...list[idx] };
-        list[idx] = {
-          ...cur,
-          tenBoThe: updatedUser.name,
-          // tuỳ schema thật của bạn: soTu hoặc danhSachThe.length
-          soTu: Number(updatedUser.numBer) || cur.soTu || 0,
-          // idNguoiDung / thông tin creator không nhất thiết lưu string "userCreated"
+      const ref = await getDeckDocRefByAnyId(updated.id);
+      if (!ref) {
+        console.warn("Không tìm thấy tài liệu boThe để cập nhật:", updated.id);
+      } else {
+        const payload = {
+          tenBoThe: String(updated.name || "").trim(),
         };
-        localStorage.setItem("boThe", JSON.stringify(list));
+        if (updated.numBer !== undefined && updated.numBer !== "") {
+          const n = Number(updated.numBer);
+          if (Number.isFinite(n)) payload.soTu = n;
+        }
+        await updateDoc(ref, payload);
       }
     } catch (e) {
-      console.error("Cập nhật bộ thẻ trong localStorage thất bại:", e);
+      console.error("Cập nhật boThe thất bại:", e);
+      alert("Cập nhật bộ thẻ thất bại.");
     }
 
     handleUserDetailClose();
   };
 
+  /* ===== Actions ===== */
   const Action = [
     {
       name: "👀",
@@ -139,10 +222,7 @@ const MainContentQLBT = ({ Data = [] }) => {
 
       <div className="user-actions">
         <div className="user-actions-buttons">
-          <button
-            className="btn btn-secondary"
-            onClick={() => setExportModal(true)}
-          >
+          <button className="btn btn-secondary" onClick={() => setExportModal(true)}>
             Xuất
           </button>
         </div>
@@ -151,31 +231,36 @@ const MainContentQLBT = ({ Data = [] }) => {
 
       <TableAdmin Colums={ColumsBoThe} Data={filteredData} Action={Action} />
 
+      {/* Delete */}
       {showDeleteDialog && (
         <Delete
           id={deleteId}
-          onClose={onClose}
-          onConfirm={onConfirmDelete}  // sẽ tự fallback deleteId nếu không truyền id
+          onClose={onCloseDelete}
+          onConfirm={onConfirmDelete}
           message="Bạn có muốn xóa bộ thẻ này không?"
         />
       )}
 
-      {showEdit && selectedUser && (
+      {/* Edit */}
+      {showEdit && selectedDeck && (
         <Edit
-          user={selectedUser}
+          user={selectedDeck}
           onClose={handleUserDetailClose}
           onSave={handleUserDetailSave}
           isEditMode={isEditMode}
           Colums={ColumsBoThe}
           showAvatar={false}
+          readOnlyKeys={["id", "userCreated"]}     // khoá ID + người tạo
+          validationSchema={validationSchema}      // Yup: hiện lỗi dưới ô
+          validateOnChange={false}                 // validate onBlur + khi Lưu
         />
       )}
 
+      {/* Export */}
       {exportModal && (
         <ExportModal
           isOpen={exportModal}
           onClose={() => setExportModal(false)}
-          onExport={(rows) => console.log("Dữ liệu export:", rows)}
           filteredData={filteredData}
           title="Xuất danh sách bộ thẻ"
           columns={ColumsBoThe}

@@ -1,4 +1,19 @@
+// src/components/LopMenu/LopMenu.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { auth, db } from "../../../../../lib/firebase";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  limit,
+  getDocs,
+  arrayRemove,
+} from "firebase/firestore";
 
 /**
  * Menu dấu ba chấm cho trang Khóa học
@@ -9,10 +24,40 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
  * - onViewDetail: () => void
  * - onDelete: () => void
  * - isOwner: boolean (chỉ chủ khóa học mới thấy sửa/xóa)
- * - idKhoaHoc: string|number
+ * - idKhoaHoc: string|number (docId hoặc field idKhoaHoc)
  * - canLeave: boolean (thành viên không phải chủ -> có thể rời lớp)
  * - onLeft: () => void (callback sau khi rời lớp để reload UI)
  */
+
+// ===== Helpers Firestore =====
+const khoaHocCol = () => collection(db, "khoaHoc");
+
+/** Tìm docRef theo docId hoặc field idKhoaHoc */
+async function getCourseDocRefByAnyId(id) {
+  const idStr = String(id);
+  // 1) thử docId
+  const refByDocId = doc(db, "khoaHoc", idStr);
+  const snap1 = await getDoc(refByDocId);
+  if (snap1.exists()) return refByDocId;
+
+  // 2) thử field idKhoaHoc
+  const q1 = query(khoaHocCol(), where("idKhoaHoc", "==", idStr), limit(1));
+  const rs = await getDocs(q1);
+  if (!rs.empty) return rs.docs[0].ref;
+
+  return null;
+}
+
+/** Lấy hồ sơ người dùng từ collection 'nguoiDung' theo auth.uid */
+async function getUserProfile(uid) {
+  try {
+    const snap = await getDoc(doc(db, "nguoiDung", String(uid)));
+    return snap.exists() ? { _docId: snap.id, ...snap.data() } : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function LopMenu({
   open,
   anchorRef,
@@ -25,38 +70,62 @@ export default function LopMenu({
   onLeft,
 }) {
   const menuRef = useRef(null);
+
+  // đánh giá
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
 
-  const session = useMemo(() => {
-    try { return JSON.parse(sessionStorage.getItem("session") || "null"); }
-    catch { return null; }
+  // auth & profile
+  const [uid, setUid] = useState(null);
+  const [altId, setAltId] = useState(null); // phòng trường hợp DB cũ lưu idNguoiDung ≠ auth.uid
+
+  // thành viên?
+  const [isMember, setIsMember] = useState(false);
+
+  // ===== 1) Lấy uid từ Firebase Auth =====
+  useEffect(() => {
+    setUid(auth.currentUser?.uid || null);
   }, []);
 
-  const dsNguoiDung = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("nguoiDung") || "[]"); }
-    catch { return []; }
-  }, []);
+  // ===== 2) Lấy altId từ hồ sơ người dùng (idNguoiDung nếu khác uid) =====
+  useEffect(() => {
+    (async () => {
+      if (!uid) {
+        setAltId(null);
+        return;
+      }
+      const prof = await getUserProfile(uid);
+      const idField = prof?.idNguoiDung;
+      setAltId(idField && String(idField) !== String(uid) ? String(idField) : null);
+    })();
+  }, [uid]);
 
-  // lấy khóa học hiện tại để biết user có phải thành viên không (cho form đánh giá)
-  const khoaHoc = useMemo(() => {
-    try {
-      const ds = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
-      return ds.find((l) => String(l.idKhoaHoc) === String(idKhoaHoc)) || null;
-    } catch {
-      return null;
-    }
-  }, [idKhoaHoc]);
+  // ===== 3) Kiểm tra thành viên của khóa học =====
+  useEffect(() => {
+    (async () => {
+      if (!idKhoaHoc || !uid) {
+        setIsMember(false);
+        return;
+      }
+      const ref = await getCourseDocRefByAnyId(idKhoaHoc);
+      if (!ref) {
+        setIsMember(false);
+        return;
+      }
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        setIsMember(false);
+        return;
+      }
+      const kh = snap.data();
+      const mem = Array.isArray(kh?.thanhVienIds) ? kh.thanhVienIds.map(String) : [];
+      const me1 = String(uid);
+      const me2 = altId ? String(altId) : null;
+      setIsMember(mem.includes(me1) || (me2 ? mem.includes(me2) : false));
+    })();
+  }, [idKhoaHoc, uid, altId]);
 
-  const role = useMemo(() => {
-    if (!session) return null;
-    const u = dsNguoiDung.find((x) => x.idNguoiDung === session.idNguoiDung);
-    return u?.vaiTro || null;
-  }, [session, dsNguoiDung]);
-
-  const laThanhVien = !!khoaHoc?.thanhVienIds?.includes(session?.idNguoiDung);
-
-  // click ra ngoài để đóng
+  // ===== 4) Đóng khi click ra ngoài =====
   useEffect(() => {
     if (!open) return;
     function handleClickOutside(e) {
@@ -70,58 +139,72 @@ export default function LopMenu({
 
   if (!open) return null;
 
-  const themFeedback = (e) => {
+  // ===== 5) Gửi đánh giá (Firestore) =====
+  const themFeedback = async (e) => {
     e.preventDefault();
-    if (!session?.idNguoiDung) return;
-    if (!rating) { alert("Vui lòng chọn số sao!"); return; }
-
-    const fb = {
-      idKhoaHoc,
-      idNguoiDung: session.idNguoiDung,
-      rating,
-      comment: (comment || "").trim(),
-      ngay: new Date().toISOString(),
-    };
-
-    const all = JSON.parse(localStorage.getItem("feedback") || "[]");
-    const idx = all.findIndex(
-      (f) =>
-        String(f.idKhoaHoc) === String(idKhoaHoc) &&
-        String(f.idNguoiDung) === String(session.idNguoiDung)
-    );
-    if (idx > -1) all[idx] = fb; else all.push(fb);
-
-    localStorage.setItem("feedback", JSON.stringify(all));
-    alert("Đã gửi đánh giá của bạn!");
-    setRating(0); setComment("");
-    onClose?.();
+    if (!uid) {
+      alert("Vui lòng đăng nhập để đánh giá.");
+      return;
+    }
+    if (!rating) {
+      alert("Vui lòng chọn số sao!");
+      return;
+    }
+    // Chỉ cho phép thành viên đánh giá (tùy yêu cầu)
+    if (!isMember) {
+      alert("Chỉ thành viên của khóa học mới được đánh giá.");
+      return;
+    }
+    try {
+      const key = `${String(idKhoaHoc)}_${String(altId || uid)}`;
+      await setDoc(doc(db, "feedbackKhoaHoc", key), {
+        idKhoaHoc: String(idKhoaHoc),
+        idNguoiDung: String(altId || uid),
+        rating: Number(rating),
+        comment: String(comment || "").trim(),
+        ngay: serverTimestamp(),
+      });
+      alert("Đã gửi đánh giá của bạn!");
+      setRating(0);
+      setComment("");
+      onClose?.();
+    } catch (err) {
+      console.error("Gửi đánh giá thất bại:", err);
+      alert("Không thể gửi đánh giá. Vui lòng thử lại.");
+    }
   };
 
-  const roiLop = () => {
-    if (!session?.idNguoiDung || !idKhoaHoc) return;
+  // ===== 6) Rời khóa học (Firestore) =====
+  const roiLop = async () => {
+    if (!uid || !idKhoaHoc) return;
     if (!window.confirm("Bạn chắc chắn muốn rời khóa học này?")) return;
 
-    const ds = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
-    const i = ds.findIndex((k) => String(k.idKhoaHoc) === String(idKhoaHoc));
-    if (i === -1) return;
+    try {
+      const ref = await getCourseDocRefByAnyId(idKhoaHoc);
+      if (!ref) {
+        alert("Không tìm thấy khóa học.");
+        return;
+      }
 
-    const kh = { ...ds[i] };
-    // loại khỏi thành viên (và cả danh sách chờ nếu có)
-    kh.thanhVienIds = (kh.thanhVienIds || []).filter(
-      (x) => String(x) !== String(session.idNguoiDung)
-    );
-    kh.yeuCauThamGiaIds = (kh.yeuCauThamGiaIds || []).filter(
-      (x) => String(x) !== String(session.idNguoiDung)
-    );
+      // Loại mình khỏi danh sách thành viên & danh sách chờ (nếu có)
+      const me1 = String(uid);
+      const me2 = altId ? String(altId) : null;
+      const toRemove = me2 ? [me1, me2] : [me1];
 
-    ds[i] = kh;
-    localStorage.setItem("khoaHoc", JSON.stringify(ds));
+      await updateDoc(ref, {
+        thanhVienIds: arrayRemove(...toRemove),
+        yeuCauThamGiaIds: arrayRemove(...toRemove),
+      });
 
-    // bắn event cho các nơi khác đọc lại
-    window.dispatchEvent(new Event("khoaHocChanged"));
+      // bắn event tùy app (nếu nhiều nơi cần reload)
+      window.dispatchEvent(new Event("khoaHocChanged"));
 
-    onLeft?.();   // cho parent reload ngay
-    onClose?.();  // đóng menu
+      onLeft?.();
+      onClose?.();
+    } catch (err) {
+      console.error("Rời khóa học thất bại:", err);
+      alert("Không thể rời khóa học. Vui lòng thử lại.");
+    }
   };
 
   return (
@@ -130,13 +213,19 @@ export default function LopMenu({
         <>
           <button
             className="ellipsis-item"
-            onClick={() => { onViewDetail?.(); onClose?.(); }}
+            onClick={() => {
+              onViewDetail?.();
+              onClose?.();
+            }}
           >
             Xem chi tiết khóa học / Sửa
           </button>
           <button
             className="ellipsis-item danger"
-            onClick={() => { onDelete?.(); onClose?.(); }}
+            onClick={() => {
+              onDelete?.();
+              onClose?.();
+            }}
           >
             Xóa khóa học
           </button>
@@ -149,48 +238,30 @@ export default function LopMenu({
         </button>
       )}
 
-      {/* Form đánh giá: chỉ học viên + là thành viên */}
-      {!isOwner && role === "HOC_VIEN" && laThanhVien && (
-        <form onSubmit={themFeedback} style={{ padding: 10, borderTop: "1px solid #eee" }}>
-          <div style={{ marginBottom: 6, fontWeight: 600 }}>Đánh giá khóa học</div>
+      {/* Nếu muốn bật form đánh giá ngay trong menu, bỏ comment khối dưới */}
+      {/* {isMember && (
+        <form className="feedback-form" onSubmit={themFeedback} style={{ padding: 8 }}>
           <div style={{ marginBottom: 6 }}>
-            {[1,2,3,4,5].map((star) => (
-              <span
-                key={star}
-                onClick={() => setRating(star)}
-                style={{
-                  fontSize: 20,
-                  cursor: "pointer",
-                  color: star <= rating ? "gold" : "#ccc",
-                  marginRight: 4,
-                }}
-              >
-                ★
-              </span>
-            ))}
+            <label>Số sao:</label>{" "}
+            <select value={rating} onChange={(e) => setRating(Number(e.target.value))}>
+              <option value={0}>—</option>
+              <option value={1}>★</option>
+              <option value={2}>★★</option>
+              <option value={3}>★★★</option>
+              <option value={4}>★★★★</option>
+              <option value={5}>★★★★★</option>
+            </select>
           </div>
           <textarea
-            rows={2}
+            placeholder="Nhận xét..."
+            rows={3}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Bình luận..."
-            style={{
-              width: "100%", fontSize: 13, padding: 6,
-              border: "1px solid #ddd", borderRadius: 6, marginBottom: 6,
-            }}
+            style={{ width: "100%", marginBottom: 6 }}
           />
-          <button
-            type="submit"
-            style={{
-              width: "100%", padding: "6px 0",
-              background: "#2563eb", color: "#fff",
-              border: "none", borderRadius: 6, fontWeight: 600, cursor: "pointer",
-            }}
-          >
-            Gửi
-          </button>
+          <button type="submit" className="ellipsis-item">Gửi đánh giá</button>
         </form>
-      )}
+      )} */}
     </div>
   );
 }

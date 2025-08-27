@@ -2,74 +2,73 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./NewBoThe.css";
 
+import { auth, db } from "../../../../../lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
+
 export default function NewBoThe() {
   const navigate = useNavigate();
 
-  //lay nguoi dung tu session
-  const session = useMemo(() => {
-    return JSON.parse(sessionStorage.getItem("session") || "null");
-  }, []);
-  const nguoiDungList = useMemo(() => {
-    return JSON.parse(localStorage.getItem("nguoiDung") || "null");
-  }, []);
-  const nguoiDungHT=nguoiDungList.find((x)=>(x.idNguoiDung===session.idNguoiDung));
-  // ===== State form =====
   const [tenBoThe, setTenBoThe] = useState("");
   const [danhSachThe, setDanhSachThe] = useState([{ tu: "", nghia: "" }]);
   const [loi, setLoi] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  // ===== Helpers =====
-  const getNextId = Math.floor(Math.random() * 1000000);
-
-  const themThe = () => setDanhSachThe(prev => [...prev, { tu: "", nghia: "" }]);
-  const xoaThe = (i) => setDanhSachThe(prev => prev.filter((_, idx) => idx !== i));
+  const idNgauNhien = useMemo(() => Math.floor(Math.random() * 1_000_000), []);
+  const themThe = () => setDanhSachThe((prev) => [...prev, { tu: "", nghia: "" }]);
+  const xoaThe = (i) => setDanhSachThe((prev) => prev.filter((_, idx) => idx !== i));
   const doiNoiDungThe = (i, field, value) => {
-    setDanhSachThe(prev => {
+    setDanhSachThe((prev) => {
       const next = [...prev];
       next[i] = { ...next[i], [field]: value };
       return next;
     });
   };
 
-  const luuBoThe = () => {
+  const luuBoThe = async () => {
     setLoi("");
 
     const ten = tenBoThe.trim();
-    if (!ten) {
-      setLoi("Vui lòng nhập tên bộ thẻ.");
-      return;
-    }
+    if (!ten) return setLoi("Vui lòng nhập tên bộ thẻ.");
 
     const dsHopLe = danhSachThe
-      .map(t => ({ tu: t.tu.trim(), nghia: t.nghia.trim() }))
-      .filter(t => t.tu && t.nghia);
+      .map((t) => ({ tu: t.tu.trim(), nghia: t.nghia.trim() }))
+      .filter((t) => t.tu && t.nghia);
 
-    if (dsHopLe.length === 0) {
-      setLoi("Bộ thẻ phải có ít nhất 1 thẻ hợp lệ (điền đủ 'từ' và 'nghĩa').");
+    if (dsHopLe.length === 0)
+      return setLoi("Bộ thẻ phải có ít nhất 1 thẻ hợp lệ (điền đủ 'từ' và 'nghĩa').");
+
+    const uid =
+      auth.currentUser?.uid ||
+      JSON.parse(sessionStorage.getItem("session") || "null")?.idNguoiDung;
+    if (!uid) {
+      setLoi("Bạn cần đăng nhập để tạo bộ thẻ.");
+      navigate("/dang-nhap");
       return;
     }
 
     try {
-      const idBoThe = getNextId;
+      setSaving(true);
+
+      const idBoThe = idNgauNhien;
       const boTheMoi = {
         idBoThe,
         tenBoThe: ten,
         soTu: dsHopLe.length,
-        idNguoiDung: nguoiDungHT.idNguoiDung,
+        idNguoiDung: String(uid),
         danhSachThe: dsHopLe,
+        // ⬅️ không có createdAt
       };
 
-      const current = JSON.parse(localStorage.getItem("boThe") || "[]");
-      const list = Array.isArray(current) ? current : [];
-      localStorage.setItem("boThe", JSON.stringify([...list, boTheMoi]));
+      await setDoc(doc(db, "boThe", String(idBoThe)), boTheMoi, { merge: true });
 
-      // Bắn event để các trang khác cập nhật ngay
       window.dispatchEvent(new Event("boTheUpdated"));
-
       alert("Đã tạo bộ thẻ mới!");
-      navigate("/giangvien");
-    } catch {
+      navigate("/trangchu");
+    } catch (e) {
+      console.error(e);
       setLoi("Có lỗi khi lưu dữ liệu.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -138,7 +137,9 @@ export default function NewBoThe() {
 
         <div className="footer-actions">
           <button className="btn ghost" onClick={() => navigate(-1)}>Hủy</button>
-          <button className="btn primary" onClick={luuBoThe}>Lưu</button>
+          <button className="btn primary" onClick={luuBoThe} disabled={saving}>
+            {saving ? "Đang lưu..." : "Lưu"}
+          </button>
         </div>
       </div>
     </div>

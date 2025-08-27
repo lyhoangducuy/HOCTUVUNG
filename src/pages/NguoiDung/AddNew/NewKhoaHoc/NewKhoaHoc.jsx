@@ -1,14 +1,13 @@
-import { useForm } from "react-hook-form";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Newclass.css";
 
+import { auth, db } from "../../../../../lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
+
 function Newclass() {
   const navigate = useNavigate();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
+  const [saving, setSaving] = useState(false);
 
   // tách danh sách "kienThuc" từ input (phân tách bởi dấu phẩy hoặc xuống dòng)
   const parseTags = (txt) =>
@@ -17,52 +16,59 @@ function Newclass() {
       .map((s) => s.trim())
       .filter(Boolean);
 
-  const onSubmit = (data) => {
-    const list = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
+  const onSubmit = async (data) => {
+    try {
+      setSaving(true);
 
-    const idKhoaHoc = Date.now(); // id đơn giản, duy nhất theo thời gian
-    const session = JSON.parse(sessionStorage.getItem("session") || "null");
-    const idNguoiDung = session?.idNguoiDung || null;
+      const session = JSON.parse(sessionStorage.getItem("session") || "null");
+      const uid = auth.currentUser?.uid || session?.idNguoiDung;
+      if (!uid) {
+        alert("Bạn cần đăng nhập để tạo khóa học.");
+        navigate("/dang-nhap");
+        return;
+      }
 
-    const newCourse = {
-      idKhoaHoc,
-      idNguoiDung: idNguoiDung,
-      tenKhoaHoc: data.tenKhoaHoc,
-      moTa: data.moTa || "",
-      kienThuc: parseTags(data.kienThuc),
-      boTheIds: [],
-      folderIds: [],
-      thanhVienIds: [],
-    };
+      const idKhoaHoc = Date.now(); // id đơn giản, duy nhất theo thời gian
+      const newCourse = {
+        idKhoaHoc,
+        idNguoiDung: String(uid),
+        tenKhoaHoc: data.tenKhoaHoc,
+        moTa: data.moTa || "",
+        kienThuc: parseTags(data.kienThuc),
+        boTheIds: [],
+        folderIds: [],
+        thanhVienIds: [],
+      };
 
-    list.push(newCourse);
-    localStorage.setItem("khoaHoc", JSON.stringify(list));
+      // Firestore: collection "khoaHoc"
+      await setDoc(doc(db, "khoaHoc", String(idKhoaHoc)), newCourse);
 
-    // vẫn dùng route /lop/:id đang có sẵn trong app để hiển thị chi tiết
-    navigate("/khoaHoc/" + idKhoaHoc);
+      // điều hướng trang chi tiết
+      navigate("/khoaHoc/" + idKhoaHoc);
+    } catch (e) {
+      console.error(e);
+      alert("Không thể tạo khóa học. Vui lòng thử lại.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit(Object.fromEntries(new FormData(e.target))); }}>
       <h2 className="tittle">Nhập thông tin khóa học</h2>
 
       <label>Tên khóa học</label>
-      <input
-        {...register("tenKhoaHoc", { required: "Vui lòng nhập tên khóa học" })}
-      />
-      {errors.tenKhoaHoc && (
-        <p style={{ color: "red" }}>{errors.tenKhoaHoc.message}</p>
-      )}
+      <input name="tenKhoaHoc" required placeholder="VD: JLPT N5 - Ngữ pháp" />
 
       <label>Kỹ năng/Chủ đề (kiến thức)</label>
       <textarea
+        name="kienThuc"
         rows={3}
-        placeholder="Ví dụ: it, tiếng nhật, tiếng anh..."
-        {...register("kienThuc")}
+        placeholder="Ví dụ: IT, tiếng Nhật, tiếng Anh..."
       />
 
       <label>Mô tả</label>
-      <input {...register("moTa")} />
+      <input name="moTa" placeholder="Mô tả ngắn..." />
 
       <div className="button-group">
         <button
@@ -72,8 +78,8 @@ function Newclass() {
         >
           Đóng
         </button>
-        <button className="btn-submit" type="submit">
-          Xác Nhận
+        <button className="btn-submit" type="submit" disabled={saving}>
+          {saving ? "Đang lưu..." : "Xác Nhận"}
         </button>
       </div>
     </form>

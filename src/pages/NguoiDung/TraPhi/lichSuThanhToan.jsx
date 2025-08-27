@@ -1,53 +1,165 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/inputs/Button";
-import "./lichSuThanhToan.css"; // <-- thêm dòng này
+import "./lichSuThanhToan.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
-const VN = "vi-VN";
-const toVN = (d) => (d ? new Date(d).toLocaleString(VN) : "—");
-const money = (n) => (Number(n || 0)).toLocaleString(VN) + " đ";
+import { auth, db } from "../../../../lib/firebase";
+import {
+  collection,
+  onSnapshot,
+  query,
+  where,
+  getDocs,
+  documentId,
+} from "firebase/firestore";
 
-// helpers
-const readJSON = (key, fallback = []) => {
-  try { return JSON.parse(localStorage.getItem(key) || "null") ?? fallback; }
-  catch { return fallback; }
+const VN = "vi-VN";
+const money = (n) => Number(n || 0).toLocaleString(VN) + " đ";
+
+const toDateFlexible = (v) => {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  if (typeof v?.toDate === "function") return v.toDate(); // Firestore Timestamp
+  if (typeof v === "string") {
+    // dd/mm/yyyy
+    const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) {
+      const d = Number(m[1]),
+        mo = Number(m[2]) - 1,
+        y = Number(m[3]);
+      return new Date(y, mo, d);
+    }
+    // ISO
+    const d = new Date(v);
+    return isNaN(d) ? null : d;
+  }
+  return null;
+};
+const toVN = (v) => {
+  const d = toDateFlexible(v);
+  return d ? d.toLocaleString(VN) : "—";
+};
+const addDays = (dateLike, days) => {
+  const d = toDateFlexible(dateLike);
+  if (!d) return null;
+  const x = new Date(d);
+  x.setDate(x.getDate() + Number(days || 0));
+  return x;
 };
 
 export default function lichSuThanhToan() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [rows, setRows] = useState([]);
+  const [uid, setUid] = useState(null);
+  const [orders, setOrders] = useState([]);    // thô từ donHangTraPhi
+  const [packMap, setPackMap] = useState({}); // { idGoi: packDoc }
 
+  // Lấy uid (ưu tiên Firebase Auth, fallback session cũ nếu còn)
   useEffect(() => {
-    const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-    if (!ss?.idNguoiDung) {
+    const session = JSON.parse(sessionStorage.getItem("session") || "null");
+    const _uid = auth.currentUser?.uid || session?.idNguoiDung || null;
+    if (!_uid) {
       navigate("/", { replace: true });
       return;
     }
-    setUser(ss);
-
-    const all = readJSON("donHangTraPhi", []);
-    const packsById = Object.fromEntries(readJSON("goiTraPhi", []).map(p => [p.idGoi, p]));
-    const mine = (all || [])
-      .filter(o => o.idNguoiDung === ss.idNguoiDung)
-      .map(o => ({
-        ...o,
-        tenGoi: o.tenGoi || packsById[o.idGoi]?.tenGoi || "(gói không xác định)",
-        thoiHanNgay: o.thoiHanNgay ?? packsById[o.idGoi]?.thoiHan ?? 0,
-      }))
-      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    setRows(mine);
+    setUid(String(_uid));
   }, [navigate]);
+
+  // Nạp đơn hàng theo user
+  useEffect(() => {
+    if (!uid) return;
+    const qOrders = query(
+      collection(db, "donHangTraPhi"),
+      where("idNguoiDung", "==", String(uid))
+    );
+    const unsub = onSnapshot(
+      qOrders,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+        // sort mới → cũ theo createdAt
+        list.sort(
+          (a, b) =>
+            (toDateFlexible(b.createdAt)?.getTime() || 0) -
+            (toDateFlexible(a.createdAt)?.getTime() || 0)
+        );
+        setOrders(list);
+      },
+      () => setOrders([])
+    );
+    return () => unsub();
+  }, [uid]);
+
+  // Nạp thông tin gói theo idGoi (batch 'in' ≤ 10 mỗi lần)
+  useEffect(() => {
+    const ids = [
+      ...new Set(
+        orders
+          .map((o) => (o?.idGoi != null ? String(o.idGoi) : null))
+          .filter(Boolean)
+      ),
+    ];
+    if (ids.length === 0) {
+      setPackMap({});
+      return;
+    }
+    const chunks = [];
+    for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
+
+    (async () => {
+      const map = {};
+      for (const c of chunks) {
+        const rs = await getDocs(
+          query(collection(db, "goiTraPhi"), where(documentId(), "in", c))
+        );
+        rs.forEach((docSnap) => {
+          map[docSnap.id] = { idGoi: docSnap.id, ...docSnap.data() };
+        });
+      }
+      setPackMap(map);
+    })();
+  }, [orders]);
+
+  // Merge pack info vào order (tenGoi, thoiHanNgay)
+  const rows = useMemo(() => {
+    return orders.map((o) => {
+      const pack = packMap[String(o.idGoi)] || {};
+      return {
+        ...o,
+        tenGoi: o.tenGoi || pack.tenGoi || "(gói không xác định)",
+        thoiHanNgay:
+          o.thoiHanNgay != null ? o.thoiHanNgay : (pack.thoiHan != null ? pack.thoiHan : 0),
+      };
+    });
+  }, [orders, packMap]);
 
   const hasData = rows.length > 0;
 
   const totalPaid = useMemo(() => {
     return rows
-      .filter(r => r.trangThai === "paid")
-      .reduce((s, r) => s + Number(r.soTienThanhToanThucTe ?? r.soTienThanhToan ?? 0), 0);
+      .filter((r) => r.trangThai === "paid")
+      .reduce(
+        (s, r) => s + Number(r.soTienThanhToanThucTe ?? r.soTienThanhToan ?? 0),
+        0
+      );
   }, [rows]);
+
+  /* ==== Phân trang (client) ==== */
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+
+  // Khi data đổi, đảm bảo trang hiện tại hợp lệ
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [totalPages, page]);
+
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return rows.slice(start, start + pageSize);
+  }, [rows, page]);
+
+  const goPage = (p) => setPage(Math.min(totalPages, Math.max(1, p)));
 
   return (
     <div className="ph-container">
@@ -66,9 +178,10 @@ export default function lichSuThanhToan() {
         <div className="ph-card">
           <div className="ph-card__label">Đã thanh toán</div>
           <div className="ph-card__value">
-            {rows.filter(r => r.trangThai === "paid").length} giao dịch • {money(totalPaid)}
+            {rows.filter((r) => r.trangThai === "paid").length} giao dịch • {money(totalPaid)}
           </div>
         </div>
+        
       </div>
 
       {/* Table */}
@@ -76,7 +189,7 @@ export default function lichSuThanhToan() {
         <div className="ph-empty">
           Chưa có giao dịch nào.
           <div className="ph-empty__actions">
-            <Button onClick={() => navigate("/traphi")}>Mua gói ngay</Button>
+            <Button onClick={() => navigate("/tra-phi")}>Mua gói ngay</Button>
           </div>
         </div>
       ) : (
@@ -90,23 +203,37 @@ export default function lichSuThanhToan() {
                 <th>Trạng thái</th>
                 <th>Tạo lúc</th>
                 <th>Thanh toán/Hủy lúc</th>
+                <th>Ngày hết hạn</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
+              {pagedRows.map((r) => {
                 const statusClass =
-                  r.trangThai === "paid" ? "is-paid" :
-                    r.trangThai === "pending" ? "is-pending" :
-                      "is-canceled";
-                const displayAmount = r.soTienThanhToanThucTe ?? r.soTienThanhToan ?? 0;
-                const timeCol = r.trangThai === "paid" ? toVN(r.paidAt) : toVN(r.canceledAt);
+                  r.trangThai === "paid"
+                    ? "is-paid"
+                    : r.trangThai === "pending"
+                    ? "is-pending"
+                    : "is-canceled";
+                const displayAmount =
+                  r.soTienThanhToanThucTe ?? r.soTienThanhToan ?? 0;
+                const timeCol =
+                  r.trangThai === "paid" ? toVN(r.paidAt) : toVN(r.canceledAt);
+
+                // Tính ngày hết hạn nếu đã thanh toán
+                let endDateText = "—";
+                if (r.trangThai === "paid" && r.thoiHanNgay > 0) {
+                  const end = addDays(r.paidAt, r.thoiHanNgay);
+                  endDateText = end ? end.toLocaleDateString(VN) : "—";
+                }
 
                 return (
-                  <tr key={r.idDonHang}>
-                    <td className="ph-code">{r.idDonHang}</td>
+                  <tr key={r.idDonHang || r._docId}>
+                    <td className="ph-code">{r.idDonHang || r._docId}</td>
                     <td>
                       <div className="ph-pack-name">{r.tenGoi}</div>
-                      <div className="ph-pack-term">Thời hạn: {r.thoiHanNgay} ngày</div>
+                      <div className="ph-pack-term">
+                        Thời hạn: {r.thoiHanNgay} ngày
+                      </div>
                     </td>
                     <td>
                       {money(displayAmount)}
@@ -116,22 +243,60 @@ export default function lichSuThanhToan() {
                     </td>
                     <td>
                       <span className={`ph-badge ${statusClass}`}>
-                        {r.trangThai === "paid" ? "Đã thanh toán"
-                          : r.trangThai === "pending" ? "Đang chờ"
-                            : "Đã hủy"}
+                        {r.trangThai === "paid"
+                          ? "Đã thanh toán"
+                          : r.trangThai === "pending"
+                          ? "Đang chờ"
+                          : "Đã hủy"}
                       </span>
                     </td>
                     <td>{toVN(r.createdAt)}</td>
                     <td>{timeCol}</td>
+                    <td>{endDateText}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
 
-          <div className="ph-actions">
-            <Button  onClick={() => navigate("/traphi")}>Nâng cấp gói trả phí mới</Button>
+          {/* Pagination */}
+          <div className="ph-pagination">
+            <div className="ph-actions">
+            <Button onClick={() => navigate("/tra-phi")} variant="blue">
+              Nâng cấp gói trả phí mới
+            </Button>
+        </div>
+            <button
+              className="ph-page-btn"
+              onClick={() => goPage(page - 1)}
+              disabled={page <= 1}
+            >
+              ← Trước
+            </button>
+            <div className="ph-page-numbers">
+              {Array.from({ length: totalPages }).map((_, i) => {
+                const p = i + 1;
+                return (
+                  <button
+                    key={p}
+                    className={`ph-page-number ${p === page ? "active" : ""}`}
+                    onClick={() => goPage(p)}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              className="ph-page-btn"
+              onClick={() => goPage(page + 1)}
+              disabled={page >= totalPages}
+            >
+              Sau →
+            </button>
           </div>
+
+          
         </div>
       )}
     </div>

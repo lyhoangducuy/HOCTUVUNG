@@ -1,67 +1,82 @@
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
-import { useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+// src/pages/Auth/DangNhap/DangNhap.jsx
 import "./DangNhap.css";
-// import axios from "axios"; // Chưa dùng thì có thể xoá
+import { useForm } from "react-hook-form";
+import { useNavigate, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 
-const schema = yup.object({
-  email: yup
-    .string()
-    .email("Nhập đúng định dạng email")
-    .required("Vui lòng nhập email"),
-  matkhau: yup
-    .string()
-    .min(6, "Mật khẩu tối thiểu 6 ký tự")
-    .required("Vui lòng nhập mật khẩu"),
-});
+import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../../../../lib/firebase";
 
 export default function DangNhap() {
   const navigate = useNavigate();
   const [loginError, setLoginError] = useState("");
+  const { register, handleSubmit } = useForm();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({ resolver: yupResolver(schema) });
+  // Nếu đã đăng nhập (ở tab khác / refresh) thì tự chuyển trang
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+      try {
+        const snap = await getDoc(doc(db, "nguoiDung", user.uid));
+        const role = snap.exists() ? (snap.data()?.vaiTro || "HOC_VIEN") : "HOC_VIEN";
+        // giữ session để các phần cũ còn dùng
+        sessionStorage.setItem(
+          "session",
+          JSON.stringify({ idNguoiDung: user.uid, vaiTro: role })
+        );
+        navigate(role === "ADMIN" ? "/admin" : "/trangchu", { replace: true });
+      } catch {
+        navigate("/trangchu", { replace: true });
+      }
+    });
 
-  // Lấy danh sách người dùng đã "đăng ký" (demo)
-  const danhSachNguoiDung = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-    } catch {
-      return [];
-    }
-  }, []);
-
-  const onSubmit = (form) => {
-    setLoginError("");
-    const email = form.email.trim().toLowerCase();
-    const pwd = form.matkhau;
-
-    const found = danhSachNguoiDung.find(
-      (u) => u.email?.toLowerCase() === email && u.matkhau === pwd
-    );
-
-    if (!found) {
-      setLoginError("Email hoặc mật khẩu không đúng.");
-      return;
-    }
-
-    // Lưu phiên đăng nhập (demo)
-    const sessionUser = {
-      idNguoiDung: found.idNguoiDung,
-      vaiTro: found.vaiTro,
+    // Nghe tín hiệu login/logout từ tab khác
+    const onStorage = (e) => {
+      if (e.key === "auth:login") {
+        // tab khác vừa login -> điều hướng theo session/role hiện có
+        const ss = JSON.parse(sessionStorage.getItem("session") || "null");
+        const role = ss?.vaiTro || "HOC_VIEN";
+        navigate(role === "ADMIN" ? "/admin" : "/trangchu", { replace: true });
+      }
+      if (e.key === "auth:logout") {
+        // tab khác logout -> dọn session tại tab này (phòng hờ)
+        sessionStorage.removeItem("session");
+      }
     };
-    sessionStorage.setItem("session", JSON.stringify(sessionUser));
+    window.addEventListener("storage", onStorage);
 
-    // Điều hướng theo vai trò
-    if (sessionUser.vaiTro==="ADMIN")
-      navigate("/admin")
-    else
-      navigate("/trangchu");
+    return () => {
+      unsub && unsub();
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [navigate]);
+
+  const onSubmit = async (form) => {
+    setLoginError("");
+    try {
+      const cred = await signInWithEmailAndPassword(auth, form.email, form.matkhau);
+
+      // Lấy hồ sơ người dùng để biết vai trò
+      const snap = await getDoc(doc(db, "nguoiDung", cred.user.uid));
+      if (!snap.exists()) throw new Error("Không tìm thấy hồ sơ người dùng!");
+
+      const profile = snap.data();
+      const role = profile?.vaiTro || "HOC_VIEN";
+
+      // Giữ mini-session cho các phần code cũ còn đọc sessionStorage
+      sessionStorage.setItem(
+        "session",
+        JSON.stringify({ idNguoiDung: cred.user.uid, vaiTro: role })
+      );
+
+      // 🔔 PHÁT SỰ KIỆN CHO TAB KHÁC BIẾT LÀ ĐÃ LOGIN
+      localStorage.setItem("auth:login", String(Date.now()));
+
+      navigate(role === "ADMIN" ? "/admin" : "/trangchu");
+    } catch (e) {
+      setLoginError(e?.message || "Email hoặc mật khẩu không đúng.");
+    }
   };
 
   return (
@@ -70,54 +85,27 @@ export default function DangNhap() {
         <div className="login-left">
           <img src="/src/assets/image/logo.jpg" alt="imgloginform" />
         </div>
-
         <div className="login-right">
           <div className="login-tabs">
-            <span
-              onClick={() => navigate("/dang-ky")}
-              style={{ cursor: "pointer" }}
-            >
+            <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
               Đăng ký
             </span>
-            <span
-              className="active"
-              onClick={() => navigate("/dang-nhap")}
-              style={{ cursor: "pointer" }}
-            >
+            <span className="active" style={{ cursor: "pointer" }}>
               Đăng nhập
             </span>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="login-form">
             <label>Email</label>
-            <input
-              type="text"
-              {...register("email")}
-              className={errors.email ? "error" : ""}
-            />
-            {errors.email && (
-              <span className="error">{errors.email.message}</span>
-            )}
+            <input type="text" {...register("email")} />
 
             <label>Mật khẩu</label>
-            <input
-              type="password"
-              {...register("matkhau")}
-              className={errors.matkhau ? "error" : ""}
-            />
-            {errors.matkhau && (
-              <span className="error">{errors.matkhau.message}</span>
-            )}
+            <input type="password" {...register("matkhau")} />
 
             {loginError && <span className="error">{loginError}</span>}
 
             <div className="forgot">
-              <a
-                onClick={() => navigate("/quen-mat-khau")}
-                style={{ cursor: "pointer" }}
-              >
-                Quên mật khẩu
-              </a>
+              <Link to="/quen-mat-khau">Quên mật khẩu</Link>
             </div>
 
             <button type="submit" className="login-btn submit">

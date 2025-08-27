@@ -1,30 +1,30 @@
+// src/components/MoiThanhVien/MoiThanhVien.jsx
 import React, { useMemo, useState, useEffect } from "react";
 import "./MoiThanhVien.css";
 
-/* ==== Helpers đọc/ghi LS gọn ==== */
-const docJSON = (k, fb = []) => {
-  try { const v = JSON.parse(localStorage.getItem(k)); return v ?? fb; }
-  catch { return fb; }
-};
-const ghiJSON = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+import { auth, db } from "../../../../../lib/firebase";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  limit,
+  documentId,
+} from "firebase/firestore";
 
-/* Tách nhiều input: "a, b" hoặc xuống dòng */
-const tachDanhSachMoi = (txt) =>
+/* ================= Helpers ================= */
+const splitTokens = (txt) =>
   (txt || "")
     .split(/[\n,]+/g)
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean);
 
-/* Tìm user theo email hoặc tenNguoiDung */
-const timUserTheoToken = (token, ds) => {
-  const t = token.toLowerCase();
-  return ds.find(u =>
-    u?.email?.toLowerCase() === t ||
-    u?.tenNguoiDung?.toLowerCase() === t
-  ) || null;
-};
-
-/* Tạo dãy số trang gọn (có …) */
 const buildPages = (current, max) => {
   const pages = [];
   if (max <= 7) {
@@ -41,133 +41,289 @@ const buildPages = (current, max) => {
   return pages;
 };
 
+const chunk = (arr, n = 10) => {
+  const rs = [];
+  for (let i = 0; i < arr.length; i += n) rs.push(arr.slice(i, i + n));
+  return rs;
+};
+
+/** Tìm docRef khóa học theo docId hoặc field idKhoaHoc */
+async function getCourseDocRefByAnyId(id) {
+  const idStr = String(id);
+  const ref1 = doc(db, "khoaHoc", idStr);
+  const s1 = await getDoc(ref1);
+  if (s1.exists()) return ref1;
+
+  const rs = await getDocs(
+    query(collection(db, "khoaHoc"), where("idKhoaHoc", "==", idStr), limit(1))
+  );
+  if (!rs.empty) return rs.docs[0].ref;
+  return null;
+}
+
+/** Lấy người dùng theo danh sách ID: thử documentId() trước, còn thiếu thì thử field idNguoiDung */
+async function fetchUsersByIds(ids) {
+  const out = new Map();
+  const uniq = Array.from(new Set(ids.map(String).filter(Boolean)));
+  if (uniq.length === 0) return out;
+
+  // 1) documentId() in [...]
+  for (const group of chunk(uniq, 10)) {
+    const rs = await getDocs(
+      query(collection(db, "nguoiDung"), where(documentId(), "in", group))
+    );
+    rs.docs.forEach((d) => {
+      const u = d.data();
+      out.set(d.id, {
+        _key: d.id,
+        idNguoiDung: u?.idNguoiDung ?? d.id,
+        tenNguoiDung: u?.tenNguoiDung || u?.hoten || u?.email || "Người dùng",
+        email: u?.email || "",
+      });
+    });
+  }
+
+  // 2) Phần còn thiếu → thử theo field idNguoiDung in [...]
+  const missing = uniq.filter((id) => !out.has(id));
+  for (const group of chunk(missing, 10)) {
+    const rs = await getDocs(
+      query(collection(db, "nguoiDung"), where("idNguoiDung", "in", group))
+    );
+    rs.docs.forEach((d) => {
+      const u = d.data();
+      const key = String(u?.idNguoiDung || d.id);
+      out.set(key, {
+        _key: d.id,
+        idNguoiDung: key,
+        tenNguoiDung: u?.tenNguoiDung || u?.hoten || u?.email || "Người dùng",
+        email: u?.email || "",
+      });
+    });
+  }
+
+  return out;
+}
+
+/** Tìm người dùng theo danh sách token (email/username) */
+async function findUsersByTokens(tokens) {
+  const found = new Map();
+
+  // Ưu tiên exact match các field phổ biến
+  const tryExact = async (field, values) => {
+    if (!values.length) return;
+    for (const group of chunk(values.slice(0, 50), 10)) {
+      const rs = await getDocs(
+        query(collection(db, "nguoiDung"), where(field, "in", group))
+      );
+      rs.docs.forEach((d) => {
+        const u = d.data();
+        const key = String(u?.idNguoiDung || d.id);
+        found.set(key, {
+          _key: d.id,
+          idNguoiDung: key,
+          tenNguoiDung: u?.tenNguoiDung || u?.hoten || u?.email || "Người dùng",
+          email: u?.email || "",
+        });
+      });
+    }
+  };
+
+  const emails = tokens.filter((t) => t.includes("@"));
+  const names = tokens.filter((t) => !t.includes("@"));
+
+  // 1) exact email & username
+  await tryExact("email", emails);
+  await tryExact("tenNguoiDung", names);
+
+  // 2) nếu DB có field lower-case → dùng để match không phân biệt hoa-thường
+  const emailsLower = emails.map((x) => x.toLowerCase());
+  const namesLower = names.map((x) => x.toLowerCase());
+  await tryExact("emailLower", emailsLower);
+  await tryExact("tenNguoiDungLower", namesLower);
+
+  return found; // Map keyed by idNguoiDung (hoặc doc id)
+}
+
+/* ================= Component ================= */
 export default function MoiThanhVien({ idKhoaHoc, onCapNhat }) {
   const [textMoi, setTextMoi] = useState("");
   const [thongBao, setThongBao] = useState("");
 
-  // cache danh sách người dùng để tra cứu
-  const dsNguoiDung = useMemo(() => docJSON("nguoiDung", []), []);
+  // Khoá học + realtime
+  const [courseRef, setCourseRef] = useState(null);
+  const [khoaHoc, setKhoaHoc] = useState(null);
 
-  // lấy khóa học hiện tại (để render)
-  const khoaHoc = useMemo(() => {
-    const ds = docJSON("khoaHoc", []);
-    return ds.find(kh => String(kh.idKhoaHoc) === String(idKhoaHoc)) || null;
-  }, [idKhoaHoc, thongBao]);
+  // Cache người dùng (id -> info)
+  const [userCache, setUserCache] = useState(new Map());
 
-  const thanhVienIds = Array.isArray(khoaHoc?.thanhVienIds) ? khoaHoc.thanhVienIds : [];
-  const pendingIds   = Array.isArray(khoaHoc?.yeuCauThamGiaIds) ? khoaHoc.yeuCauThamGiaIds : [];
-  const idChuKhoa    = khoaHoc?.idNguoiDung;
-
-  // ===== Phân trang =====
+  // Phân trang
   const PAGE_SIZE_PENDING = 5;
-  const PAGE_SIZE_MEMBER  = 8;
-
+  const PAGE_SIZE_MEMBER = 8;
   const [pagePending, setPagePending] = useState(1);
-  const [pageMember, setPageMember]   = useState(1);
+  const [pageMember, setPageMember] = useState(1);
 
+  const thanhVienIds = useMemo(
+    () => (Array.isArray(khoaHoc?.thanhVienIds) ? khoaHoc.thanhVienIds.map(String) : []),
+    [khoaHoc]
+  );
+  const pendingIds = useMemo(
+    () => (Array.isArray(khoaHoc?.yeuCauThamGiaIds) ? khoaHoc.yeuCauThamGiaIds.map(String) : []),
+    [khoaHoc]
+  );
+  const idChuKhoa = useMemo(() => String(khoaHoc?.idNguoiDung || ""), [khoaHoc]);
+
+  // ===== 1) Lấy doc khóa học + theo dõi realtime =====
+  useEffect(() => {
+    let unsub = null;
+    (async () => {
+      const ref = await getCourseDocRefByAnyId(idKhoaHoc);
+      setCourseRef(ref);
+      if (!ref) {
+        setKhoaHoc(null);
+        return;
+      }
+      unsub = onSnapshot(
+        ref,
+        (snap) => {
+          if (!snap.exists()) {
+            setKhoaHoc(null);
+            return;
+          }
+          setKhoaHoc({ _docId: ref.id, ...snap.data() });
+        },
+        () => setKhoaHoc(null)
+      );
+    })();
+
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
+  }, [idKhoaHoc]);
+
+  // ===== 2) Tải thông tin người dùng cho member + pending =====
+  useEffect(() => {
+    (async () => {
+      const ids = Array.from(new Set([...thanhVienIds, ...pendingIds]));
+      if (ids.length === 0) {
+        setUserCache(new Map());
+        return;
+      }
+      const map = await fetchUsersByIds(ids);
+      setUserCache(map);
+    })();
+  }, [thanhVienIds.join(","), pendingIds.join(",")]);
+
+  // ===== 3) Clamp phân trang khi data thay đổi =====
   const totalPending = pendingIds.length;
-  const totalMember  = thanhVienIds.length;
-
+  const totalMember = thanhVienIds.length;
   const maxPendingPage = Math.max(1, Math.ceil(totalPending / PAGE_SIZE_PENDING));
-  const maxMemberPage  = Math.max(1, Math.ceil(totalMember  / PAGE_SIZE_MEMBER));
-
-  // Clamp khi dữ liệu thay đổi
+  const maxMemberPage = Math.max(1, Math.ceil(totalMember / PAGE_SIZE_MEMBER));
   useEffect(() => {
     if (pagePending > maxPendingPage) setPagePending(maxPendingPage);
   }, [maxPendingPage, pagePending]);
-
   useEffect(() => {
     if (pageMember > maxMemberPage) setPageMember(maxMemberPage);
   }, [maxMemberPage, pageMember]);
 
   const startPending = (pagePending - 1) * PAGE_SIZE_PENDING;
-  const startMember  = (pageMember  - 1) * PAGE_SIZE_MEMBER;
-
+  const startMember = (pageMember - 1) * PAGE_SIZE_MEMBER;
   const pendingPageIds = pendingIds.slice(startPending, startPending + PAGE_SIZE_PENDING);
-  const memberPageIds  = thanhVienIds.slice(startMember,  startMember  + PAGE_SIZE_MEMBER);
+  const memberPageIds = thanhVienIds.slice(startMember, startMember + PAGE_SIZE_MEMBER);
 
-  // ===== Helpers =====
-  const capNhatKhoaHoc = (kh) => {
-    const ds = docJSON("khoaHoc", []);
-    const i = ds.findIndex(x => String(x.idKhoaHoc) === String(kh.idKhoaHoc));
-    if (i > -1) ds[i] = kh; else ds.push(kh);
-    ghiJSON("khoaHoc", ds);
-    onCapNhat?.(kh);
-  };
-  const getUser = (id) => dsNguoiDung.find(u => String(u.idNguoiDung) === String(id));
-
-  // ===== Mời trực tiếp =====
-  const handleMoi = () => {
+  // ===== 4) Mời trực tiếp (email / tên người dùng) =====
+  const handleMoi = async () => {
     setThongBao("");
-    const tokens = tachDanhSachMoi(textMoi);
+    const tokens = splitTokens(textMoi);
     if (tokens.length === 0) {
       setThongBao("Nhập email hoặc tên người dùng trước đã.");
       return;
     }
 
-    const idsMoi = tokens
-      .map(t => timUserTheoToken(t, dsNguoiDung)?.idNguoiDung)
-      .filter(Boolean);
+    try {
+      const found = await findUsersByTokens(tokens); // Map keyed by idNguoiDung/docId
+      const idsMoi = Array.from(found.keys());
 
-    if (idsMoi.length === 0) {
-      setThongBao("Không tìm thấy người dùng phù hợp.");
-      return;
+      if (idsMoi.length === 0) {
+        setThongBao("Không tìm thấy người dùng phù hợp.");
+        return;
+      }
+      if (!courseRef || !khoaHoc) {
+        setThongBao("Không tìm thấy khóa học.");
+        return;
+      }
+
+      const cu = Array.isArray(khoaHoc.thanhVienIds) ? khoaHoc.thanhVienIds.map(String) : [];
+      const newIds = idsMoi.filter((id) => !cu.includes(String(id)));
+      if (newIds.length === 0) {
+        setThongBao("Tất cả đã có trong khóa học.");
+        setTextMoi("");
+        return;
+      }
+
+      await updateDoc(courseRef, { thanhVienIds: arrayUnion(...newIds.map(String)) });
+
+      setTextMoi("");
+      setThongBao(`Đã thêm ${newIds.length} thành viên mới.`);
+      // onSnapshot sẽ tự cập nhật; nếu muốn callback lên cha:
+      onCapNhat?.({ ...khoaHoc, thanhVienIds: Array.from(new Set([...cu, ...newIds])) });
+    } catch (e) {
+      console.error("Mời thành viên thất bại:", e);
+      setThongBao("Không thể mời thành viên. Vui lòng thử lại.");
     }
+  };
 
-    const dsKH = docJSON("khoaHoc", []);
-    const i = dsKH.findIndex(kh => String(kh.idKhoaHoc) === String(idKhoaHoc));
-    if (i === -1) {
-      setThongBao("Không tìm thấy khóa học.");
-      return;
+  // ===== 5) Duyệt yêu cầu =====
+  const chapNhan = async (idNguoiDung) => {
+    try {
+      if (!courseRef) return;
+      await updateDoc(courseRef, {
+        yeuCauThamGiaIds: arrayRemove(String(idNguoiDung)),
+        thanhVienIds: arrayUnion(String(idNguoiDung)),
+      });
+      setThongBao("Đã chấp nhận yêu cầu tham gia.");
+    } catch (e) {
+      console.error(e);
+      setThongBao("Không thể chấp nhận yêu cầu.");
     }
-
-    const kh = { ...dsKH[i] };
-    const cu = Array.isArray(kh.thanhVienIds) ? kh.thanhVienIds : [];
-    const uniq = Array.from(new Set([...cu, ...idsMoi]));
-    const soMoiThem = uniq.length - cu.length;
-
-    kh.thanhVienIds = uniq;
-    dsKH[i] = kh;
-    ghiJSON("khoaHoc", dsKH);
-
-    setTextMoi("");
-    setThongBao(soMoiThem > 0 ? `Đã thêm ${soMoiThem} thành viên mới.` : "Tất cả đã có trong khóa học.");
-    onCapNhat?.(kh);
   };
 
-  // ===== Duyệt yêu cầu =====
-  const chapNhan = (idNguoiDung) => {
-    if (!khoaHoc) return;
-    const kh = { ...khoaHoc };
-    kh.yeuCauThamGiaIds = (kh.yeuCauThamGiaIds || []).filter(x => String(x) !== String(idNguoiDung));
-    const cu = Array.isArray(kh.thanhVienIds) ? kh.thanhVienIds : [];
-    if (!cu.includes(idNguoiDung)) cu.push(idNguoiDung);
-    kh.thanhVienIds = cu;
-    capNhatKhoaHoc(kh);
-    setThongBao("Đã chấp nhận yêu cầu tham gia.");
+  const tuChoi = async (idNguoiDung) => {
+    try {
+      if (!courseRef) return;
+      await updateDoc(courseRef, {
+        yeuCauThamGiaIds: arrayRemove(String(idNguoiDung)),
+      });
+      setThongBao("Đã từ chối yêu cầu tham gia.");
+    } catch (e) {
+      console.error(e);
+      setThongBao("Không thể từ chối yêu cầu.");
+    }
   };
 
-  const tuChoi = (idNguoiDung) => {
-    if (!khoaHoc) return;
-    const kh = { ...khoaHoc };
-    kh.yeuCauThamGiaIds = (kh.yeuCauThamGiaIds || []).filter(x => String(x) !== String(idNguoiDung));
-    capNhatKhoaHoc(kh);
-    setThongBao("Đã từ chối yêu cầu tham gia.");
-  };
-
-  // ===== Quản lý thành viên =====
-  const xoaThanhVien = (idNguoiDung) => {
-    if (!khoaHoc) return;
+  // ===== 6) Quản lý thành viên =====
+  const xoaThanhVien = async (idNguoiDung) => {
     if (String(idNguoiDung) === String(idChuKhoa)) {
       alert("Không thể xóa chủ khóa học.");
       return;
     }
     if (!window.confirm("Xóa thành viên này khỏi khóa học?")) return;
 
-    const kh = { ...khoaHoc };
-    kh.thanhVienIds = (kh.thanhVienIds || []).filter(x => String(x) !== String(idNguoiDung));
-    capNhatKhoaHoc(kh);
-    setThongBao("Đã xóa thành viên.");
+    try {
+      if (!courseRef) return;
+      await updateDoc(courseRef, {
+        thanhVienIds: arrayRemove(String(idNguoiDung)),
+      });
+      setThongBao("Đã xóa thành viên.");
+    } catch (e) {
+      console.error(e);
+      setThongBao("Không thể xóa thành viên.");
+    }
+  };
+
+  // ===== 7) Render =====
+  const getUser = (id) => {
+    const u = userCache.get(String(id));
+    return u || { tenNguoiDung: "Người dùng", email: "" };
   };
 
   return (
@@ -193,9 +349,7 @@ export default function MoiThanhVien({ idKhoaHoc, onCapNhat }) {
       {/* YÊU CẦU THAM GIA */}
       <section className="mtv-panel">
         <div className="mtv-panel-head">
-          <h3 className="mtv-title">
-            Yêu cầu tham gia ({totalPending})
-          </h3>
+          <h3 className="mtv-title">Yêu cầu tham gia ({totalPending})</h3>
         </div>
 
         {totalPending === 0 ? (
@@ -208,8 +362,8 @@ export default function MoiThanhVien({ idKhoaHoc, onCapNhat }) {
                 return (
                   <li className="mtv-row" key={uid}>
                     <div className="mtv-user">
-                      <strong>{u?.tenNguoiDung || "Ẩn danh"}</strong>
-                      <span className="mtv-muted">({u?.email || "—"})</span>
+                      <strong>{u.tenNguoiDung}</strong>
+                      <span className="mtv-muted">({u.email || "—"})</span>
                     </div>
                     <div className="mtv-row-actions">
                       <button className="mtv-btn mtv-btn--success" onClick={() => chapNhan(uid)}>
@@ -228,7 +382,7 @@ export default function MoiThanhVien({ idKhoaHoc, onCapNhat }) {
               <div className="mtv-pagination">
                 <button
                   className="mtv-page-btn"
-                  onClick={() => setPagePending(p => Math.max(1, p - 1))}
+                  onClick={() => setPagePending((p) => Math.max(1, p - 1))}
                   disabled={pagePending === 1}
                   aria-label="Trang trước"
                 >
@@ -249,7 +403,7 @@ export default function MoiThanhVien({ idKhoaHoc, onCapNhat }) {
                 )}
                 <button
                   className="mtv-page-btn"
-                  onClick={() => setPagePending(p => Math.min(maxPendingPage, p + 1))}
+                  onClick={() => setPagePending((p) => Math.min(maxPendingPage, p + 1))}
                   disabled={pagePending === maxPendingPage}
                   aria-label="Trang sau"
                 >
@@ -264,9 +418,7 @@ export default function MoiThanhVien({ idKhoaHoc, onCapNhat }) {
       {/* THÀNH VIÊN */}
       <section className="mtv-panel">
         <div className="mtv-panel-head">
-          <h3 className="mtv-title">
-            Thành viên ({totalMember})
-          </h3>
+          <h3 className="mtv-title">Thành viên ({totalMember})</h3>
         </div>
 
         {totalMember === 0 ? (
@@ -280,8 +432,8 @@ export default function MoiThanhVien({ idKhoaHoc, onCapNhat }) {
                 return (
                   <li className="mtv-row" key={uid}>
                     <div className="mtv-user">
-                      <strong>{u?.tenNguoiDung || "Ẩn danh"}</strong>
-                      <span className="mtv-muted">({u?.email || "—"})</span>
+                      <strong>{u.tenNguoiDung}</strong>
+                      <span className="mtv-muted">({u.email || "—"})</span>
                       {isOwnerRow && <span className="mtv-badge">Chủ khóa</span>}
                     </div>
                     {!isOwnerRow && (
@@ -298,7 +450,7 @@ export default function MoiThanhVien({ idKhoaHoc, onCapNhat }) {
               <div className="mtv-pagination">
                 <button
                   className="mtv-page-btn"
-                  onClick={() => setPageMember(p => Math.max(1, p - 1))}
+                  onClick={() => setPageMember((p) => Math.max(1, p - 1))}
                   disabled={pageMember === 1}
                   aria-label="Trang trước"
                 >
@@ -319,7 +471,7 @@ export default function MoiThanhVien({ idKhoaHoc, onCapNhat }) {
                 )}
                 <button
                   className="mtv-page-btn"
-                  onClick={() => setPageMember(p => Math.min(maxMemberPage, p + 1))}
+                  onClick={() => setPageMember((p) => Math.min(maxMemberPage, p + 1))}
                   disabled={pageMember === maxMemberPage}
                   aria-label="Trang sau"
                 >

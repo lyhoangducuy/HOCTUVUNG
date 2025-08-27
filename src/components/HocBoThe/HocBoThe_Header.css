@@ -1,42 +1,61 @@
-.notiAddLib {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background-color: #4CAF50;
-  color: white;
-  padding: 15px 25px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  animation: slideIn 0.5s ease-out forwards, fadeOut 0.5s ease-out 2s forwards;
-  z-index: 1000;
+/* ============ Tokens (màu & bóng) ============ */
+:root {
+  --bg: #ffffff;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+
+  --primary: #2563eb;
+  --primary-weak: #eff6ff;
+
+  --accent: #0ea5e9;
+  --success: #10b981;
+  --danger: #ef4444;
+
+  --shadow-1: 0 6px 16px rgba(0, 0, 0, 0.08);
+  --shadow-2: 0 12px 28px rgba(0, 0, 0, 0.12);
 }
 
-.notiTittle {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
+/* ============ Thanh trên cùng ============ */
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
 }
 
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+/* Nút quay lại */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, transform .06s ease;
+  user-select: none;
+}
+.back:hover {
+  background: #f8fafc;
+  border-color: var(--border);
+  transform: translateY(-1px);
+}
+.iconback {
+  font-size: 14px;
+  opacity: .9;
 }
 
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-/* ——— Nút dấu … và menu ——— */
+/* ============ Nút dấu … và menu ============ */
 .more-wrapper {
   position: relative;
 }
@@ -45,17 +64,21 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 40px; width: 40px;
+  height: 40px;
+  width: 40px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   background: #fff;
   cursor: pointer;
-  transition: background .18s ease, border-color .18s ease, transform .06s ease;
+  transition: background .18s ease, border-color .18s ease, transform .06s ease, box-shadow .18s ease;
 }
-
 .more-btn:hover {
   background: #f8fafc;
   border-color: #cfd6dd;
+  box-shadow: var(--shadow-1);
+}
+.more-btn:active {
+  transform: translateY(1px);
 }
 
 .more-menu {
@@ -64,11 +87,24 @@
   right: 0;
   min-width: 180px;
   background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  box-shadow: 0 12px 28px rgba(0,0,0,.12);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-2);
   padding: 6px;
   z-index: 1000;
+  animation: dropdownIn .14s ease-out;
+}
+.more-menu::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 14px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  transform: rotate(45deg);
 }
 
 .more-item {
@@ -78,20 +114,150 @@
   border: 0;
   background: transparent;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 14px;
-  color: #111827;
-  transition: background .15s ease, transform .06s ease;
+  color: var(--text);
+  transition: background .15s ease, transform .06s ease, color .15s ease;
 }
-
 .more-item:hover {
   background: #f3f4f6;
 }
-
+.more-item:active {
+  transform: translateY(1px);
+}
 .more-item.danger {
   color: #b91c1c;
 }
-
 .more-item.danger:hover {
   background: #fef2f2;
+}
+
+/* ============ Bộ nút chuyển chế độ học ============ */
+.studyChange {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.studyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #f9fafb;
+  color: var(--text);
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background .18s ease, border-color .18s ease, color .18s ease, transform .06s ease, box-shadow .18s ease;
+}
+.studyBtn:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  transform: translateY(-1px);
+}
+.studyBtn:active {
+  transform: translateY(0);
+}
+.studyBtn svg {
+  font-size: 15px;
+  opacity: .9;
+}
+
+.studyBtn.active {
+  background: linear-gradient(180deg, var(--primary-weak), #dbeafe);
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.15);
+}
+
+/* ============ Thông báo thêm vào thư viện (nếu dùng) ============ */
+.notiAddLib {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: var(--success);
+  color: white;
+  padding: 14px 20px;
+  border-radius: 10px;
+  box-shadow: var(--shadow-2);
+  animation: slideIn .22s ease-out forwards, fadeOut .5s ease-out 2.1s forwards;
+  z-index: 1000;
+}
+.notiTittle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ============ Animations ============ */
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 640px) {
+  .top-bar { padding: 10px 12px; }
+  .studyChange { gap: 8px; padding: 10px 12px; }
+  .studyBtn { padding: 9px 12px; border-radius: 10px; }
+  .more-btn { height: 36px; width: 36px; border-radius: 8px; }
+}
+
+/* (tuỳ chọn) Hỗ trợ dark mode hệ thống */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #ffffff;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --border: #1f2937;
+    --primary-weak: #0b1b40;
+  }
+  .back:hover { background: #c8c6c6; }
+  .studyBtn { background: #0f162d; }
+  .studyBtn:hover { background: #172145; }
+  .more-btn { background: #ffffff; border-color: var(--border); }
+ /* Force menu nền trắng (ghi đè cả dark mode) */
+.more-menu {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.12) !important;
+}
+
+.more-menu::before {
+  background: #ffffff !important;
+  border-left-color: #e5e7eb !important;
+  border-top-color: #e5e7eb !important;
+}
+
+/* Màu chữ & hover sáng hơn cho nền trắng */
+.more-item {
+  color: #111827 !important;
+}
+.more-item:hover {
+  background: #f3f4f6 !important;
+}
+.more-item.danger {
+  color: #b91c1c !important;
+}
+.more-item.danger:hover {
+  background: #fef2f2 !important;
+}
+
 }

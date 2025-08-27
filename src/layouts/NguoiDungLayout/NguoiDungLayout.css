@@ -20,18 +20,15 @@ body { background:#f8f9fa; }
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  /* rất quan trọng: KHÔNG padding để sidebar áp sát mép trái */
-  padding: 0;
+  padding: 0; /* sidebar áp sát mép */
 }
 
-/* vùng main chỉ giữ chỗ, không padding/margin trái */
 .trangchu-layout-main{
   flex: 1;
   min-height: 0;
 }
 
-/* ========== HEADER CỐ ĐỊNH ========== */
-/* Nếu header component của bạn có class khác, đổi lại cho khớp */
+/* ========== HEADER ========== */
 .header-container{
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -41,39 +38,100 @@ body { background:#f8f9fa; }
   border-bottom: 1px solid var(--line);
 }
 
-/* ========== SIDEBAR CỐ ĐỊNH SÁT MÉP TRÁI ========== */
+/* ========== SIDEBAR ========== */
 .trangchu-layout-sidebar{
   position: fixed;
   top: var(--header-h);
-  left: 0;                 /* đảm bảo dính sát cạnh trái, không bị “hở” */
+  left: 0;
   width: var(--sidebar-w);
   height: calc(100vh - var(--header-h));
   overflow: auto;
   background: var(--surface);
   border-right: 1px solid var(--line);
   z-index: 900;
-  /* KHÔNG margin, KHÔNG padding trái ngoài ý muốn */
 }
 
-/* ========== CONTENT ========== */
 .trangchu-layout-content{
   min-width: 0;
-  /* chừa chỗ cho sidebar và header */
   margin-left: var(--sidebar-w);
   padding: 24px;
   padding-top: calc(var(--header-h) + 16px);
-  /* nền theo ý: có thể để transparent nếu muốn nhìn thấy bg body */
   background: transparent;
 }
 
-/* (Tùy chọn) cuộn mượt & ẩn thanh cuộn xấu trên Webkit */
+/* scrollbar đẹp hơn */
 .trangchu-layout-sidebar::-webkit-scrollbar { width: 8px; }
 .trangchu-layout-sidebar::-webkit-scrollbar-thumb {
   background: #d1d5db; border-radius: 999px;
 }
 .trangchu-layout-sidebar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
+/* ========== FAB AI (Prime & Locked) ========== */
 
+/* Container chung */
+.ai-button-container,
+.ai-locked-container {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1100;
+}
+
+/* Nút tròn xanh cho cả prime & locked */
+.ai-button-container .icon-btn,
+.ai-locked-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: none;
+  background: #3b82f6;   /* xanh */
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 22px rgba(59,130,246,.35);
+  transition: transform .12s ease, box-shadow .12s ease;
+  cursor: pointer;
+  position: relative; /* để badge định vị */
+}
+
+.ai-button-container .icon-btn:hover,
+.ai-locked-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(59,130,246,.35);
+}
+
+/* Icon robot */
+.ai-locked-icon,
+.ai-button-container .icon-btn svg {
+  font-size: 22px;
+}
+
+/* Badge ngôi sao chỉ có khi locked */
+.ai-locked-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #f59e0b;
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 6px;
+  pointer-events: none;
+}
+
+/* Mobile: thu nhỏ */
+@media (max-width: 640px){
+  .ai-button-container .icon-btn,
+  .ai-locked-btn {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+/* Responsive nhỏ */
 @media (max-width: 992px){
   .trangchu-layout-sidebar{
     position: static;
@@ -87,4 +145,3 @@ body { background:#f8f9fa; }
     padding-top: calc(var(--header-h) + 16px);
   }
 }
-

@@ -5,85 +5,52 @@ import { fetchVocabulary } from "../ChatAI/ChatBot";
 
 export default function AIButton() {
   const [open, setOpen] = useState(false);
-  const [role, setRole] = useState("HOC_VIEN"); // ADMIN | GIANG_VIEN | HOC_VIEN
-  const [user, setUser] = useState(null);
+  const menuRef = useRef(null);
 
+  // Loading & form tạo bộ thẻ
   const [loading, setLoading] = useState(false);
-
-  // Form tạo bộ thẻ
   const [showForm, setShowForm] = useState(false);
   const [topic, setTopic] = useState("");
   const [count, setCount] = useState(1);
   const [error, setError] = useState("");
 
-  // Modal preview
+  // Preview modal
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTopic, setPreviewTopic] = useState("");
   const [previewList, setPreviewList] = useState([]); // [{tu, nghia}]
 
-  const menuRef = useRef(null);
+  // User hiện tại
+  const [user, setUser] = useState(null);
 
-  // ---- Helpers ----
-  const loadRole = () => {
+  /* ============= Effects ============= */
+  useEffect(() => {
+    // nạp session
     try {
-      const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-      if (!ss?.idNguoiDung) {
-        setUser(null);
-        setRole("HOC_VIEN");
-        return;
-      }
-      setUser(ss);
-
-      // Ưu tiên vai trò trong bảng người dùng
-      const users = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
-      const found = Array.isArray(users)
-        ? users.find((u) => String(u.idNguoiDung) === String(ss.idNguoiDung))
-        : null;
-
-      const r = found?.vaiTro || ss.vaiTro || "HOC_VIEN";
-      setRole(r);
+      const s = JSON.parse(sessionStorage.getItem("session") || "null");
+      setUser(s || null);
     } catch {
       setUser(null);
-      setRole("HOC_VIEN");
     }
-  };
+  }, []);
 
-  const isAdmin = (user?.vaiTro || role) === "ADMIN";
-
-  // ---- Effects ----
   useEffect(() => {
-    loadRole();
-
+    // đóng menu khi click ngoài
     const onClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target))
         setOpen(false);
     };
-    const onStorage = (e) => {
-      if (!e || !e.key) return;
-      if (["nguoiDung"].includes(e.key)) loadRole();
-    };
-
     document.addEventListener("mousedown", onClickOutside);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      document.removeEventListener("mousedown", onClickOutside);
-      window.removeEventListener("storage", onStorage);
-    };
+    return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  // ---- Create Card Flow ----
+  /* ============= Tạo bộ thẻ bằng AI ============= */
   const openCreateForm = () => {
     if (loading) return;
-    const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-    if (!ss?.idNguoiDung) {
-      alert("Vui lòng đăng nhập trước khi tạo bộ thẻ.");
-      return;
-    }
     setTopic("");
     setCount(1);
     setError("");
-    setOpen(false);
     setShowForm(true);
+    setOpen(false);
   };
 
   const closeCreateForm = () => {
@@ -93,10 +60,12 @@ export default function AIButton() {
 
   const handleSubmitCreate = async (e) => {
     e.preventDefault();
+
     if (!topic.trim()) {
       setError("Vui lòng nhập chủ đề.");
       return;
     }
+
     const num = Number(count);
     if (!Number.isInteger(num) || num <= 0) {
       setError("Số lượng phải là số nguyên dương.");
@@ -123,15 +92,15 @@ export default function AIButton() {
     }
   };
 
-  // ---- Admin: Thêm user ảo ----
+  /* ============= ADMIN: thêm user ảo ============= */
   const addFakeUsers = () => {
     try {
-      const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-      if (!ss?.idNguoiDung) {
+      const session = JSON.parse(sessionStorage.getItem("session") || "null");
+      if (!session?.idNguoiDung) {
         alert("Vui lòng đăng nhập.");
         return;
       }
-      if (!isAdmin) {
+      if (session?.vaiTro !== "ADMIN") {
         alert("Chức năng này chỉ dành cho ADMIN.");
         return;
       }
@@ -169,7 +138,7 @@ export default function AIButton() {
     }
   };
 
-  // ---- Preview modal actions ----
+  /* ============= Preview thao tác ============= */
   const updatePreviewItem = (idx, field, value) => {
     setPreviewList((prev) => {
       const next = prev.slice();
@@ -183,16 +152,11 @@ export default function AIButton() {
   };
 
   const onCancelPreview = () => {
-    setPreviewOpen(false); // đóng, KHÔNG lưu
+    setPreviewOpen(false);
   };
 
-  const onOkSave = () => {
-    const ss = JSON.parse(sessionStorage.getItem("session") || "null");
-    const userCreated = ss?.idNguoiDung;
-    if (!userCreated) {
-      alert("Vui lòng đăng nhập.");
-      return;
-    }
+  const onSavePreview = () => {
+    const userCreated = user?.idNguoiDung;
 
     // Lọc thẻ hợp lệ
     const valid = previewList
@@ -207,7 +171,7 @@ export default function AIButton() {
       return;
     }
 
-    // Lấy danh sách bộ thẻ cũ
+    // Lấy danh sách cũ
     const raw = localStorage.getItem("boThe");
     const cards = raw ? JSON.parse(raw) : [];
     const list = Array.isArray(cards) ? cards : [];
@@ -220,17 +184,21 @@ export default function AIButton() {
       idBoThe: String(nextId),
       tenBoThe: previewTopic,
       idNguoiDung: userCreated,
-      danhSachThe: valid,
+      danhSachThe: valid, // dùng key chuẩn danhSachThe
       soTu: valid.length,
-      createdAt: new Date().toISOString(),
     };
 
     localStorage.setItem("boThe", JSON.stringify([...list, newCard]));
+    // cho các trang khác reload ngay
+    window.dispatchEvent(new Event("boTheUpdated"));
+
     setPreviewOpen(false);
-    alert('Đã lưu bộ thẻ: "' + previewTopic + '"');
+    alert("Đã lưu bộ thẻ: " + previewTopic);
   };
 
-  // ---- Render ----
+  const isAdmin = user?.vaiTro === "ADMIN";
+
+  /* ============= Render ============= */
   return (
     <div className="ai-button-container" ref={menuRef}>
       <button
@@ -244,26 +212,25 @@ export default function AIButton() {
       </button>
 
       {open && (
-        <div className="ai-dropdown" role="menu">
+        <div className="ai-dropdown">
           <div
             className={`ai-item${loading ? " disabled" : ""}`}
-            role="menuitem"
             onClick={!loading ? openCreateForm : undefined}
           >
             {loading ? "Đang tạo..." : "Tạo bộ thẻ theo chủ đề"}
           </div>
 
           {isAdmin && (
-            <div className="ai-item" role="menuitem" onClick={addFakeUsers}>
+            <div className="ai-item" onClick={addFakeUsers}>
               Thêm người dùng ảo
             </div>
           )}
         </div>
       )}
 
-      {/* Modal tạo bộ thẻ */}
+      {/* Modal tạo nhanh */}
       {showForm && (
-        <div className="create-form-modal" role="dialog" aria-modal="true">
+        <div className="create-form-modal">
           <div className="create-form-modal-content">
             <div className="create-form-modal-content-header">
               <h3>Tạo bộ thẻ</h3>
@@ -281,7 +248,6 @@ export default function AIButton() {
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                     placeholder="Nhập chủ đề bộ thẻ"
-                    autoFocus
                   />
                 </label>
 
@@ -321,17 +287,15 @@ export default function AIButton() {
         </div>
       )}
 
-      {/* Modal preview kết quả */}
+      {/* Modal preview */}
       {previewOpen && (
-        <div className="preview-modal" role="dialog" aria-modal="true">
+        <div className="preview-modal">
           <div className="preview-modal-content">
             <div className="preview-modal-header">
               <h1 className="preview-modal-header-title">
                 Xem lại bộ thẻ: {previewTopic}
               </h1>
-              <button onClick={onCancelPreview} aria-label="Đóng">
-                X
-              </button>
+              <button onClick={onCancelPreview}>X</button>
             </div>
 
             <div className="preview-modal-body">
@@ -341,7 +305,7 @@ export default function AIButton() {
                 <span />
               </div>
               {previewList.map((item, idx) => (
-                <div key={idx} className="preview-modal-body-item">
+                <div className="preview-modal-row" key={idx}>
                   <input
                     type="text"
                     value={item.tu || ""}
@@ -349,6 +313,7 @@ export default function AIButton() {
                       updatePreviewItem(idx, "tu", e.target.value)
                     }
                     placeholder="apple"
+                    style={{ padding: "8px 10px" }}
                   />
                   <input
                     type="text"
@@ -357,6 +322,7 @@ export default function AIButton() {
                       updatePreviewItem(idx, "nghia", e.target.value)
                     }
                     placeholder="quả táo"
+                    style={{ padding: "8px 10px" }}
                   />
                   <button onClick={() => removePreviewItem(idx)}>Xóa</button>
                 </div>
@@ -365,18 +331,25 @@ export default function AIButton() {
 
             <div className="preview-modal-footer">
               <button
-                className="preview-modal-footer-button save-button"
+                className="preview-modal-footer-button"
                 onClick={() =>
                   setPreviewList((prev) => [...prev, { tu: "", nghia: "" }])
                 }
               >
                 Thêm thẻ
               </button>
+              <span style={{ flex: 1 }} />
               <button
-                className="preview-modal-footer-button cancel-button"
-                onClick={onOkSave}
+                className="preview-modal-footer-button"
+                onClick={onCancelPreview}
               >
-                OK
+                Hủy
+              </button>
+              <button
+                className="preview-modal-footer-button save-button"
+                onClick={onSavePreview}
+              >
+                Lưu
               </button>
             </div>
           </div>

@@ -1,59 +1,116 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ThuVienLop.css";
 
+import { auth, db } from "../../../../../lib/firebase";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  arrayRemove,
+} from "firebase/firestore";
+
 export default function ThuVienLop({ khoaHoc, onCapNhat }) {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [boTheHienThi, setBoTheHienThi] = useState([]);
+
+  // uid hiện tại (fallback session để tương thích phần cũ)
+  const session = useMemo(() => {
+    try { return JSON.parse(sessionStorage.getItem("session") || "null"); }
+    catch { return null; }
+  }, []);
+  const uid = auth.currentUser?.uid || session?.idNguoiDung || null;
 
   if (!khoaHoc) return <div className="tvl-empty">Không tìm thấy khóa học.</div>;
 
-  // Lấy session (người dùng hiện tại)
-  const session = JSON.parse(sessionStorage.getItem("session") || "null");
-  const isOwner =
-    !!session?.idNguoiDung &&
-    String(session.idNguoiDung) === String(khoaHoc.idNguoiDung);
+  const isOwner = !!uid && String(uid) === String(khoaHoc.idNguoiDung);
 
-  // Lấy dữ liệu cần thiết
   const boTheIds = Array.isArray(khoaHoc.boTheIds) ? khoaHoc.boTheIds : [];
-  const allBoThe = JSON.parse(localStorage.getItem("boThe") || "[]");
-  const dsNguoiDung = JSON.parse(localStorage.getItem("nguoiDung") || "[]");
 
-  // Ghép bộ thẻ trong khóa học + thông tin người tạo (theo idNguoiDung)
-  const boTheHienThi = boTheIds
-    .map((id) => allBoThe.find((b) => String(b.idBoThe) === String(id)))
-    .filter(Boolean)
-    .map((bt) => {
-      const idNguoiTao = bt?.idNguoiDung ?? bt?.nguoiDung?.idNguoiDung;
-      const u = dsNguoiDung.find((x) => String(x.idNguoiDung) === String(idNguoiTao));
-      return {
-        ...bt,
-        _tenNguoiTao: u?.tenNguoiDung ?? bt?.nguoiDung?.tenNguoiDung ?? "Ẩn danh",
-        _anhNguoiTao: u?.anhDaiDien ?? bt?.nguoiDung?.anhDaiDien ?? "",
-      };
-    });
+  // Nạp bộ thẻ + tác giả từ Firestore
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        setLoading(true);
+        if (!boTheIds.length) {
+          if (!cancelled) setBoTheHienThi([]);
+          return;
+        }
+
+        // Lấy boThe/{id} theo từng id
+        const boTheDocs = await Promise.all(
+          boTheIds.map((id) => getDoc(doc(db, "boThe", String(id))))
+        );
+        const rawBoThe = boTheDocs
+          .filter((snap) => snap.exists())
+          .map((snap) => snap.data());
+
+        // Thu thập idNguoiDung duy nhất để lấy thông tin tác giả
+        const ownerIds = [
+          ...new Set(
+            rawBoThe
+              .map((b) => (b?.idNguoiDung != null ? String(b.idNguoiDung) : null))
+              .filter(Boolean)
+          ),
+        ];
+
+        const ownerDocs = await Promise.all(
+          ownerIds.map((oid) => getDoc(doc(db, "nguoiDung", String(oid))))
+        );
+        const userMap = {};
+        ownerDocs.forEach((s) => {
+          if (s.exists()) userMap[s.id] = s.data();
+        });
+
+        const merged = rawBoThe.map((bt) => {
+          const creator = userMap[String(bt.idNguoiDung)] || {};
+          return {
+            ...bt,
+            _tenNguoiTao: creator.tenNguoiDung || "Ẩn danh",
+            _anhNguoiTao: creator.anhDaiDien || "",
+            soTu: bt.soTu ?? (Array.isArray(bt.danhSachThe) ? bt.danhSachThe.length : 0),
+          };
+        });
+
+        if (!cancelled) setBoTheHienThi(merged);
+      } catch {
+        if (!cancelled) setBoTheHienThi([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [db, JSON.stringify(boTheIds)]); // stringify để trigger khi mảng đổi
 
   const xemBoThe = (id) => navigate(`/flashcard/${id}`);
 
   // ✅ Chỉ chủ khóa học mới gỡ được
-  const goBoTheKhoiKhoaHoc = (bt) => {
+  const goBoTheKhoiKhoaHoc = async (bt) => {
     if (!isOwner) return;
-
     const ten = bt.tenBoThe || `Bộ thẻ #${bt.idBoThe}`;
     const ok = window.confirm(`Gỡ "${ten}" khỏi khóa học?`);
     if (!ok) return;
 
-    const dsKH = JSON.parse(localStorage.getItem("khoaHoc") || "[]");
-    const idx = dsKH.findIndex((k) => String(k.idKhoaHoc) === String(khoaHoc.idKhoaHoc));
-    if (idx === -1) return;
-
-    const cu = Array.isArray(dsKH[idx].boTheIds) ? dsKH[idx].boTheIds : [];
-    dsKH[idx] = {
-      ...dsKH[idx],
-      boTheIds: cu.filter((x) => String(x) !== String(bt.idBoThe)),
-    };
-    localStorage.setItem("khoaHoc", JSON.stringify(dsKH));
-    onCapNhat && onCapNhat(dsKH[idx]); // Cập nhật lại UI ở cha
+    try {
+      await updateDoc(doc(db, "khoaHoc", String(khoaHoc.idKhoaHoc)), {
+        boTheIds: arrayRemove(String(bt.idBoThe)),
+      });
+      // UI sẽ tự cập nhật khi parent Lop.jsx onSnapshot thay đổi.
+      // Nếu muốn cập nhật lạc quan ngay:
+      setBoTheHienThi((prev) => prev.filter((x) => String(x.idBoThe) !== String(bt.idBoThe)));
+      onCapNhat && onCapNhat({ ...khoaHoc, boTheIds: khoaHoc.boTheIds.filter((x) => String(x) !== String(bt.idBoThe)) });
+    } catch (e) {
+      console.error(e);
+      alert("Không thể gỡ bộ thẻ. Vui lòng thử lại.");
+    }
   };
+
+  if (loading) {
+    return <div className="tvl-empty">Đang tải...</div>;
+  }
 
   if (boTheHienThi.length === 0) {
     return <div className="tvl-empty">Chưa có bộ thẻ nào. Bấm “+ → Thêm bộ thẻ”.</div>;
@@ -64,7 +121,7 @@ export default function ThuVienLop({ khoaHoc, onCapNhat }) {
       {boTheHienThi.map((bt) => (
         <div key={bt.idBoThe} className="tvl-card" onClick={() => xemBoThe(bt.idBoThe)}>
           <div className="tvl-title">{bt.tenBoThe || `Bộ thẻ #${bt.idBoThe}`}</div>
-          <div className="tvl-sub">{bt.soTu ?? (bt.danhSachThe?.length || 0)} từ</div>
+          <div className="tvl-sub">{bt.soTu} từ</div>
 
           <div className="tvl-meta" onClick={(e) => e.stopPropagation()}>
             {bt._anhNguoiTao ? (
@@ -82,7 +139,10 @@ export default function ThuVienLop({ khoaHoc, onCapNhat }) {
               Học
             </button>
             {isOwner && (
-              <button className="tvl-btn tvl-btn--danger" onClick={() => goBoTheKhoiKhoaHoc(bt)}>
+              <button
+                className="tvl-btn tvl-btn--danger"
+                onClick={() => goBoTheKhoiKhoaHoc(bt)}
+              >
                 Gỡ khỏi khóa học
               </button>
             )}

@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./SuaBoThe.css";
 
+import { auth, db } from "../../../../../lib/firebase";
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+
 export default function SuaBoThe() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -11,49 +14,49 @@ export default function SuaBoThe() {
   const [tenBoThe, setTenBoThe] = useState("");
   const [danhSachThe, setDanhSachThe] = useState([]);
   const [loi, setLoi] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  // Tải bộ thẻ theo id từ localStorage
+  // Nạp bộ thẻ theo id từ Firestore
   useEffect(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem("boThe") || "[]");
-      const list = Array.isArray(raw) ? raw : [raw];
-      const found = list.find((x) => String(x.idBoThe) === String(id)) || null;
-
-      if (!found) {
-        setBoThe(null);
-      } else {
-        setBoThe(found);
-        setTenBoThe(found.tenBoThe || "");
+    if (!id) return;
+    setDangTai(true);
+    const ref = doc(db, "boThe", String(id));
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) {
+          setBoThe(null);
+          setDangTai(false);
+          return;
+        }
+        const data = snap.data();
+        setBoThe(data || null);
+        setTenBoThe(data?.tenBoThe || "");
         setDanhSachThe(
-          Array.isArray(found.danhSachThe)
-            ? found.danhSachThe.map((t) => ({ tu: t.tu || "", nghia: t.nghia || "" }))
+          Array.isArray(data?.danhSachThe)
+            ? data.danhSachThe.map((t) => ({ tu: t.tu || "", nghia: t.nghia || "" }))
             : []
         );
+        setDangTai(false);
+      },
+      () => {
+        setBoThe(null);
+        setDangTai(false);
       }
-    } catch {
-      setBoThe(null);
-    } finally {
-      setDangTai(false);
-    }
+    );
+    return () => unsub();
   }, [id]);
 
-  const themThe = () => {
-    setDanhSachThe((prev) => [...prev, { tu: "", nghia: "" }]);
-  };
-
-  const xoaThe = (index) => {
-    setDanhSachThe((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const doiNoiDungThe = (index, truong, value) => {
+  const themThe = () => setDanhSachThe((prev) => [...prev, { tu: "", nghia: "" }]);
+  const xoaThe = (index) => setDanhSachThe((prev) => prev.filter((_, i) => i !== index));
+  const doiNoiDungThe = (index, truong, value) =>
     setDanhSachThe((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [truong]: value };
       return next;
     });
-  };
 
-  const luuBoThe = () => {
+  const luuBoThe = async () => {
     setLoi("");
 
     const ten = tenBoThe.trim();
@@ -62,7 +65,7 @@ export default function SuaBoThe() {
       return;
     }
 
-    // Lọc các thẻ hợp lệ (cả hai trường đều có nội dung sau khi trim)
+    // Lọc thẻ hợp lệ
     const dsHopLe = danhSachThe
       .map((t) => ({ tu: t.tu.trim(), nghia: t.nghia.trim() }))
       .filter((t) => t.tu && t.nghia);
@@ -72,34 +75,38 @@ export default function SuaBoThe() {
       return;
     }
 
-    try {
-      const raw = JSON.parse(localStorage.getItem("boThe") || "[]");
-      const list = Array.isArray(raw) ? raw : [raw];
-      const idx = list.findIndex((x) => String(x.idBoThe) === String(boThe.idBoThe));
-      if (idx === -1) {
-        setLoi("Không tìm thấy bộ thẻ để cập nhật.");
-        return;
-      }
+    if (!boThe) {
+      setLoi("Không tìm thấy bộ thẻ để cập nhật.");
+      return;
+    }
 
-      const capNhat = {
-        ...list[idx],
+    // Quyền sửa: phải là chủ sở hữu
+    const uid =
+      auth.currentUser?.uid ||
+      JSON.parse(sessionStorage.getItem("session") || "null")?.idNguoiDung;
+    if (!uid || String(uid) !== String(boThe.idNguoiDung)) {
+      setLoi("Bạn không có quyền sửa bộ thẻ này.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await updateDoc(doc(db, "boThe", String(boThe.idBoThe)), {
         tenBoThe: ten,
         danhSachThe: dsHopLe,
         soTu: dsHopLe.length,
-      };
+      });
 
-      const newList = [...list];
-      newList[idx] = capNhat;
-
-      localStorage.setItem("boThe", JSON.stringify(newList));
-
-      // Bắn event để nơi khác có thể reload (nếu cần)
+      // Giữ event cũ nếu nơi khác còn lắng nghe
       window.dispatchEvent(new Event("boTheUpdated"));
 
       alert("Đã lưu bộ thẻ!");
-      navigate(`/flashcard/${capNhat.idBoThe}`);
+      navigate(`/flashcard/${boThe.idBoThe}`);
     } catch (e) {
+      console.error(e);
       setLoi("Có lỗi khi lưu dữ liệu.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -112,7 +119,9 @@ export default function SuaBoThe() {
       <div className="sua-container">
         <div className="sua-card">
           <h2>Không tìm thấy bộ thẻ</h2>
-          <button className="btn" onClick={() => navigate("/giangvien")}>Về trang giảng viên</button>
+          <button className="btn" onClick={() => navigate("/giangvien")}>
+            Về trang giảng viên
+          </button>
         </div>
       </div>
     );
@@ -125,7 +134,9 @@ export default function SuaBoThe() {
           <h2>Sửa bộ thẻ</h2>
           <div className="sua-actions">
             <button className="btn ghost" onClick={() => navigate(-1)}>Hủy</button>
-            <button className="btn primary" onClick={luuBoThe}>Lưu</button>
+            <button className="btn primary" onClick={luuBoThe} disabled={saving}>
+              {saving ? "Đang lưu..." : "Lưu"}
+            </button>
           </div>
         </div>
 
@@ -186,7 +197,9 @@ export default function SuaBoThe() {
 
         <div className="footer-actions">
           <button className="btn ghost" onClick={() => navigate(-1)}>Hủy</button>
-          <button className="btn primary" onClick={luuBoThe}>Lưu</button>
+          <button className="btn primary" onClick={luuBoThe} disabled={saving}>
+            {saving ? "Đang lưu..." : "Lưu"}
+          </button>
         </div>
       </div>
     </div>
