@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { FaRobot } from "react-icons/fa";
 import "./AIButton.css";
 import { fetchVocabulary } from "../ChatAI/ChatBot";
+import HelpBot from "../ChatAI/HelpBot";
 
 // Firebase
 import { auth, db } from "../../../../lib/firebase";
@@ -51,6 +52,8 @@ export default function AIButton() {
 
   // User hiện tại (đồng bộ từ Firebase Auth + Firestore profile)
   const [user, setUser] = useState(null);
+
+  const [showHelp, setShowHelp] = useState(false);
 
   /* ============= Effects ============= */
   useEffect(() => {
@@ -286,6 +289,16 @@ export default function AIButton() {
       {open && (
         <div className="ai-dropdown">
           <div
+            className="ai-item"
+            onClick={() => {
+              setShowHelp(true);
+              window.dispatchEvent(new Event("helpbot:open"));
+              setOpen(false);
+            }}
+          >
+            Chat trợ giúp
+          </div>
+          <div
             className={`ai-item${loading ? " disabled" : ""}`}
             onClick={!loading ? openCreateForm : undefined}
           >
@@ -299,6 +312,7 @@ export default function AIButton() {
           )}
         </div>
       )}
+       {showHelp && <HelpBot defaultOpen={true} />} {/* chỉ render khi click */}
 
       {/* Modal tạo nhanh */}
       {showForm && (

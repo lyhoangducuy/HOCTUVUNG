@@ -1,23 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import "./TrangChu.css";
 import AIButton from "../../../components/Admin/AIButton/AIButton";
+import HelpBot from "../../../components/Admin/ChatAI/HelpBot";
 import { FaRobot } from "react-icons/fa";
 
 import { auth, db } from "../../../../lib/firebase";
-import {
-  collection,
-  doc,
-  getDocs,
-  onSnapshot,
-  orderBy,
-  limit,
-  query,
-  where,
-  documentId,
-} from "firebase/firestore";
+import { collection, getDocs, onSnapshot, orderBy, limit, query, where, documentId } from "firebase/firestore";
 
 export default function TrangChu() {
   const navigate = useNavigate();
@@ -243,6 +234,8 @@ export default function TrangChu() {
           </div>
         )}
       </section>
+      {/* Trợ lý hướng dẫn sử dụng */}
+      
     </div>
   );
 }
