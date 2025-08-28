@@ -1,3 +1,4 @@
+// src/pages/Auth/DangKy/DangKy.jsx
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -14,7 +15,10 @@ const schema = yup.object({
   username: yup.string().required("Vui lòng nhập tên người dùng"),
   role: yup.string().oneOf(["hocvien", "giangvien"], "Vui lòng chọn vai trò").required(),
   password: yup.string().min(6, "Mật khẩu tối thiểu 6 ký tự").required(),
-  passwordConfirm: yup.string().oneOf([yup.ref("password")], "Mật khẩu không khớp").required(),
+  passwordConfirm: yup
+    .string()
+    .oneOf([yup.ref("password")], "Mật khẩu không khớp")
+    .required(),
 });
 
 const roleMap = { giangvien: "GIANG_VIEN", hocvien: "HOC_VIEN" };
@@ -40,7 +44,7 @@ export default function DangKy() {
 
       const uid = cred.user.uid;
 
-      // 3) Lưu hồ sơ người dùng
+      // 3) Lưu hồ sơ người dùng + traPhi mặc định = false
       await setDoc(doc(db, "nguoiDung", uid), {
         idNguoiDung: uid,
         email: data.email,
@@ -48,11 +52,11 @@ export default function DangKy() {
         hoten: "",
         anhDaiDien: "",
         vaiTro: roleMap[data.role],
+        traPhi: false,                 // 👈 thêm trường trạng thái trả phí mặc định
         ngayTaoTaiKhoan: serverTimestamp(),
       });
 
-      // 4) TẠO VÍ mặc định (0đ)
-      // Collection: Vi, docId = uid
+      // 4) Tạo ví mặc định (0đ)
       await setDoc(doc(db, "vi", uid), {
         idVi: uid,
         idNguoiDung: uid,
@@ -84,7 +88,11 @@ export default function DangKy() {
 
         <div className="signup-right">
           <div className="signup-tabs">
-            <span className="active" onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
+            <span
+              className="active"
+              onClick={() => navigate("/dang-ky")}
+              style={{ cursor: "pointer" }}
+            >
               Đăng ký
             </span>
             <span onClick={() => navigate("/dang-nhap")} style={{ cursor: "pointer" }}>
@@ -114,8 +122,14 @@ export default function DangKy() {
             {errors.password && <span className="error">{errors.password.message}</span>}
 
             <label>Nhập lại mật khẩu</label>
-            <input type="password" {...register("passwordConfirm")} className={errors.passwordConfirm ? "error" : ""} />
-            {errors.passwordConfirm && <span className="error">{errors.passwordConfirm.message}</span>}
+            <input
+              type="password"
+              {...register("passwordConfirm")}
+              className={errors.passwordConfirm ? "error" : ""}
+            />
+            {errors.passwordConfirm && (
+              <span className="error">{errors.passwordConfirm.message}</span>
+            )}
 
             <button type="submit" className="signup-btn submit" disabled={loading}>
               {loading ? "Đang đăng ký..." : "Đăng Ký"}

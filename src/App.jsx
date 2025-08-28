@@ -47,7 +47,12 @@ import CheckoutResult from "./pages/NguoiDung/Checkout/checkoutResult";
 import LichSuThanhToan from "./pages/NguoiDung/TraPhi/lichSuThanhToan";
 import NguoiDungDetail from "./pages/NguoiDung/NguoiDungDetail/NguoiDungDetail";
 import BoTheDetail from "./pages/NguoiDung/HocBoThe/BoTheDetail";
+// ✅ Sửa đúng hoa/thường:
+
+
+// ✅ Thêm 2 trang Admin rút tiền:
 import ViDetail from "./pages/NguoiDung/Vi/viDetail";
+import QuanLyRutTien from "./pages/Admin/ChiTra/ChiTra";
 
 
 export default function App() {
@@ -59,16 +64,11 @@ export default function App() {
         <Route path="/dang-ky" element={<DangKy />} />
         <Route path="/quen-mat-khau" element={<QuenMatKhau />} />
         <Route path="/" element={<Landingpage />} />
-
       </Route>
-      <Route element={<YeuCauDangNhap />}>
 
+      <Route element={<YeuCauDangNhap />}>
         {/* Giảng viên / Học viên / Admin đã đăng nhập */}
-        <Route
-          element={
-            <DangNhapTheoRole allowed={["GIANG_VIEN", "HOC_VIEN", "ADMIN"]} />
-          }
-        >
+        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN", "HOC_VIEN"]} />}>
           <Route element={<NguoiDungLayout />}>
             <Route path="/trangchu" element={<TrangChu />} />
             <Route path="/tra-phi" element={<Traphi />} />
@@ -84,16 +84,14 @@ export default function App() {
             <Route path="/timkiem/:id" element={<TrangTimKiem />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/checkout/result" element={<CheckoutResult />} />
-            <Route path="/lichSuThanhToan" element={<LichSuThanhToan />}/>
+            <Route path="/lichSuThanhToan" element={<LichSuThanhToan />} />
             <Route path="/nguoiDung/:uid" element={<NguoiDungDetail />} />
             <Route path="/bothe/:id" element={<BoTheDetail />} />
-            <Route path="/vi" element={<ViDetail/>}/>
+            <Route path="/vi" element={<ViDetail />} />
 
             {/* 🔒 Chỉ người có gói trả phí còn hiệu lực mới truy cập được Video */}
-            <Route element={<YeuCauTraPhi />}>
               <Route path="/video" element={<VideoLibrary />} />
               <Route path="/video/:id" element={<Video />} />
-            </Route>
           </Route>
         </Route>
 
@@ -113,10 +111,13 @@ export default function App() {
             <Route path="/admin/quan-ly-tra-phi" element={<QuanLyTraPhi />} />
             <Route path="/admin/quan-ly-bo-the" element={<QuanLyBoThe />} />
             <Route path="/admin/quan-ly-khoa-hoc" element={<QuanLyKhoaHoc />} />
+            {/* ✅ Thêm mới: quản lý rút tiền & cấu hình phí */}
+            <Route path="/admin/rut-tien" element={<QuanLyRutTien />} />
             <Route path="/admin/quan-ly-video" element={<QuanLyVideo />} />
           </Route>
         </Route>
       </Route>
+
       {/* 404 */}
       <Route path="*" element={<div>404 Not Found</div>} />
     </Routes>

@@ -65,6 +65,139 @@ async function upsertBDCV({ idVi, idHoaDon, trangThai }) {
   return idBDCV;
 }
 
+// ===== Kích hoạt Prime trực tiếp trên nguoiDung/{uid} =====
+async function ensurePrimeOnUser(orderId, orderData) {
+  const uid = String(orderData.idNguoiDung || "");
+  const thoiHanNgay = Number(orderData.thoiHanNgay || 0);
+  if (!uid || thoiHanNgay <= 0) return;
+
+  const userRef = doc(db, "nguoiDung", uid);
+  const snap = await getDoc(userRef);
+  const now = new Date();
+
+  let newEnd = addDays(now, thoiHanNgay);
+
+  // Nếu đã có traPhiKetThuc trong tương lai -> cộng dồn
+  const data = snap.exists() ? snap.data() : {};
+  const existingEnd =
+    data?.traPhiKetThuc?.toDate?.() ||
+    (typeof data?.traPhiKetThuc === "string" ? new Date(data.traPhiKetThuc) : null);
+
+  if (existingEnd && existingEnd > now) {
+    newEnd = addDays(existingEnd, thoiHanNgay);
+  }
+
+  await updateDoc(userRef, {
+    traPhi: true,
+    traPhiBatDau: serverTimestamp(),
+    traPhiKetThuc: newEnd, // Date sẽ được lưu thành Firestore Timestamp
+    traPhiNguon: `hoaDon:${orderId}`,
+    traPhiCapNhatLuc: serverTimestamp(),
+  });
+}
+
+// ===== Cấp quyền lớp học (idempotent) =====
+async function ensureCapQuyenVaoLop(orderData) {
+  const uid = String(orderData.idNguoiDung || "");
+  const idKhoaHoc = String(orderData.idKhoaHoc || "");
+  if (!uid || !idKhoaHoc) return;
+
+  const refKH = doc(db, "khoaHoc", idKhoaHoc);
+  const khSnap = await getDoc(refKH);
+  if (!khSnap.exists()) return;
+
+  await updateDoc(refKH, { thanhVienIds: arrayUnion(uid) });
+}
+
+// ===== Cộng tiền ví chủ khóa học (idempotent bởi cờ) =====
+async function creditOwnerWalletOnce(orderRef, orderData, paidAmount) {
+  try {
+    if (orderData.loaiThanhToan !== "muaKhoaHoc") return;
+    const amount = Number(paidAmount || 0);
+    if (amount <= 0) return;
+
+    // đọc lại hóa đơn để kiểm tra cờ
+    const latest = await getDoc(orderRef);
+    const cur = latest.data() || {};
+    if (cur.daChiaTienChoChuKhoaHoc === true) return; // đã cộng trước đó
+
+    // lấy chủ khóa học
+    const idKhoaHoc = String(orderData.idKhoaHoc || "");
+    if (!idKhoaHoc) {
+      await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: false, ghiChuChiaTien: "missing_idKhoaHoc" });
+      return;
+    }
+    const khRef = doc(db, "khoaHoc", idKhoaHoc);
+    const khSnap = await getDoc(khRef);
+    if (!khSnap.exists()) {
+      await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: false, ghiChuChiaTien: "khoaHoc_not_found" });
+      return;
+    }
+    const ownerId = String(khSnap.data()?.idNguoiDung || "");
+    if (!ownerId) {
+      await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: false, ghiChuChiaTien: "owner_not_found" });
+      return;
+    }
+
+    // 1) Ghi biến động của ví (pending)
+    await upsertBDCV({ idVi: ownerId, idHoaDon: orderRef.id, trangThai: "pending" });
+
+    // 2) Cập nhật ví (tự tạo nếu chưa có)
+    const viRef = doc(db, "vi", ownerId);
+    try {
+      await updateDoc(viRef, {
+        soDu: increment(amount),
+        updatedAt: serverTimestamp(),
+      });
+    } catch {
+      await setDoc(
+        viRef,
+        {
+          idNguoiDung: ownerId,
+          soDu: amount,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+
+    // 3) Log giao dịch ví (để màn Ví đọc realtime)
+    await addDoc(collection(db, "bienDongSoDu"), {
+      idVi: ownerId,
+      soTien: amount, // dương = cộng
+      moTa: `Doanh thu từ hóa đơn ${orderRef.id} (khóa học ${idKhoaHoc})`,
+      maThamChieu: orderRef.id,
+      loai: "thu_ban_khoa_hoc",
+      ngayTao: serverTimestamp(),
+    });
+
+    // 4) BDCV = done
+    await upsertBDCV({ idVi: ownerId, idHoaDon: orderRef.id, trangThai: "done" });
+
+    // 5) Đặt cờ để không cộng trùng
+    await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: true });
+  } catch (e) {
+    console.error("creditOwnerWalletOnce error:", e);
+    // không throw để không chặn luồng hiển thị
+  }
+}
+
+// Nếu giao dịch failed/canceled → ghi BDCV 'canceled' cho chủ lớp (nếu xác định được)
+async function cancelBDCVIfNeeded(orderData, orderId) {
+  try {
+    if (orderData.loaiThanhToan !== "muaKhoaHoc") return;
+    const idKhoaHoc = String(orderData.idKhoaHoc || "");
+    if (!idKhoaHoc) return;
+    const khSnap = await getDoc(doc(db, "khoaHoc", idKhoaHoc));
+    if (!khSnap.exists()) return;
+    const ownerId = String(khSnap.data()?.idNguoiDung || "");
+    if (!ownerId) return;
+    await upsertBDCV({ idVi: ownerId, idHoaDon: orderId, trangThai: "canceled" });
+  } catch (e) {
+    console.error("cancelBDCVIfNeeded error:", e);
+  }
+}
+
 export default function CheckoutResult() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -83,147 +216,6 @@ export default function CheckoutResult() {
     () => (summary.amount ? Number(summary.amount).toLocaleString(VN) + " đ" : "—"),
     [summary.amount]
   );
-
-  // Kích hoạt gói cho người dùng (idempotent)
-  const ensureKichHoatGoi = async (orderData) => {
-    const uid = String(orderData.idNguoiDung || "");
-    const idGoi = String(orderData.idGoi || "");
-    const thoiHanNgay = Number(orderData.thoiHanNgay || 0);
-    if (!uid || !idGoi || thoiHanNgay <= 0) return;
-
-    const qSub = query(
-      collection(db, "goiTraPhiCuaNguoiDung"),
-      where("idNguoiDung", "==", uid),
-      where("idGoi", "==", idGoi),
-      limit(50)
-    );
-    const rs = await getDocs(qSub);
-    const now = new Date();
-
-    const hasActiveSamePack = rs.docs.some((d) => {
-      const s = d.data();
-      const status = s?.status || "";
-      const endAt =
-        typeof s?.NgayKetThuc?.toDate === "function"
-          ? s.NgayKetThuc.toDate()
-          : typeof s?.NgayKetThuc === "string"
-          ? new Date(s.NgayKetThuc)
-          : null;
-      return status !== "Đã hủy" && endAt && endAt >= now;
-    });
-
-    if (!hasActiveSamePack) {
-      await addDoc(collection(db, "goiTraPhiCuaNguoiDung"), {
-        idNguoiDung: uid,
-        idGoi,
-        NgayBatDau: serverTimestamp(),
-        NgayKetThuc: addDays(now, thoiHanNgay),
-        status: "Đang hoạt động",
-      });
-    }
-  };
-
-  // Cấp quyền vào khóa học (idempotent)
-  const ensureCapQuyenVaoLop = async (orderData) => {
-    const uid = String(orderData.idNguoiDung || "");
-    const idKhoaHoc = String(orderData.idKhoaHoc || "");
-    if (!uid || !idKhoaHoc) return;
-
-    const refKH = doc(db, "khoaHoc", idKhoaHoc);
-    const khSnap = await getDoc(refKH);
-    if (!khSnap.exists()) return;
-
-    await updateDoc(refKH, { thanhVienIds: arrayUnion(uid) });
-  };
-
-  // Cộng tiền cho chủ khóa học + log BDCV (idempotent qua cờ trên hóa đơn)
-  const creditOwnerWalletOnce = async (orderRef, orderData, paidAmount) => {
-    try {
-      if (orderData.loaiThanhToan !== "muaKhoaHoc") return;
-      const amount = Number(paidAmount || 0);
-      if (amount <= 0) return;
-
-      // đọc lại hóa đơn để kiểm tra cờ
-      const latest = await getDoc(orderRef);
-      const cur = latest.data() || {};
-      if (cur.daChiaTienChoChuKhoaHoc === true) return; // đã cộng trước đó
-
-      // lấy chủ khóa học
-      const idKhoaHoc = String(orderData.idKhoaHoc || "");
-      if (!idKhoaHoc) {
-        await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: false, ghiChuChiaTien: "missing_idKhoaHoc" });
-        return;
-      }
-      const khRef = doc(db, "khoaHoc", idKhoaHoc);
-      const khSnap = await getDoc(khRef);
-      if (!khSnap.exists()) {
-        await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: false, ghiChuChiaTien: "khoaHoc_not_found" });
-        return;
-      }
-      const ownerId = String(khSnap.data()?.idNguoiDung || "");
-      if (!ownerId) {
-        await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: false, ghiChuChiaTien: "owner_not_found" });
-        return;
-      }
-
-      // 1) Ghi biến động của ví (pending)
-      await upsertBDCV({ idVi: ownerId, idHoaDon: orderRef.id, trangThai: "pending" });
-
-      // 2) Cập nhật ví (tự tạo nếu chưa có)
-      const viRef = doc(db, "vi", ownerId);
-      try {
-        await updateDoc(viRef, {
-          soDu: increment(amount),
-          updatedAt: serverTimestamp(),
-        });
-      } catch {
-        await setDoc(
-          viRef,
-          {
-            idNguoiDung: ownerId,
-            soDu: amount,
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-      }
-
-      // 3) Log giao dịch ví (để màn Ví đọc realtime)
-      await addDoc(collection(db, "bienDongSoDu"), {
-        idVi: ownerId,
-        soTien: amount, // dương = cộng
-        moTa: `Doanh thu từ hóa đơn ${orderRef.id} (khóa học ${idKhoaHoc})`,
-        maThamChieu: orderRef.id,
-        loai: "thu_ban_khoa_hoc",
-        ngayTao: serverTimestamp(),
-      });
-
-      // 4) BDCV = done
-      await upsertBDCV({ idVi: ownerId, idHoaDon: orderRef.id, trangThai: "done" });
-
-      // 5) Đặt cờ để không cộng trùng
-      await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: true });
-    } catch (e) {
-      console.error("creditOwnerWalletOnce error:", e);
-      // không throw để không chặn luồng hiển thị
-    }
-  };
-
-  // Nếu giao dịch failed/canceled → ghi BDCV 'canceled' cho chủ lớp (nếu xác định được)
-  const cancelBDCVIfNeeded = async (orderData, orderId) => {
-    try {
-      if (orderData.loaiThanhToan !== "muaKhoaHoc") return;
-      const idKhoaHoc = String(orderData.idKhoaHoc || "");
-      if (!idKhoaHoc) return;
-      const khSnap = await getDoc(doc(db, "khoaHoc", idKhoaHoc));
-      if (!khSnap.exists()) return;
-      const ownerId = String(khSnap.data()?.idNguoiDung || "");
-      if (!ownerId) return;
-      await upsertBDCV({ idVi: ownerId, idHoaDon: orderId, trangThai: "canceled" });
-    } catch (e) {
-      console.error("cancelBDCVIfNeeded error:", e);
-    }
-  };
 
   useEffect(() => {
     (async () => {
@@ -303,7 +295,8 @@ export default function CheckoutResult() {
         // Hậu thanh toán theo loại
         try {
           if (o.loaiThanhToan === "nangCapTraPhi") {
-            await ensureKichHoatGoi(o);
+            // ✅ Kích hoạt Prime trực tiếp trên nguoiDung/{uid}
+            await ensurePrimeOnUser(orderRef.id, o);
           } else if (o.loaiThanhToan === "muaKhoaHoc") {
             await ensureCapQuyenVaoLop(o);
             const paidAmount = isFree ? 0 : (vnpAmount || expected);
