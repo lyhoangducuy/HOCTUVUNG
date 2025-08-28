@@ -1,0 +1,158 @@
+/* AITrendAnalysis.css */
+.ai-trend-container {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e1e5e9;
+    min-height: 300px;
+  }
+  
+  .ai-trend-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  
+  .ai-trend-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .ai-trend-title h3 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .ai-trend-btn {
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.3s;
+  }
+  
+  .ai-trend-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  .ai-trend-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .ai-metric-card {
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  
+  .ai-metric-card .value {
+    font-size: 24px;
+    font-weight: bold;
+  }
+  
+  .ai-metric-card .label {
+    font-size: 12px;
+    color: #64748b;
+  }
+  
+  .ai-metric-users {
+    background: #f0f9ff;
+    border: 1px solid #0ea5e9;
+  }
+  .ai-metric-users .value {
+    color: #0ea5e9;
+  }
+  
+  .ai-metric-recent {
+    background: #f0fdf4;
+    border: 1px solid #22c55e;
+  }
+  .ai-metric-recent .value {
+    color: #22c55e;
+  }
+  
+  .ai-metric-month-revenue {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+  }
+  .ai-metric-month-revenue .value {
+    color: #f59e0b;
+  }
+  
+  .ai-metric-total-revenue {
+    background: #f3e8ff;
+    border: 1px solid #8b5cf6;
+  }
+  .ai-metric-total-revenue .value {
+    color: #8b5cf6;
+  }
+  
+  .ai-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 16px;
+    color: #dc2626;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .ai-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #6b7280;
+  }
+  
+  .ai-analysis {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    line-height: 1.6;
+    font-size: 14px;
+    color: #374151;
+    white-space: pre-wrap;
+  }
+  
+  .ai-no-data {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    line-height: 1.6;
+    font-size: 14px;
+    color: #6b7280;
+    text-align: center;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Icon loading */
+  @keyframes spin {
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
