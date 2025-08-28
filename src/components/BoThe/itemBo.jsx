@@ -10,8 +10,8 @@ import "./ItemBo.css";
  * - dsNguoiDung?: Array<{ idNguoiDung, tenNguoiDung?, gmail?, email?, anhDaiDien? }>
  * - onClick?: (idBoThe) => void
  * - onLearn?: (idBoThe) => void
- *
- * Ấn nút Học → điều hướng /bothe/:id (BoTheDetail)
+ * - inCourse?: boolean                     // đang hiển thị trong khóa học?
+ * - onRemoveFromCourse?: (idBoThe) => void // callback gỡ khỏi khóa học
  */
 export default function ItemBo({
   item = {},
@@ -19,6 +19,8 @@ export default function ItemBo({
   dsNguoiDung,
   onClick,
   onLearn,
+  inCourse = false,
+  onRemoveFromCourse,
 }) {
   const navigate = useNavigate();
 
@@ -62,6 +64,14 @@ export default function ItemBo({
     else goToDetail(); // mặc định ấn Học → /bothe/:id
   };
 
+  const handleRemove = (e) => {
+    e.stopPropagation();
+    if (!item?.idBoThe) return;
+    if (typeof onRemoveFromCourse === "function") {
+      onRemoveFromCourse(item.idBoThe);
+    }
+  };
+
   return (
     <div className="bo-card" onClick={handleOpen}>
       <div className="bo-title">{item?.tenBoThe || "Không tên"}</div>
@@ -78,9 +88,24 @@ export default function ItemBo({
         <span className="bo-name">{displayName}</span>
       </div>
 
-      <button className="bo-btn" onClick={handleLearn} title="Học bộ thẻ này">
-        Học
-      </button>
+      {inCourse && typeof onRemoveFromCourse === "function" ? (
+        <div className="bo-actions" onClick={(e) => e.stopPropagation()}>
+          <button className="bo-btn" onClick={handleLearn} title="Học bộ thẻ này">
+            Học
+          </button>
+          <button
+            className="bo-btn bo-btn-danger"
+            onClick={handleRemove}
+            title="Gỡ bộ thẻ khỏi khóa học"
+          >
+            Gỡ khỏi khóa học
+          </button>
+        </div>
+      ) : (
+        <button className="bo-btn" onClick={handleLearn} title="Học bộ thẻ này">
+          Học
+        </button>
+      )}
     </div>
   );
 }

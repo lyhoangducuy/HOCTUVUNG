@@ -8,6 +8,7 @@ import { auth, db } from "../../../../lib/firebase";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import HocGanDay from "./Tab/HocGanDay";
 import BoThePhoBien from "./Tab/BoThePhoBien";
+import KhoaHocPhoBien from "./Tab/KhoaHocPhoBien";
 
 // Lazy-load để nhẹ bundle
 const AIButton = lazy(() => import("../../../components/Admin/AIButton/AIButton"));
@@ -62,6 +63,8 @@ export default function TrangChu() {
 
       {/* Khối 2: Bộ thẻ phổ biến */}
       <BoThePhoBien />
+      {/* Khối 3: Khóa học phổ biến (xếp theo số thành viên) */}
+      <KhoaHocPhoBien />
     </>
   );
 }

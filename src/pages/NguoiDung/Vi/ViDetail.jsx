@@ -1,142 +1,254 @@
-import React, { useEffect, useMemo, useState } from "react";
+// src/pages/NguoiDung/Vi/ViDetail.jsx
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ViDetail.css";
 
+import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../../../../lib/firebase";
 import {
   collection,
   doc,
   onSnapshot,
-  orderBy,
   query,
   where,
   limit,
+  getDocs,
+  documentId,
 } from "firebase/firestore";
 
+/* ===== Helpers ===== */
+const VN = "vi-VN";
 const formatVND = (n) => `${Number(n || 0).toLocaleString("vi-VN")}đ`;
+const toDate = (v) => {
+  if (!v) return null;
+  if (typeof v?.toDate === "function") return v.toDate();
+  if (v instanceof Date) return v;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
 const formatDate = (v) => {
-  if (!v) return "";
-  if (typeof v?.toDate === "function") return v.toDate().toLocaleString("vi-VN");
-  const d = v instanceof Date ? v : new Date(v);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleString("vi-VN");
+  const d = toDate(v);
+  return d ? d.toLocaleString(VN) : "";
 };
 
 export default function ViDetail() {
   const navigate = useNavigate();
 
-  const session = useMemo(() => {
-    try { return JSON.parse(sessionStorage.getItem("session") || "null"); }
-    catch { return null; }
-  }, []);
-  const uid = auth.currentUser?.uid || session?.idNguoiDung || null;
-
-  const [wallet, setWallet] = useState({ soDu: 0, ngayCapNhat: null });
-  const [txs, setTxs] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Redirect nếu chưa đăng nhập
+  const [uid, setUid] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
   useEffect(() => {
-    if (!uid) navigate("/dang-nhap", { replace: true });
-  }, [uid, navigate]);
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u?.uid) setUid(u.uid);
+      else {
+        try {
+          const ss = JSON.parse(sessionStorage.getItem("session") || "null");
+          if (ss?.idNguoiDung) setUid(String(ss.idNguoiDung));
+        } catch {}
+      }
+      setAuthReady(true);
+    });
+    return () => unsub();
+  }, []);
 
-  // Realtime: ví (doc id = uid) + biến động (collection: bienDongSoDu, lọc idVi = uid)
+  useEffect(() => {
+    if (authReady && !uid) navigate("/dang-nhap", { replace: true });
+  }, [authReady, uid, navigate]);
+
+  /* Ví */
+  const [wallet, setWallet] = useState({ soDu: 0, ngayCapNhat: null });
+  const [loadingWallet, setLoadingWallet] = useState(true);
   useEffect(() => {
     if (!uid) return;
-
-    const unsubWallet = onSnapshot(
+    setLoadingWallet(true);
+    const unsub = onSnapshot(
       doc(db, "vi", String(uid)),
       (snap) => {
-        if (snap.exists()) setWallet({ idVi: snap.id, ...snap.data() });
-        else setWallet({ idVi: uid, soDu: 0, ngayCapNhat: null });
-        setLoading(false);
+        if (snap.exists()) {
+          const data = snap.data() || {};
+          setWallet({
+            idVi: snap.id,
+            soDu: Number(data.soDu || 0),
+            ngayCapNhat: data.ngayCapNhat || data.updatedAt || null,
+          });
+        } else {
+          setWallet({ idVi: String(uid), soDu: 0, ngayCapNhat: null });
+        }
+        setLoadingWallet(false);
       },
-      () => setLoading(false)
+      () => setLoadingWallet(false)
     );
-
-    const qTx = query(
-      collection(db, "bienDongSoDu"),
-      where("idVi", "==", String(uid)),
-      orderBy("ngayTao", "desc"),
-      limit(100)
-    );
-    const unsubTx = onSnapshot(
-      qTx,
-      (snap) => {
-        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setTxs(rows);
-      },
-      () => setTxs([])
-    );
-
-    return () => { unsubWallet(); unsubTx(); };
+    return () => unsub();
   }, [uid]);
 
+  /* Biến động của ví (bienDongCuaVi) */
+  const [bdcv, setBdcv] = useState([]);
+  const [loadingBdcv, setLoadingBdcv] = useState(true);
+  useEffect(() => {
+    if (!uid) return;
+    setLoadingBdcv(true);
+    const qBD = query(
+      collection(db, "bienDongCuaVi"),
+      where("idVi", "==", String(uid)),
+      limit(200)
+    );
+    const unsub = onSnapshot(
+      qBD,
+      (snap) => {
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        rows.sort((a, b) => {
+          const ta = toDate(a.ngayTao)?.getTime() || 0;
+          const tb = toDate(b.ngayTao)?.getTime() || 0;
+          return tb - ta;
+        });
+        setBdcv(rows);
+        setLoadingBdcv(false);
+      },
+      () => {
+        setBdcv([]);
+        setLoadingBdcv(false);
+      }
+    );
+    return () => unsub();
+  }, [uid]);
+
+  /* JOIN: bdcv -> hoaDon -> nguoiDung */
+  const [rows, setRows] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!bdcv.length) { setRows([]); return; }
+
+      // Lấy hóa đơn
+      const orderIds = Array.from(new Set(bdcv.map(r => String(r.idHoaDon || "")).filter(Boolean)));
+      const orderMap = {};
+      for (let i = 0; i < orderIds.length; i += 10) {
+        const chunk = orderIds.slice(i, i + 10);
+        try {
+          const rs = await getDocs(query(collection(db, "hoaDon"), where(documentId(), "in", chunk)));
+          rs.forEach(d => (orderMap[d.id] = { id: d.id, ...(d.data() || {}) }));
+        } catch {}
+      }
+
+      // Lấy người mua
+      const buyerIds = Array.from(new Set(Object.values(orderMap).map(o => String(o.idNguoiDung || "")).filter(Boolean)));
+      const userMap = {};
+      for (let i = 0; i < buyerIds.length; i += 10) {
+        const chunk = buyerIds.slice(i, i + 10);
+        try {
+          const rs = await getDocs(query(collection(db, "nguoiDung"), where(documentId(), "in", chunk)));
+          rs.forEach(d => (userMap[d.id] = { id: d.id, ...(d.data() || {}) }));
+        } catch {}
+      }
+
+      if (cancelled) return;
+
+      const joined = bdcv.map((r) => {
+        const od = orderMap[String(r.idHoaDon)] || {};
+        const buyer = userMap[String(od.idNguoiDung)] || {};
+        const soTien = Number(od.soTienThanhToanThucTe ?? od.soTienThanhToan ?? 0) || 0;
+        const st = String(r.trangThai || "").toLowerCase(); // pending | done | canceled
+        const sign = st === "done" ? "+" : st === "canceled" ? "" : "+";
+
+        return {
+          id: r.id,
+          ngayTao: r.ngayTao,
+          trangThai: st,
+          tenGoi: od.tenGoi || "—", // <-- thêm tên gói từ hóa đơn
+          buyerName: buyer.tenNguoiDung || buyer.hoTen || "Người dùng",
+          soTien,
+          sign,
+        };
+      });
+      setRows(joined);
+    })();
+    return () => { cancelled = true; };
+  }, [bdcv]);
+
+  if (!authReady) {
+    return (
+      <div className="vi-container">
+        <div className="vi-empty">Đang kiểm tra đăng nhập…</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="vi-wrap">
-      <div className="vi-head">
-        <button className="btn ghost" onClick={() => navigate(-1)}>← Quay lại</button>
-        <h1>Ví của tôi</h1>
+    <>
+      <div className="vi-back" onClick={() => navigate(-1)}>← Quay lại</div>
+      <h1 className="vi-title">Ví của tôi</h1>
+
+      {/* Số dư */}
+      <div className="vi-balance-card">
+        <div className="vi-balance-label">Số dư hiện tại</div>
+        <div className="vi-balance-value">
+          {loadingWallet ? "…" : formatVND(wallet.soDu)}
+        </div>
+        <div className="vi-balance-sub">Cập nhật: {formatDate(wallet.ngayCapNhat)}</div>
+        <div className="vi-actions">
+          <button
+            className="vi-btn-primary"
+            onClick={() => navigate("/rut-tien", { state: { soDu: wallet.soDu } })}
+          >
+            Yêu cầu rút
+          </button>
+        </div>
       </div>
 
-      <div className="vi-grid">
-        <div className="vi-card balance">
-          <div className="lb">Số dư hiện tại</div>
-          <div className="val">{formatVND(wallet.soDu)}</div>
-          <div className="sub">Cập nhật: {formatDate(wallet.ngayCapNhat)}</div>
-
-          <div className="actions">
-            {/* Nút rút tiền: dẫn sang trang yêu cầu rút */}
-            <button
-              className="btn primary"
-              onClick={() => navigate("/rut-tien", { state: { soDu: wallet.soDu } })}
-            >
-              Yêu cầu rút
-            </button>
-          </div>
+      {/* Biến động */}
+      <div className="vi-table-wrap">
+        <div className="vi-table-headline">
+          <h2>Biến động của ví</h2>
+          <span className="vi-muted">{rows.length} dòng gần nhất</span>
         </div>
 
-        <div className="vi-card tx">
-          <div className="tx-head">
-            <h2>Lịch sử biến động</h2>
-            <span className="muted">{txs.length} dòng gần nhất</span>
-          </div>
+        {loadingBdcv ? (
+          <div className="vi-empty">Đang tải…</div>
+        ) : rows.length === 0 ? (
+          <div className="vi-empty">Chưa có đối soát nào.</div>
+        ) : (
+          <table className="vi-table">
+            <thead>
+              <tr>
+                <th>Trạng thái</th>
+                <th>Người mua</th>
+                <th>Số tiền</th>
+                <th>Nội dung</th> {/* đổi nhãn cột */}
+                <th>Thời gian</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const moneyMod =
+                  r.trangThai === "done" ? "vi-amount--plus" :
+                  r.trangThai === "canceled" ? "vi-amount--minus" : "vi-amount--pending";
+                const badgeMod =
+                  r.trangThai === "done" ? "vi-badge--plus" :
+                  r.trangThai === "canceled" ? "vi-badge--minus" : "vi-badge--pending";
 
-          {loading ? (
-            <div className="empty">Đang tải...</div>
-          ) : txs.length === 0 ? (
-            <div className="empty">Chưa có biến động nào.</div>
-          ) : (
-            <div className="tx-table">
-              <div className="tr head">
-                <div className="td time">Thời gian</div>
-                <div className="td type">Loại</div>
-                <div className="td money">Số tiền</div>
-                <div className="td desc">Mô tả</div>
-                <div className="td ref">Tham chiếu</div>
-              </div>
-
-              {txs.map((r) => {
-                const isPlus = Number(r.soTien) > 0; // >0: cộng; <0: trừ
                 return (
-                  <div className="tr" key={r.id}>
-                    <div className="td time">{formatDate(r.ngayTao)}</div>
-                    <div className="td type">
-                      <span className={`pill ${isPlus ? "plus" : "minus"}`}>
-                        {isPlus ? "Cộng" : "Trừ"}
+                  <tr key={r.id}>
+                    <td data-label="Trạng thái">
+                      <span className={`vi-badge ${badgeMod}`}>
+                        {r.trangThai === "done"
+                          ? "Hoàn tất"
+                          : r.trangThai === "canceled"
+                          ? "Hủy"
+                          : "Đang xử lý"}
                       </span>
-                    </div>
-                    <div className={`td money ${isPlus ? "plus" : "minus"}`}>
-                      {isPlus ? "+" : "−"}{formatVND(Math.abs(Number(r.soTien || 0)))}
-                    </div>
-                    <div className="td desc">{r.moTa || "-"}</div>
-                    <div className="td ref">{r.maThamChieu || "-"}</div>
-                  </div>
+                    </td>
+                    <td data-label="Người mua">{r.buyerName}</td>
+                    <td data-label="Số tiền" className={`vi-amount ${moneyMod}`}>
+                      {r.trangThai === "canceled" ? "0đ" : `${r.sign}${formatVND(r.soTien)}`}
+                    </td>
+                    <td data-label="Tên gói">{r.tenGoi}</td> {/* hiển thị tên gói */}
+                    <td data-label="Thời gian">{formatDate(r.ngayTao)}</td>
+                  </tr>
                 );
               })}
-            </div>
-          )}
-        </div>
+            </tbody>
+          </table>
+        )}
       </div>
-    </div>
+    </>
   );
 }

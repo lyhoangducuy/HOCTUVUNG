@@ -53,7 +53,7 @@ export default function DangKy() {
 
       // 4) TẠO VÍ mặc định (0đ)
       // Collection: Vi, docId = uid
-      await setDoc(doc(db, "Vi", uid), {
+      await setDoc(doc(db, "vi", uid), {
         idVi: uid,
         idNguoiDung: uid,
         soDu: 0,

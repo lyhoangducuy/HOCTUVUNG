@@ -16,3 +16,17 @@
   font-weight:700;cursor:pointer;
 }
 .bo-btn:hover{background:#f8fafc;}
+/* nhóm nút khi hiển thị trong khóa học */
+.bo-actions{
+  display:flex;
+  gap:8px;
+}
+
+/* nút gỡ dạng danger */
+.bo-btn-danger{
+  border-color:#ef4444;
+  color:#b91c1c;
+}
+.bo-btn-danger:hover{
+  background:#fef2f2;
+}

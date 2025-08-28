@@ -1,162 +1,228 @@
-.myLib-container {
-  padding: 24px;
-  background-color: #f8f9fb; /* màu nền nhạt */
-  min-height: 100vh;
-}
+  .myLib-container {
+    padding: 24px;
+    background-color: #f8f9fb; /* màu nền nhạt */
+    min-height: 100vh;
+  }
 
-.tittle-lib {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1f1f1f;
-  margin-bottom: 16px;
-}
+  .tittle-lib {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1f1f1f;
+    margin-bottom: 16px;
+  }
 
-/* Thanh tab */
-.header-lib {
-  display: flex;
-  gap: 24px;
-  list-style: none;
-  padding: 0;
-  margin: 0 0 24px 0;
-  border-bottom: 1px solid #e5e7eb;
-}
+  /* Thanh tab */
+  .header-lib {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 24px 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
 
-.lib-item {
-  font-size: 16px;
-  font-weight: 500;
-  color: #374151;
-  cursor: pointer;
-  padding-bottom: 8px;
-  position: relative;
-}
+  .lib-item {
+    font-size: 16px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    padding-bottom: 8px;
+    position: relative;
+  }
 
-.lib-item:hover {
-  color: #2563eb; /* xanh nhạt khi hover */
-}
+  .lib-item:hover {
+    color: #2563eb; /* xanh nhạt khi hover */
+  }
 
-.lib-item.active {
-  color: #2563eb;
-  font-weight: 600;
-}
+  .lib-item.active {
+    color: #2563eb;
+    font-weight: 600;
+  }
 
-.lib-item.active::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  height: 2px;
-  width: 100%;
-  background-color: #2563eb;
-  border-radius: 2px;
-}
+  .lib-item.active::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    background-color: #2563eb;
+    border-radius: 2px;
+  }
 
-/* Card bộ thẻ */
-.myLibCard, .myLop {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
-}
+  /* GRID */
+  .myLibCard, .myLop {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
 
-.CardLib, .lop {
-  background: #fff;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
+  /* Card “bộ thẻ” (giữ nguyên) */
+  .CardLib, .lop {
+    background: #fff;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
 
-.CardLib:hover, .lop:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-  transform: translateY(-2px);
-}
+  .CardLib:hover, .lop:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+  }
 
-.lib-tittle {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-  color: #111827;
-}
+  .lib-tittle {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #111827;
+  }
 
-.quantity {
-  display: block;
-  font-size: 14px;
-  color: #6b7280;
-}
+  .quantity {
+    display: block;
+    font-size: 14px;
+    color: #6b7280;
+  }
 
-.nameUser {
-  display: block;
-  font-size: 14px;
-  color: #4b5563;
-}
+  .nameUser {
+    display: block;
+    font-size: 14px;
+    color: #4b5563;
+  }
 
-.emty {
-  font-size: 16px;
-  color: #6b7280;
-  text-align: center;
-  grid-column: 1 / -1;
-  margin-top: 24px;
-}
-/* Card mini theo mẫu */
-.mini-card{
-  background:#fff;
-  border:1px solid #e5e7eb;
-  border-radius:12px;
-  padding:14px;
-  box-shadow:0 2px 8px rgba(0,0,0,.04);
-  cursor:pointer;
-}
+  .emty {
+    font-size: 16px;
+    color: #6b7280;
+    text-align: center;
+    grid-column: 1 / -1;
+    margin-top: 24px;
+  }
 
-.mini-title{
-  font-weight:800;
-  font-size:18px;
-  color:#0f172a;
-  margin:0 0 4px 0;
-}
+  /* =========================================================
+    ItemKH (thẻ khóa học) — style tiệp với itemBoThe
+    ========================================================= */
 
-.mini-sub{
-  font-size:14px;
-  color:#6b7280;
-  margin-bottom:10px;
-}
+  .item-kh{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:12px 12px 14px;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
 
-.mini-meta{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-bottom:10px;
-}
+  .item-kh:hover{
+    box-shadow:0 6px 18px rgba(0,0,0,.1);
+    border-color:#d1d5db;
+    transform:translateY(-1px);
+  }
 
-.mini-avatar{
-  width:24px;
-  height:24px;
-  border-radius:50%;
-  background:#e5e7eb;           /* xám nhạt khi không có ảnh */
-  background-size:cover;
-  background-position:center;
-  flex-shrink:0;
-  border:1px solid #e5e7eb;
-}
+  .item-kh.clickable{ cursor:pointer; }
 
-.mini-name{
-  font-size:14px;
-  color:#111827;
-}
+  /* Tiêu đề 2 dòng */
+  .kh-title{
+    margin:0;
+    font-size:16px;
+    font-weight:700;
+    line-height:1.35;
+    color:#111827;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
 
-.mini-actions{
-  display:flex;
-  justify-content:flex-start;
-  gap:10px;
-  margin-top:6px;
-}
+  /* Meta pill: số học viên (không dùng icon mắt) */
+  .kh-meta{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-top:2px;
+  }
 
-.btn{
-  border:1px solid #e5e7eb;
-  background:#fff;
-  color:#111827;
-  padding:6px 10px;
-  border-radius:10px;
-  font-size:14px;
-  cursor:pointer;
-}
-.btn.ghost:hover{ background:#f3f4f6; }
+  .kh-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:#f8fafc;           /* slate-50 */
+    border:1px solid #e5e7eb;      /* slate-200 */
+    color:#475569;                 /* slate-600 */
+    height:28px;
+    padding:0 10px;
+    border-radius:10px;
+    font-size:13px;
+  }
+
+  .kh-ic{ font-size:13px; opacity:.95; }
+
+  /* Hàng dưới: sao + điểm bên trái, giá bên phải */
+  .kh-bottom{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:2px;
+  }
+
+  .kh-left{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+
+  /* Sao xám (đầy và rỗng) */
+  .kh-stars{
+    display:flex;
+    gap:2px;
+    font-size:13px;
+    line-height:1;
+    color:#cbd5e1;          /* rỗng: slate-300 */
+  }
+  .kh-stars .filled{ color:#9ca3af; }  /* đầy: slate-400 */
+
+  .kh-rating{
+    font-size:14px;
+    color:#6b7280;          /* slate-500 */
+  }
+
+  /* Giá */
+  .kh-price{
+    font-weight:700;
+    font-size:18px;
+    color:#111827;
+    white-space:nowrap;
+  }
+
+  /* Focus state */
+  .item-kh:focus-visible{
+    outline:2px solid #60a5fa; /* blue-400 */
+    outline-offset:2px;
+  }
+
+  /* Grid cho tab Khóa học (nếu muốn rộng hơn bộ thẻ) */
+  .myLop{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
+    gap:14px;
+  }
+
+  /* (Tùy chọn) Nút chung */
+  .btn{
+    border:1px solid #e5e7eb;
+    background:#fff;
+    color:#111827;
+    padding:6px 10px;
+    border-radius:10px;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .btn.ghost:hover{ background:#f3f4f6; }
+
+  /* Responsive nhẹ */
+  @media (max-width: 420px){
+    .kh-title{ font-size:15px; }
+    .kh-price{ font-size:17px; }
+  }

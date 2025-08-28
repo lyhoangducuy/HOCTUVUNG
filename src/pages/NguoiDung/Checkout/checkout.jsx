@@ -1,4 +1,4 @@
-// src/pages/Admin/ThanhToan/Checkout.jsx (đường dẫn của bạn)
+// src/pages/Admin/ThanhToan/Checkout.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -19,13 +19,26 @@ import {
   getDocs,
   updateDoc,
   serverTimestamp,
+  arrayUnion,
 } from "firebase/firestore";
 
 const VN = "vi-VN";
-const toVN = (date) => new Date(date).toLocaleDateString(VN);
-
-// Làm sạch id để dùng với vnp_TxnRef
 const safeId = (s) => String(s).replace(/[^0-9a-zA-Z_-]/g, "").slice(0, 34);
+
+// ===== Phân loại hóa đơn theo loại thanh toán =====
+const isMuaKhoaHoc = (o) => {
+  const t = (o?.loaiThanhToan || "").toLowerCase();
+  if (t === "muakhoahoc") return true;
+  // fallback schema cũ:
+  return (o?.loaiDon || "").toUpperCase() === "JOIN_CLASS";
+};
+
+const isNangCapTraPhi = (o) => {
+  const t = (o?.loaiThanhToan || "").toLowerCase();
+  if (t === "nangcaptraphi") return true;
+  const ld = (o?.loaiDon || "").toUpperCase();
+  return ld === "UPGRADE" || ld === "NANG_CAP";
+};
 
 export default function Checkout() {
   const location = useLocation();
@@ -35,78 +48,157 @@ export default function Checkout() {
   const [order, setOrder] = useState(null);
   const [paying, setPaying] = useState(false);
 
-  // chống chạy lặp (auto xử lý đơn 0đ chỉ chạy 1 lần)
+  // chống chạy lặp
   const autoHandledRef = useRef(false);
+  const paidHandledRef = useRef(false);
 
-  // Lấy uid (ưu tiên Firebase Auth, fallback session)
+  // Lấy uid (Auth hoặc session)
   useEffect(() => {
-    const sessionUser = JSON.parse(sessionStorage.getItem("session") || "null");
-    const _uid = auth.currentUser?.uid || sessionUser?.idNguoiDung || null;
-    if (!_uid) {
+    try {
+      const sessionUser = JSON.parse(sessionStorage.getItem("session") || "null");
+      const _uid = auth.currentUser?.uid || sessionUser?.idNguoiDung || null;
+      if (!_uid) {
+        alert("Vui lòng đăng nhập.");
+        navigate("/dang-nhap");
+        return;
+      }
+      setUid(String(_uid));
+    } catch {
       alert("Vui lòng đăng nhập.");
       navigate("/dang-nhap");
-      return;
     }
-    setUid(String(_uid));
   }, [navigate]);
 
-  // Nạp đơn hàng: ưu tiên orderId từ location.state, fallback pending mới nhất
+  // ===== Hậu thanh toán theo loại đơn =====
+  const capQuyenVaoLop = async (_order) => {
+    try {
+      if (!_order || !uid || !_order.idKhoaHoc) return;
+      const refKH = doc(db, "khoaHoc", String(_order.idKhoaHoc));
+      await updateDoc(refKH, { thanhVienIds: arrayUnion(String(uid)) });
+    } catch (e) {
+      console.error("Cấp quyền vào lớp thất bại:", e);
+    }
+  };
+
+  const capQuyenNangCap = async (_order) => {
+    try {
+      if (!uid) return;
+      // tuỳ hệ thống: có thể set cờ vào 'nguoiDung' hoặc collection 'goiTraPhiCuaNguoiDung'… 
+      // Ở đây chỉ đặt cờ đơn giản trên hồ sơ:
+      const refUser = doc(db, "nguoiDung", String(uid));
+      await updateDoc(refUser, {
+        daNangCapTraPhi: true,
+        nangCapAt: serverTimestamp(),
+      });
+    } catch (e) {
+      console.error("Cập nhật nâng cấp trả phí thất bại:", e);
+    }
+  };
+
+  const handleAfterPaid = async (_order) => {
+    if (isMuaKhoaHoc(_order)) {
+      await capQuyenVaoLop(_order);
+    } else if (isNangCapTraPhi(_order)) {
+      await capQuyenNangCap(_order);
+    }
+  };
+
+  // ==== Nạp hóa đơn: ưu tiên orderId từ URL, rồi state, rồi fallback pending mới nhất ====
   useEffect(() => {
     if (!uid) return;
 
     let unsub = null;
 
     (async () => {
+      const urlOrderId = new URLSearchParams(location.search).get("orderId");
       const stateOrderId = location?.state?.orderId;
 
-      // helper: attach listener cho 1 doc đơn
-      const listenOrderDoc = async (docId) => {
-        const ref = doc(db, "donHangTraPhi", docId);
+      // Gắn listener cho 1 doc trong 'hoaDon'
+      const listenInvoiceDoc = async (docId) => {
+        const ref = doc(db, "hoaDon", docId);
         const snap = await getDoc(ref);
         if (!snap.exists()) return false;
 
-        // Đảm bảo idDonHang an toàn: ưu tiên dùng doc id (đã an toàn)
-        const cur = snap.data()?.idDonHang;
+        // Đồng bộ idHoaDon = doc.id (để VNPay dùng ổn định)
+        const cur = snap.data()?.idHoaDon || snap.data()?.idDonHang;
         if (cur !== snap.id) {
           try {
-            await updateDoc(ref, { idDonHang: snap.id });
+            await updateDoc(ref, { idHoaDon: snap.id });
           } catch {}
         }
 
         unsub = onSnapshot(ref, (d) => {
           if (!d.exists()) return;
-          const data = d.data();
+          const data = d.data() || {};
           setOrder({
             ...data,
-            idDonHang: data.idDonHang || d.id, // dùng trường, fallback doc id
+            idHoaDon: data.idHoaDon || data.idDonHang || d.id,
             _docId: d.id,
           });
         });
         return true;
       };
 
-      // 1) Nếu có orderId → thử doc đó
-      if (stateOrderId) {
-        const ok = await listenOrderDoc(String(stateOrderId));
+      // 1) Nếu có orderId trên URL → thử trước
+      if (urlOrderId) {
+        const ok = await listenInvoiceDoc(String(urlOrderId));
         if (ok) return;
       }
 
-      // 2) Không có / không tìm thấy → lấy pending mới nhất của user
-      const qPending = query(
-        collection(db, "donHangTraPhi"),
-        where("idNguoiDung", "==", String(uid)),
-        where("trangThai", "==", "pending"),
-        orderBy("createdAt", "desc"),
-        limit(1)
-      );
-      const rs = await getDocs(qPending);
-      const first = rs.docs[0];
-      if (!first) {
-        alert("Không tìm thấy đơn hàng thanh toán.");
-        navigate("/tra-phi");
-        return;
+      // 2) Nếu có orderId trên state → thử tiếp
+      if (stateOrderId) {
+        const ok = await listenInvoiceDoc(String(stateOrderId));
+        if (ok) return;
       }
-      await listenOrderDoc(first.id);
+
+      // 3) Fallback: lấy pending mới nhất của user
+      try {
+        const qPending = query(
+          collection(db, "hoaDon"),
+          where("idNguoiDung", "==", String(uid)),
+          where("trangThai", "==", "pending"),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
+        const rs = await getDocs(qPending);
+        const first = rs.docs[0];
+        if (!first) {
+          alert("Không tìm thấy hóa đơn đang chờ thanh toán.");
+          navigate("/tra-phi");
+          return;
+        }
+        await listenInvoiceDoc(first.id);
+      } catch (e) {
+        // thiếu composite index → fallback: lọc client
+        if (e?.code === "failed-precondition") {
+          console.warn("Thiếu composite index (idNguoiDung, trangThai, createdAt). Dùng fallback client.");
+          const qLite = query(
+            collection(db, "hoaDon"),
+            where("idNguoiDung", "==", String(uid)),
+            limit(50)
+          );
+          const rs2 = await getDocs(qLite);
+          const docs = rs2.docs
+            .map((d) => ({ id: d.id, ...d.data() }))
+            .filter((x) => x.trangThai === "pending")
+            .sort((a, b) => {
+              const ta = a?.createdAt?.seconds || 0;
+              const tb = b?.createdAt?.seconds || 0;
+              return tb - ta; // mới → cũ
+            });
+          const first = docs[0];
+          if (!first) {
+            alert("Không tìm thấy hóa đơn đang chờ thanh toán.");
+            navigate("/tra-phi");
+            return;
+          }
+          await listenInvoiceDoc(first.id);
+        } else {
+          console.error("Lỗi tải hóa đơn:", e);
+          alert("Không thể tải hóa đơn. Vui lòng thử lại.");
+          navigate("/tra-phi");
+        }
+      }
     })();
 
     return () => {
@@ -114,19 +206,19 @@ export default function Checkout() {
     };
   }, [uid, location, navigate]);
 
-  // Nếu số tiền = 0đ → tự xác nhận thành công và đi tới checkoutResult
+  // Tự xác nhận hóa đơn 0đ
   useEffect(() => {
     const autoCompleteZeroOrder = async () => {
       if (!order || autoHandledRef.current) return;
 
       const amount = Number(order.soTienThanhToan || 0);
-      if (amount > 0) return; // chỉ xử lý đơn 0đ
+      if (amount > 0) return;
 
-      // Đơn đã paid thì thôi
       if (order.trangThai === "paid") {
         autoHandledRef.current = true;
+        try { await handleAfterPaid(order); } catch {}
         navigate("/checkout/result", {
-          state: { orderId: order.idDonHang || order._docId, status: "success" },
+          state: { orderId: order.idHoaDon || order._docId, status: "success" },
           replace: true,
         });
         return;
@@ -135,27 +227,45 @@ export default function Checkout() {
       try {
         autoHandledRef.current = true;
         setPaying(true);
-        const ref = doc(db, "donHangTraPhi", order._docId);
+        const ref = doc(db, "hoaDon", order._docId);
         await updateDoc(ref, {
           trangThai: "paid",
-          kenhThanhToan: "MIEN_PHI", // ghi chú kênh thanh toán 0đ
+          kenhThanhToan: "MIEN_PHI",
           soTienThanhToanThucTe: 0,
           paidAt: serverTimestamp(),
         });
 
+        try { await handleAfterPaid(order); } catch {}
+
         navigate("/checkout/result", {
-          state: { orderId: order.idDonHang || order._docId, status: "success" },
+          state: { orderId: order.idHoaDon || order._docId, status: "success" },
           replace: true,
         });
       } catch (e) {
-        console.error("Xác nhận đơn 0đ thất bại:", e);
+        console.error("Xác nhận hóa đơn 0đ thất bại:", e);
         setPaying(false);
-        autoHandledRef.current = false; // cho phép thử lại nếu cần
-        alert("Không thể xác nhận đơn 0đ.");
+        autoHandledRef.current = false;
+        alert("Không thể xác nhận hóa đơn 0đ.");
       }
     };
 
     autoCompleteZeroOrder();
+  }, [order, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Điều hướng khi thấy trạng thái 'paid' qua onSnapshot
+  useEffect(() => {
+    const handlePaid = async () => {
+      if (!order || paidHandledRef.current) return;
+      if (order.trangThai !== "paid") return;
+
+      paidHandledRef.current = true;
+      try { await handleAfterPaid(order); } catch {}
+      navigate("/checkout/result", {
+        state: { orderId: order.idHoaDon || order._docId, status: "success" },
+        replace: true,
+      });
+    };
+    handlePaid();
   }, [order, navigate]);
 
   const priceText = useMemo(() => {
@@ -169,32 +279,33 @@ export default function Checkout() {
       setPaying(true);
 
       const amount = Number(order.soTienThanhToan || 0);
-      // Trường hợp 0đ: phòng hờ nếu user bấm nút (dù đã auto xử lý ở useEffect)
       if (amount <= 0) {
-        const ref = doc(db, "donHangTraPhi", order._docId);
+        const ref = doc(db, "hoaDon", order._docId);
         await updateDoc(ref, {
           trangThai: "paid",
           kenhThanhToan: "MIEN_PHI",
           soTienThanhToanThucTe: 0,
           paidAt: serverTimestamp(),
         });
+
+        try { await handleAfterPaid(order); } catch {}
+
         navigate("/checkout/result", {
-          state: { orderId: order.idDonHang || order._docId, status: "success" },
+          state: { orderId: order.idHoaDon || order._docId, status: "success" },
           replace: true,
         });
         return;
       }
 
-      // bảo đảm idDonHang an toàn (đã sync với doc id ở trên, nhưng ta vẫn sanitize lần cuối)
-      const idForVNP = safeId(order.idDonHang || order._docId);
+      // vnp_TxnRef dùng idHoaDon (đã đồng bộ = doc.id)
+      const idForVNP = safeId(order.idHoaDon || order._docId);
 
       const resp = await fetch("http://localhost:3001/create_payment_url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: amount,           // VND; backend sẽ *100
-          orderId: idForVNP,        // vnp_TxnRef
-          // bankCode: "VNBANK",
+          amount,            // VND; backend sẽ *100
+          orderId: idForVNP, // vnp_TxnRef
         }),
       });
       const data = await resp.json();
@@ -247,8 +358,8 @@ export default function Checkout() {
         </div>
 
         <div className="row">
-          <span className="label">Mã đơn:</span>
-          <span className="value code">{order.idDonHang || order._docId}</span>
+          <span className="label">Mã hóa đơn:</span>
+          <span className="value code">{order.idHoaDon || order._docId}</span>
         </div>
 
         <div className="row">
@@ -262,9 +373,6 @@ export default function Checkout() {
           </span>
         </div>
 
-        {/* Nút hành động:
-            - Ẩn khi 0đ (đã auto xử lý) hoặc đã paid
-            - Hiện khi cần thanh toán VNPay */}
         {!isZero && !isPaid && (
           <div className="checkout-actions">
             <Button onClick={payWithVNPay} disabled={paying}>

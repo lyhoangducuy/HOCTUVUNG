@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+// src/pages/Home/chucNang/FeedbackTab.jsx
+import React, { useEffect, useMemo, useState } from "react";
 import "./FeedbackTab.css";
 
 import { auth, db } from "../../../../../lib/firebase";
@@ -10,20 +11,23 @@ import {
   onSnapshot,
   query,
   where,
-  orderBy,
   setDoc,
   updateDoc,
   serverTimestamp,
   arrayUnion,
 } from "firebase/firestore";
 
-/* ========== Helpers ========== */
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faStar as faStarSolid } from "@fortawesome/free-solid-svg-icons";
+import { faStar as FaStarRegular } from "@fortawesome/free-solid-svg-icons";// ✅ ĐÚNG: regular
+
+/* Helpers */
 const toVNDateTime = (d) =>
   d instanceof Date && !Number.isNaN(d) ? d.toLocaleString("vi-VN") : "";
 
 const fromMaybeTs = (val) => {
   if (!val) return null;
-  if (typeof val?.toDate === "function") return val.toDate(); // Firestore Timestamp
+  if (typeof val?.toDate === "function") return val.toDate();
   const d = new Date(val);
   return Number.isNaN(d) ? null : d;
 };
@@ -42,7 +46,6 @@ async function getCourseDocRefByAnyId(id) {
 
   const rs = await getDocs(query(collection(db, "khoaHoc"), where("idKhoaHoc", "==", idStr)));
   if (!rs.empty) return rs.docs[0].ref;
-
   return null;
 }
 
@@ -55,100 +58,67 @@ async function getUserProfile(uid) {
   }
 }
 
-/* ========== Component ========== */
 export default function FeedbackTab({ idKhoaHoc }) {
-  // Auth + profile/lightweight
   const [uid, setUid] = useState(null);
-  const [altId, setAltId] = useState(null); // nếu DB cũ dùng idNguoiDung ≠ auth.uid
+  const [altId, setAltId] = useState(null);
   const myId = useMemo(() => String(altId || uid || ""), [uid, altId]);
-  const [myRole, setMyRole] = useState(null); // HOC_VIEN | GIANG_VIEN | ADMIN | null
 
-  // Course
-  const [courseRef, setCourseRef] = useState(null);
   const [course, setCourse] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [laThanhVien, setLaThanhVien] = useState(false);
 
-  // Feedbacks
   const [feedbacks, setFeedbacks] = useState([]);
-  const [userCache, setUserCache] = useState(new Map()); // idNguoiDung -> { tenNguoiDung, anhDaiDien }
+  const [userCache, setUserCache] = useState(new Map());
 
-  // Form states
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
-  const [replyInputs, setReplyInputs] = useState({}); // key = idNguoiDung của feedback
+  const [replyInputs, setReplyInputs] = useState({});
 
-  /* ===== 1) Lấy uid từ Auth + altId (idNguoiDung) và vai trò ===== */
+  /* Auth + profile */
   useEffect(() => {
     const _uid = auth.currentUser?.uid || null;
     setUid(_uid);
-
     (async () => {
-      if (!_uid) {
-        setAltId(null);
-        setMyRole(null);
-        return;
-      }
+      if (!_uid) { setAltId(null); return; }
       const prof = await getUserProfile(_uid);
       const idField = prof?.idNguoiDung;
       setAltId(idField && String(idField) !== String(_uid) ? String(idField) : null);
-      setMyRole(prof?.vaiTro || null);
     })();
   }, []);
 
-  /* ===== 2) Load thông tin khóa học + quyền owner/member ===== */
+  /* Course + quyền */
   useEffect(() => {
     (async () => {
       if (!idKhoaHoc) return;
       const ref = await getCourseDocRefByAnyId(idKhoaHoc);
-      setCourseRef(ref);
-
-      if (!ref) {
-        setCourse(null);
-        setIsOwner(false);
-        setLaThanhVien(false);
-        return;
-      }
-
+      if (!ref) { setCourse(null); setIsOwner(false); setLaThanhVien(false); return; }
       const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        setCourse(null);
-        setIsOwner(false);
-        setLaThanhVien(false);
-        return;
-      }
+      if (!snap.exists()) { setCourse(null); setIsOwner(false); setLaThanhVien(false); return; }
       const kh = { _docId: ref.id, ...snap.data() };
       setCourse(kh);
 
       const ownerId = String(kh.idNguoiDung || "");
       const members = Array.isArray(kh.thanhVienIds) ? kh.thanhVienIds.map(String) : [];
-
-      setIsOwner(ownerId === myId || ownerId === String(uid)); // phòng khi altId/uid khác
-      setLaThanhVien(members.includes(myId) || members.includes(String(uid)));
+      setIsOwner(ownerId === String(myId) || ownerId === String(uid));
+      setLaThanhVien(members.includes(String(myId)) || members.includes(String(uid)));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idKhoaHoc, uid, altId, myId]);
 
-  /* ===== 3) Realtime feedback của khóa học ===== */
+  /* Realtime feedback (KHÔNG dùng orderBy để khỏi cần index; sort client) */
   useEffect(() => {
     if (!idKhoaHoc) return;
-    const qFb = query(
-      collection(db, "feedbackKhoaHoc"),
-      where("idKhoaHoc", "==", String(idKhoaHoc)),
-      orderBy("ngay", "desc")
-    );
-
+    const qFb = query(collection(db, "feedbackKhoaHoc"), where("idKhoaHoc", "==", String(idKhoaHoc)));
     const unsub = onSnapshot(
       qFb,
-      async (snap) => {
+      (snap) => {
         const rows = snap.docs.map((d) => {
-          const x = d.data();
-          const when = fromMaybeTs(x.ngay) || new Date();
-          const replies = Array.isArray(x.replies) ? x.replies.map((r) => ({
-            ...r,
-            date: fromMaybeTs(r?.date) || null,
-          })) : [];
-        return {
+          const x = d.data() || {};
+          const when = fromMaybeTs(x.ngay) || new Date(0);
+          const replies = Array.isArray(x.replies)
+            ? x.replies.map((r) => ({ ...r, date: fromMaybeTs(r?.date) || null }))
+            : [];
+          return {
             idNguoiDung: String(x.idNguoiDung || ""),
             rating: Number(x.rating || 0),
             comment: String(x.comment || ""),
@@ -156,62 +126,72 @@ export default function FeedbackTab({ idKhoaHoc }) {
             replies,
           };
         });
+        rows.sort((a, b) => (b.ngay?.getTime?.() || 0) - (a.ngay?.getTime?.() || 0));
         setFeedbacks(rows);
-
-        // nạp thông tin người dùng cho tên/avatar (tác giả & người trả lời)
-        const authorIds = new Set(rows.map((r) => r.idNguoiDung));
-        rows.forEach((r) => r.replies?.forEach((rr) => authorIds.add(String(rr.userId || ""))));
-        // bỏ id rỗng và id đã có trong cache
-        const need = Array.from(authorIds).filter(
-          (id) => id && !userCache.has(id)
-        );
-        if (need.length > 0) {
-          const batches = chunk(need, 10);
-          const newMap = new Map(userCache);
-          for (const ids of batches) {
-            const rs = await Promise.all(ids.map((id) => getDoc(doc(db, "nguoiDung", id))));
-            rs.forEach((snap) => {
-              if (snap.exists()) {
-                const u = snap.data();
-                newMap.set(snap.id, {
-                  tenNguoiDung: u?.tenNguoiDung || u?.hoten || u?.email || "Người dùng",
-                  anhDaiDien: u?.anhDaiDien || "",
-                });
-              } else {
-                newMap.set(snap.id, { tenNguoiDung: "Người dùng", anhDaiDien: "" });
-              }
-            });
-          }
-          setUserCache(newMap);
-        }
       },
       (err) => {
-        console.error("Lỗi đọc feedback:", err);
+        console.error("onSnapshot feedbackKhoaHoc error:", err);
         setFeedbacks([]);
       }
     );
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idKhoaHoc, userCache]);
+  }, [idKhoaHoc]);
 
-  /* ===== 4) Gửi / cập nhật feedback của học viên ===== */
+  /* Preload user info */
+  useEffect(() => {
+    const authorIds = new Set(feedbacks.map((r) => r.idNguoiDung));
+    feedbacks.forEach((r) => r.replies?.forEach((rr) => authorIds.add(String(rr.userId || ""))));
+    const need = Array.from(authorIds).filter((id) => id && !userCache.has(id));
+    if (need.length === 0) return;
+
+    (async () => {
+      const batches = chunk(need, 10);
+      const newMap = new Map(userCache);
+      for (const ids of batches) {
+        const rs = await Promise.all(ids.map((id) => getDoc(doc(db, "nguoiDung", id))));
+        rs.forEach((snap) => {
+          if (snap.exists()) {
+            const u = snap.data();
+            newMap.set(snap.id, {
+              tenNguoiDung: u?.tenNguoiDung || u?.hoten || u?.email || "Người dùng",
+              anhDaiDien: u?.anhDaiDien || "",
+            });
+          } else {
+            newMap.set(snap.id, { tenNguoiDung: "Người dùng", anhDaiDien: "" });
+          }
+        });
+      }
+      setUserCache(newMap);
+    })();
+  }, [feedbacks, userCache]);
+
+  /* Derived */
+  const count = feedbacks.length;
+  const avg = useMemo(
+    () => (count ? feedbacks.reduce((s, x) => s + (Number(x.rating) || 0), 0) / count : 0),
+    [feedbacks, count]
+  );
+  const pct = Math.max(0, Math.min(100, (avg / 5) * 100));
+  const daDanhGia = useMemo(
+    () => !!myId && feedbacks.some((f) => String(f.idNguoiDung) === String(myId)),
+    [feedbacks, myId]
+  );
+
+  /* Submit feedback (chỉ 1 lần) */
   const themFeedback = async (e) => {
     e.preventDefault();
     if (!myId) return;
-    if (!rating) {
-      alert("Vui lòng chọn số sao!");
-      return;
-    }
-    if (!laThanhVien) {
-      alert("Chỉ thành viên của khóa học mới được đánh giá.");
-      return;
-    }
+    if (!rating) return alert("Vui lòng chọn số sao!");
+    if (!laThanhVien) return alert("Chỉ thành viên của khóa học mới được đánh giá.");
+    if (isOwner) return alert("Chủ khóa học không thể tự đánh giá khóa học của mình.");
 
     const key = `${String(idKhoaHoc)}_${myId}`;
+    const exist = await getDoc(doc(db, "feedbackKhoaHoc", key)); // ✅ đúng collection
+    if (exist.exists()) return alert("Bạn đã đánh giá khóa học này rồi.");
+
     try {
-      // dùng merge để không xoá mảng replies hiện có
       await setDoc(
-        doc(db, "feedbackKhoaHoc", key),
+        doc(db, "feedbackKhoaHoc", key), // ✅ đúng collection
         {
           idKhoaHoc: String(idKhoaHoc),
           idNguoiDung: myId,
@@ -219,27 +199,26 @@ export default function FeedbackTab({ idKhoaHoc }) {
           comment: String(comment || "").trim(),
           ngay: serverTimestamp(),
         },
-        { merge: true }
+        { merge: false }
       );
       setRating(0);
       setComment("");
+      // onSnapshot sẽ hiển thị ngay sau khi ghi
     } catch (err) {
-      console.error("Thêm/cập nhật feedback thất bại:", err);
+      console.error("Ghi feedback thất bại:", err);
       alert("Không thể gửi đánh giá. Vui lòng thử lại.");
     }
   };
 
-  /* ===== 5) Chủ khóa học phản hồi ===== */
+  /* Owner replies */
   const submitReply = async (idNguoiDung) => {
     const text = (replyInputs[idNguoiDung] || "").trim();
     if (!text) return;
-    if (!isOwner) {
-      alert("Chỉ giảng viên/chủ khóa học mới được phản hồi.");
-      return;
-    }
+    if (!isOwner) return alert("Chỉ giảng viên/chủ khóa học mới được phản hồi.");
+
     const key = `${String(idKhoaHoc)}_${String(idNguoiDung)}`;
     try {
-      await updateDoc(doc(db, "feedbackKhoaHoc", key), {
+      await updateDoc(doc(db, "feedbackKhoaHoc", key), { // ✅ đúng collection
         replies: arrayUnion({
           userId: myId || uid,
           text,
@@ -253,20 +232,33 @@ export default function FeedbackTab({ idKhoaHoc }) {
     }
   };
 
-  /* ===== Render ===== */
-  const count = feedbacks.length;
-
   return (
     <div className="fb-wrap">
       <div className="fb-head">
         <h3>Đánh giá & phản hồi</h3>
-        <span className="fb-count">{count} đánh giá</span>
+
+        <div className="fb-avg" aria-label={`Điểm trung bình ${avg.toFixed(1)}/5`}>
+          <div className="fb-stars2">
+            <div className="stars stars-bg">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <FontAwesomeIcon key={`bg-${i}`} icon={FaStarRegular} />
+              ))}
+            </div>
+            <div className="stars stars-fill" style={{ width: `${pct}%` }}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <FontAwesomeIcon key={`fg-${i}`} icon={faStarSolid} />
+              ))}
+            </div>
+          </div>
+          <span className="fb-avg-num">{avg.toFixed(1)}</span>
+          <span className="fb-count">({count})</span>
+        </div>
       </div>
 
-      {/* Form học viên */}
-      {myRole === "HOC_VIEN" && laThanhVien && (
+      {/* Form: thành viên, không phải chủ, CHƯA đánh giá */}
+      {laThanhVien && !isOwner && !daDanhGia && (
         <form onSubmit={themFeedback} className="fb-form">
-          <div className="fb-stars">
+          <div className="fb-stars-picker">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
@@ -278,6 +270,7 @@ export default function FeedbackTab({ idKhoaHoc }) {
                 ★
               </button>
             ))}
+            {rating > 0 && <span className="fb-picked">{rating}/5</span>}
           </div>
 
           <textarea
@@ -309,11 +302,7 @@ export default function FeedbackTab({ idKhoaHoc }) {
                 <div className="fb-item-head">
                   <div className="fb-user">
                     <div className="fb-avatar">
-                      {avatar ? (
-                        <img src={avatar} alt={name} />
-                      ) : (
-                        (name || "U").charAt(0).toUpperCase()
-                      )}
+                      {avatar ? <img src={avatar} alt={name} /> : (name || "U").charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <div className="fb-user-name">{name}</div>
@@ -332,25 +321,18 @@ export default function FeedbackTab({ idKhoaHoc }) {
 
                 <div className="fb-body">{fb.comment}</div>
 
-                {/* Replies list */}
                 {Array.isArray(fb.replies) && fb.replies.length > 0 && (
                   <div className="fb-replies">
-                    {fb.replies.map((r, i) => {
-                      const owner = userCache.get(String(r.userId || "")) || {};
-                      return (
-                        <div key={i} className="fb-reply">
-                          <div className="fb-reply-badge">Phản hồi của giảng viên</div>
-                          <div className="fb-reply-text">{r.text}</div>
-                          <div className="fb-reply-time">
-                            {toVNDateTime(fromMaybeTs(r.date))}
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {fb.replies.map((r, i) => (
+                      <div key={i} className="fb-reply">
+                        <div className="fb-reply-badge">Phản hồi của giảng viên</div>
+                        <div className="fb-reply-text">{r.text}</div>
+                        <div className="fb-reply-time">{toVNDateTime(fromMaybeTs(r.date))}</div>
+                      </div>
+                    ))}
                   </div>
                 )}
 
-                {/* Reply box for owner */}
                 {isOwner && (
                   <div className="fb-reply-box">
                     <textarea
@@ -358,17 +340,13 @@ export default function FeedbackTab({ idKhoaHoc }) {
                       rows={2}
                       placeholder="Phản hồi lại học viên..."
                       value={replyInputs[fb.idNguoiDung] || ""}
-                      onChange={(e) =>
-                        setReplyInputs((s) => ({ ...s, [fb.idNguoiDung]: e.target.value }))
-                      }
+                      onChange={(e) => setReplyInputs((s) => ({ ...s, [fb.idNguoiDung]: e.target.value }))}
                     />
                     <div className="fb-row-end">
                       <button
                         type="button"
                         className="fb-btn fb-secondary"
-                        onClick={() =>
-                          setReplyInputs((s) => ({ ...s, [fb.idNguoiDung]: "" }))
-                        }
+                        onClick={() => setReplyInputs((s) => ({ ...s, [fb.idNguoiDung]: "" }))}
                       >
                         Hủy
                       </button>

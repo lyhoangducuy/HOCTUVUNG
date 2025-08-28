@@ -1,0 +1,104 @@
+/* Card giống .bo-card */
+.kh-card{
+  background:#fff;
+  border:1px solid #eee;
+  border-radius:14px;
+  padding:14px;
+  box-shadow:0 6px 20px rgba(0,0,0,.06);
+  cursor:pointer;
+  transition:.15s;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.kh-card:hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 24px rgba(0,0,0,.08);
+}
+
+/* Tiêu đề */
+.kh-title{
+  font-weight:800;
+  font-size:18px;
+  margin-bottom:6px;
+  color:#0f172a;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+/* Dòng phụ */
+.kh-meta{
+  color:#64748b;
+  margin-bottom:10px;
+}
+.kh-meta .dot{ margin:0 6px; opacity:.7; }
+
+/* Author */
+.kh-author{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:10px 0 14px;
+}
+.kh-avatar{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:#e5e7eb;
+  background-size:cover;
+  background-position:center;
+  border:1px solid #e5e7eb;
+}
+.kh-name{ color:#0f172a; }
+
+/* Hàng dưới */
+.kh-bottom{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:auto;
+}
+
+/* Rating: sao vàng + số xám */
+.kh-rating-row{ display:flex; align-items:center; gap:8px; }
+.kh-rating-num{ font-size:14px; font-weight:600; color:#64748b; }
+
+/* 2-layer stars */
+.kh-stars2{
+  --star-size: 14px;
+  --star-gap: 4px;
+  position:relative;
+  display:inline-block;
+  height:var(--star-size);
+  width: calc(var(--star-size) * 5 + var(--star-gap) * 4);
+}
+.kh-stars2 .stars{ display:flex; gap:var(--star-gap); line-height:1; }
+.kh-stars2 .stars svg{ width:var(--star-size); height:var(--star-size); }
+.kh-stars2 .stars-bg{ color:#e5e7eb; }        /* nền xám nhạt */
+.kh-stars2 .stars-fill{
+  color:#f59e0b;                               /* vàng amber-500 */
+  position:absolute; top:0; left:0;
+  overflow:hidden; white-space:nowrap; pointer-events:none;
+}
+
+/* Giá */
+.kh-price{
+  font-weight:700;
+  color:#0f172a;
+  font-size:18px;
+  white-space:nowrap;
+}
+
+/* Nút ghost (khi ĐÃ join) */
+.kh-btn{
+  width:100%;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  background:#fff;
+  font-weight:700;
+  cursor:pointer;
+}
+.kh-btn:hover{ background:#f8fafc; }

@@ -16,6 +16,9 @@ import {
   query,
   where,
   limit,
+  arrayUnion,
+  setDoc,
+  increment,
 } from "firebase/firestore";
 
 const VN = "vi-VN";
@@ -43,6 +46,25 @@ const RESP_TEXT = {
   "99": "Lỗi khác",
 };
 
+// ===== BDCV helpers =====
+const buildBDCVId = (idVi, idHoaDon) => `${String(idVi)}_${String(idHoaDon)}`;
+
+async function upsertBDCV({ idVi, idHoaDon, trangThai }) {
+  const idBDCV = buildBDCVId(idVi, idHoaDon);
+  await setDoc(
+    doc(db, "bienDongCuaVi", idBDCV),
+    {
+      idBDCV,
+      idVi: String(idVi),
+      idHoaDon: String(idHoaDon),
+      trangThai: String(trangThai), // 'pending' | 'done' | 'canceled'
+      ngayTao: serverTimestamp(),
+    },
+    { merge: true }
+  );
+  return idBDCV;
+}
+
 export default function CheckoutResult() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -62,15 +84,13 @@ export default function CheckoutResult() {
     [summary.amount]
   );
 
-  // Kích hoạt gói cho người dùng (an toàn chạy nhiều lần)
+  // Kích hoạt gói cho người dùng (idempotent)
   const ensureKichHoatGoi = async (orderData) => {
-    const uid = String(orderData.idNguoiDung);
-    const idGoi = String(orderData.idGoi);
+    const uid = String(orderData.idNguoiDung || "");
+    const idGoi = String(orderData.idGoi || "");
     const thoiHanNgay = Number(orderData.thoiHanNgay || 0);
+    if (!uid || !idGoi || thoiHanNgay <= 0) return;
 
-    if (!uid || !idGoi) return;
-
-    // kiểm tra có sub cùng gói còn hiệu lực không
     const qSub = query(
       collection(db, "goiTraPhiCuaNguoiDung"),
       where("idNguoiDung", "==", uid),
@@ -86,7 +106,9 @@ export default function CheckoutResult() {
       const endAt =
         typeof s?.NgayKetThuc?.toDate === "function"
           ? s.NgayKetThuc.toDate()
-          : (typeof s?.NgayKetThuc === "string" ? new Date(s.NgayKetThuc) : null);
+          : typeof s?.NgayKetThuc === "string"
+          ? new Date(s.NgayKetThuc)
+          : null;
       return status !== "Đã hủy" && endAt && endAt >= now;
     });
 
@@ -95,19 +117,122 @@ export default function CheckoutResult() {
         idNguoiDung: uid,
         idGoi,
         NgayBatDau: serverTimestamp(),
-        NgayKetThuc: addDays(now, thoiHanNgay), // Date -> Firestore sẽ lưu Timestamp
+        NgayKetThuc: addDays(now, thoiHanNgay),
         status: "Đang hoạt động",
       });
+    }
+  };
+
+  // Cấp quyền vào khóa học (idempotent)
+  const ensureCapQuyenVaoLop = async (orderData) => {
+    const uid = String(orderData.idNguoiDung || "");
+    const idKhoaHoc = String(orderData.idKhoaHoc || "");
+    if (!uid || !idKhoaHoc) return;
+
+    const refKH = doc(db, "khoaHoc", idKhoaHoc);
+    const khSnap = await getDoc(refKH);
+    if (!khSnap.exists()) return;
+
+    await updateDoc(refKH, { thanhVienIds: arrayUnion(uid) });
+  };
+
+  // Cộng tiền cho chủ khóa học + log BDCV (idempotent qua cờ trên hóa đơn)
+  const creditOwnerWalletOnce = async (orderRef, orderData, paidAmount) => {
+    try {
+      if (orderData.loaiThanhToan !== "muaKhoaHoc") return;
+      const amount = Number(paidAmount || 0);
+      if (amount <= 0) return;
+
+      // đọc lại hóa đơn để kiểm tra cờ
+      const latest = await getDoc(orderRef);
+      const cur = latest.data() || {};
+      if (cur.daChiaTienChoChuKhoaHoc === true) return; // đã cộng trước đó
+
+      // lấy chủ khóa học
+      const idKhoaHoc = String(orderData.idKhoaHoc || "");
+      if (!idKhoaHoc) {
+        await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: false, ghiChuChiaTien: "missing_idKhoaHoc" });
+        return;
+      }
+      const khRef = doc(db, "khoaHoc", idKhoaHoc);
+      const khSnap = await getDoc(khRef);
+      if (!khSnap.exists()) {
+        await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: false, ghiChuChiaTien: "khoaHoc_not_found" });
+        return;
+      }
+      const ownerId = String(khSnap.data()?.idNguoiDung || "");
+      if (!ownerId) {
+        await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: false, ghiChuChiaTien: "owner_not_found" });
+        return;
+      }
+
+      // 1) Ghi biến động của ví (pending)
+      await upsertBDCV({ idVi: ownerId, idHoaDon: orderRef.id, trangThai: "pending" });
+
+      // 2) Cập nhật ví (tự tạo nếu chưa có)
+      const viRef = doc(db, "vi", ownerId);
+      try {
+        await updateDoc(viRef, {
+          soDu: increment(amount),
+          updatedAt: serverTimestamp(),
+        });
+      } catch {
+        await setDoc(
+          viRef,
+          {
+            idNguoiDung: ownerId,
+            soDu: amount,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+
+      // 3) Log giao dịch ví (để màn Ví đọc realtime)
+      await addDoc(collection(db, "bienDongSoDu"), {
+        idVi: ownerId,
+        soTien: amount, // dương = cộng
+        moTa: `Doanh thu từ hóa đơn ${orderRef.id} (khóa học ${idKhoaHoc})`,
+        maThamChieu: orderRef.id,
+        loai: "thu_ban_khoa_hoc",
+        ngayTao: serverTimestamp(),
+      });
+
+      // 4) BDCV = done
+      await upsertBDCV({ idVi: ownerId, idHoaDon: orderRef.id, trangThai: "done" });
+
+      // 5) Đặt cờ để không cộng trùng
+      await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: true });
+    } catch (e) {
+      console.error("creditOwnerWalletOnce error:", e);
+      // không throw để không chặn luồng hiển thị
+    }
+  };
+
+  // Nếu giao dịch failed/canceled → ghi BDCV 'canceled' cho chủ lớp (nếu xác định được)
+  const cancelBDCVIfNeeded = async (orderData, orderId) => {
+    try {
+      if (orderData.loaiThanhToan !== "muaKhoaHoc") return;
+      const idKhoaHoc = String(orderData.idKhoaHoc || "");
+      if (!idKhoaHoc) return;
+      const khSnap = await getDoc(doc(db, "khoaHoc", idKhoaHoc));
+      if (!khSnap.exists()) return;
+      const ownerId = String(khSnap.data()?.idNguoiDung || "");
+      if (!ownerId) return;
+      await upsertBDCV({ idVi: ownerId, idHoaDon: orderId, trangThai: "canceled" });
+    } catch (e) {
+      console.error("cancelBDCVIfNeeded error:", e);
     }
   };
 
   useEffect(() => {
     (async () => {
       const p = new URLSearchParams(location.search);
+
       const stateOrderId = location.state?.orderId || "";
-      const stateStatus = location.state?.status || ""; // 'success' khi luồng 0đ điều hướng sang
+      const stateStatus = location.state?.status || ""; // 'success' nếu luồng 0đ đã confirm trước
       const vnpCode = p.get("vnp_ResponseCode");       // "00" = thành công
-      const vnpOrder = sanitizeId(p.get("vnp_TxnRef")); // doc id đã được sanitize ở bước checkout
+      const vnpOrder = sanitizeId(p.get("vnp_TxnRef")); // đã sanitize ở bước checkout
       const vnpAmount = Number(p.get("vnp_Amount") || 0) / 100; // VNPay trả *100
       const queryOrder = sanitizeId(p.get("orderId"));
 
@@ -118,20 +243,20 @@ export default function CheckoutResult() {
         setSummary({
           orderId: "",
           responseCode: "",
-          message: "Thiếu mã đơn hàng.",
+          message: "Thiếu mã hóa đơn.",
           amount: 0,
           paidAt: "",
         });
         return;
       }
 
-      // Lấy đơn theo doc id; nếu không có thử theo field idDonHang
-      let orderRef = doc(db, "donHangTraPhi", orderId);
+      // --- LẤY HÓA ĐƠN TỪ 'hoaDon' ---
+      let orderRef = doc(db, "hoaDon", orderId);
       let snap = await getDoc(orderRef);
       if (!snap.exists()) {
         const qByField = query(
-          collection(db, "donHangTraPhi"),
-          where("idDonHang", "==", orderId),
+          collection(db, "hoaDon"),
+          where("idHoaDon", "==", orderId),
           limit(1)
         );
         const r = await getDocs(qByField);
@@ -140,32 +265,32 @@ export default function CheckoutResult() {
           setSummary({
             orderId,
             responseCode: vnpCode || "",
-            message: "Không tìm thấy đơn hàng tương ứng.",
+            message: "Không tìm thấy hóa đơn tương ứng.",
             amount: vnpAmount || 0,
             paidAt: "",
           });
           return;
         }
         const found = r.docs[0];
-        orderRef = doc(db, "donHangTraPhi", found.id);
+        orderRef = doc(db, "hoaDon", found.id);
         snap = await getDoc(orderRef);
       }
 
-      const o = snap.data();
+      const o = snap.data() || {};
       const expected = Number(o.soTienThanhToan || 0);
       const alreadyPaid = o.trangThai === "paid";
       const isFree = expected <= 0;
 
-      // Quyết định thành công:
-      // - Có VNPay & mã "00" + số tiền khớp
-      // - Hoặc luồng 0đ (isFree)
-      // - Hoặc state.status === 'success' (điều hướng nội bộ)
+      // Thành công nếu:
+      // - VNPay "00" + số tiền khớp, hoặc
+      // - Hóa đơn 0đ, hoặc
+      // - state.status === 'success'
       const moneyOK = expected > 0 ? vnpAmount === expected : true;
       const treatSuccess =
         (vnpCode === "00" && moneyOK) || isFree || stateStatus === "success";
 
       if (treatSuccess) {
-        // cập nhật đơn thành paid nếu chưa
+        // cập nhật hóa đơn thành paid nếu chưa
         if (!alreadyPaid) {
           await updateDoc(orderRef, {
             trangThai: "paid",
@@ -175,12 +300,17 @@ export default function CheckoutResult() {
           });
         }
 
-        // luôn đảm bảo kích hoạt gói (kể cả đã paid trước đó)
+        // Hậu thanh toán theo loại
         try {
-          await ensureKichHoatGoi(o);
+          if (o.loaiThanhToan === "nangCapTraPhi") {
+            await ensureKichHoatGoi(o);
+          } else if (o.loaiThanhToan === "muaKhoaHoc") {
+            await ensureCapQuyenVaoLop(o);
+            const paidAmount = isFree ? 0 : (vnpAmount || expected);
+            await creditOwnerWalletOnce(orderRef, o, paidAmount);
+          }
         } catch (e) {
-          console.error("Kích hoạt gói thất bại:", e);
-          // không chặn thông báo thành công
+          console.error("Hậu thanh toán thất bại:", e);
         }
 
         setStatus("success");
@@ -188,8 +318,8 @@ export default function CheckoutResult() {
           orderId: orderId,
           responseCode: "00",
           message: isFree
-            ? "Giao dịch 0đ — gói đã được kích hoạt."
-            : (RESP_TEXT["00"] || "Thanh toán thành công. Gói đã kích hoạt."),
+            ? "Giao dịch 0đ — đã kích hoạt quyền."
+            : (RESP_TEXT["00"] || "Thanh toán thành công."),
           amount: isFree ? 0 : (vnpAmount || expected),
           paidAt: new Date().toISOString(),
         });
@@ -201,6 +331,9 @@ export default function CheckoutResult() {
             canceledAt: serverTimestamp(),
           });
         }
+
+        // ghi BDCV 'canceled' cho chủ lớp (nếu là muaKhoaHoc)
+        try { await cancelBDCVIfNeeded(o, orderRef.id); } catch {}
 
         setStatus("fail");
         setSummary({
@@ -235,7 +368,7 @@ export default function CheckoutResult() {
         {/* Details */}
         {!isProcessing && (
           <div className="cr-details">
-            <div className="cr-label">Mã đơn</div>
+            <div className="cr-label">Mã hóa đơn</div>
             <div className="cr-value"><strong>{summary.orderId || "—"}</strong></div>
 
             <div className="cr-label">Số tiền</div>
@@ -257,9 +390,6 @@ export default function CheckoutResult() {
         <div className="cr-actions">
           <Button variant="secondary" onClick={() => navigate("/trangchu")}>
             Quay lại trang chủ
-          </Button>
-          <Button variant="secondary" onClick={() => navigate("/tra-phi")}>
-            Mua gói trả phí mới
           </Button>
         </div>
       </div>

@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import "./ThuVienCuaToi.css";
 import { useNavigate } from "react-router-dom";
 
-import ItemBo from "../../../components/BoThe/itemBo"; // <-- THÊM
+import ItemBo from "../../../components/BoThe/itemBo";
+import ItemKH from "../../../components/BoThe/itemKH"; // <-- THÊM
 
 import { auth, db } from "../../../../lib/firebase";
 import {
@@ -47,8 +48,8 @@ function ThuVienCuaToi() {
             typeof data.soTu === "number"
               ? data.soTu
               : Array.isArray(data.danhSachThe)
-              ? data.danhSachThe.length
-              : 0,
+                ? data.danhSachThe.length
+                : 0,
           luotHoc: Number(data.luotHoc || 0),
         };
       });
@@ -118,7 +119,11 @@ function ThuVienCuaToi() {
   }, [cardLib, khoaHocList]);
 
   const handleStudy = (id) => navigate(`/flashcard/${id}`);
-  const handleKhoaHoc = (id) => navigate(`/khoaHoc/${id}`);
+  const handleKhoaHoc = (id) => navigate(`/khoaHoc/${id}`); // giữ nguyên route hiện tại
+
+  // helper giá hiển thị cho ItemKH
+  const getGiaKhoaHoc = (k) =>
+    Number(k?.giaThamGia ?? k?.hocPhi ?? k?.giaKhoaHoc ?? 0);
 
   return (
     <div className="myLib-container">
@@ -147,9 +152,8 @@ function ThuVienCuaToi() {
               <ItemBo
                 key={item.idBoThe}
                 item={item}
-                author={author}                    // {tenNguoiDung, anhDaiDien}
-                onClick={(id) => handleStudy(id)} // click toàn card
-                // onLearn không truyền thì mặc định = onClick
+                author={author}
+                onClick={(id) => handleStudy(id)}
               />
             );
           })}
@@ -158,51 +162,25 @@ function ThuVienCuaToi() {
       )}
 
       {actionTab === "khoaHoc" && (
-        <div className="myLop">
-          {khoaHocList.map((item) => {
-            const owner = userMap[String(item.idNguoiDung)] || {};
-            const tenNguoiTao = owner.tenNguoiDung || "Ẩn danh";
-            const anhNguoiTao = owner.anhDaiDien || "";
+  <div className="myLop">
+    {khoaHocList.map((k) => {
+      const owner = userMap[String(k.idNguoiDung)] || null;
 
-            return (
-              <div
-                key={item.idKhoaHoc}
-                className="mini-card"
-                onClick={() => handleKhoaHoc(item.idKhoaHoc)}
-              >
-                <div className="mini-title">{item?.tenKhoaHoc || "Khóa học"}</div>
-                <div className="mini-sub">
-                  {(item.boTheIds?.length || 0)} bộ thẻ • {(item.thanhVienIds?.length || 0)} thành viên
-                </div>
+      return (
+        <ItemKH
+          key={k.idKhoaHoc}
+          item={k}
+          author={owner}
+        isJoined       // ✅ đã tham gia -> ẩn giá + sao, hiện nút "Vào lớp"
+          onClick={(id) => navigate(`/khoaHoc/${id}`)}
+          onEnter={(id) => navigate(`/khoaHoc/${id}`)}
+        />
+      );
+    })}
+  </div>
+)}
 
-                <div className="mini-meta">
-                  <div
-                    className="mini-avatar"
-                    style={anhNguoiTao ? { backgroundImage: `url(${anhNguoiTao})` } : {}}
-                    aria-label={tenNguoiTao}
-                    title={tenNguoiTao}
-                  />
-                  <span className="mini-name">{tenNguoiTao}</span>
-                </div>
 
-                <div className="mini-actions">
-                  <button
-                    className="btn ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleKhoaHoc(item.idKhoaHoc);
-                    }}
-                  >
-                    Vào khóa học
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-
-          {khoaHocList.length === 0 && <p className="emty">Không có khóa học nào cả</p>}
-        </div>
-      )}
     </div>
   );
 }

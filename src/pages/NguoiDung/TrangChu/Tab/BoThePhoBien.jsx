@@ -7,26 +7,16 @@ import ItemBo from "../../../../components/BoThe/itemBo";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../../../../../lib/firebase";
 import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-  documentId,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-  increment,
+  collection, query, where, limit, getDocs,
+  documentId, doc, getDoc, setDoc, updateDoc,
+  serverTimestamp, increment
 } from "firebase/firestore";
 
 export default function BoThePhoBien() {
   const [uid, setUid] = useState(null);
   const [popularCards, setPopularCards] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // author map
   const [userMap, setUserMap] = useState({});
   const userMapRef = useRef({});
 
@@ -35,15 +25,16 @@ export default function BoThePhoBien() {
     return () => unsub();
   }, []);
 
-  // nạp danh sách phổ biến
+  // Lấy danh sách bộ thẻ công khai → sort theo luotHoc ở client
   useEffect(() => {
     let cancelled = false;
 
     const mapSnap = (snap) =>
       snap.docs.map((d) => {
-        const data = d.data();
+        const data = d.data() || {};
         return {
           ...data,
+          idBoThe: data.idBoThe ?? d.id,
           soTu:
             typeof data.soTu === "number"
               ? data.soTu
@@ -54,53 +45,34 @@ export default function BoThePhoBien() {
         };
       });
 
-    const fetchPopular = async () => {
+    (async () => {
       try {
-        const qPopular = query(
+        setLoading(true);
+        // 🔒 phù hợp security rules: chỉ lấy công khai
+        const qPublic = query(
           collection(db, "boThe"),
           where("cheDo", "==", "cong_khai"),
-          orderBy("luotHoc", "desc"),
-          limit(8)
+          limit(120) // lấy nhiều rồi sort/limit ở client
         );
-        const snap = await getDocs(qPopular);
-        if (!cancelled) setPopularCards(mapSnap(snap));
-      } catch (e) {
-        if (e?.code === "failed-precondition" && /index/i.test(e?.message || "")) {
-          console.warn("Thiếu composite index (cheDo, luotHoc). Dùng fallback client.");
-          try {
-            const qNoFilter = query(
-              collection(db, "boThe"),
-              orderBy("luotHoc", "desc"),
-              limit(64)
-            );
-            const snap2 = await getDocs(qNoFilter);
-            if (!cancelled) {
-              const all = mapSnap(snap2)
-                .filter((x) => x.cheDo === "cong_khai")
-                .slice(0, 8);
-              setPopularCards(all);
-            }
-          } catch (e2) {
-            console.error("Fallback popular failed:", e2);
-            if (!cancelled) setPopularCards([]);
-          }
-        } else {
-          console.error("Fetch popular failed:", e);
-          if (!cancelled) setPopularCards([]);
-        }
-      }
-    };
+        const snap = await getDocs(qPublic);
+        if (cancelled) return;
 
-    fetchPopular();
-    const onChanged = () => fetchPopular();
-    window.addEventListener("boTheUpdated", onChanged);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("boTheUpdated", onChanged);
-    };
+        const all = mapSnap(snap)
+          .sort((a, b) => b.luotHoc - a.luotHoc)  // sort client
+          .slice(0, 12);                          // top 12
+        setPopularCards(all);
+      } catch (e) {
+        console.error("Fetch popular failed:", e);
+        if (!cancelled) setPopularCards([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
-  // nạp hồ sơ tác giả (chỉ những uid chưa có)
+  // Nạp hồ sơ tác giả (chỉ uid còn thiếu)
   useEffect(() => {
     const ownerIds = popularCards
       .map((b) => (b?.idNguoiDung != null ? String(b.idNguoiDung) : null))
@@ -129,7 +101,7 @@ export default function BoThePhoBien() {
     })();
   }, [popularCards]);
 
-  // click học + tracking (giống HocGanDay)
+  // click học + tracking
   const goLearnTracked = async (idBoThe) => {
     if (!idBoThe) return;
     const idStr = String(idBoThe);
@@ -160,7 +132,6 @@ export default function BoThePhoBien() {
       console.warn("Tracking popular lỗi (bỏ qua):", e);
     }
 
-    // điều hướng
     window.location.href = `/flashcard/${idStr}`;
   };
 
@@ -170,7 +141,9 @@ export default function BoThePhoBien() {
         <h2 className="block-title">Bộ thẻ phổ biến</h2>
       </div>
 
-      {popularCards.length === 0 ? (
+      {loading ? (
+        <div className="empty">Đang tải…</div>
+      ) : popularCards.length === 0 ? (
         <div className="empty">Chưa có dữ liệu để hiển thị.</div>
       ) : (
         <div className="mini-grid">
