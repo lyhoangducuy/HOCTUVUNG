@@ -5,6 +5,7 @@ import { db } from "../../../../../lib/firebase";
 import TopContent from "./TopContentAdmin";
 import AISummary from "./AISummary";
 import MiniCharts from "./MiniCharts";
+import ProAnalytics from "./ProAnalytics";
 
 /* ---------- Helpers ---------- */
 // dd/mm/yyyy -> Date
@@ -191,6 +192,16 @@ export default function MainContent() {
       {/* [AI] Biểu đồ mini */}
       <div style={{ marginTop: 16 }}>
         <MiniCharts
+          users={rawUsers}
+          classes={rawClasses}
+          cards={rawCards}
+          revenue={revenue}
+        />
+      </div>
+
+      {/* Bộ biểu đồ phân tích nâng cao */}
+      <div style={{ marginTop: 16 }}>
+        <ProAnalytics
           users={rawUsers}
           classes={rawClasses}
           cards={rawCards}

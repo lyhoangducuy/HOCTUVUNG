@@ -1,4 +1,4 @@
-// Lop.jsx
+// src/pages/Home/Lop/Lop.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./Lop.css";
 import { useParams, useNavigate } from "react-router-dom";
@@ -12,13 +12,17 @@ import ChiTietLopModal from "./chucNang/chiTietLop";
 import ChonBoThe from "./chucNang/chonBoThe";
 import FeedbackTab from "./chucNang/feedBackTab";
 
+import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../../../../lib/firebase";
 import {
   doc,
   onSnapshot,
   updateDoc,
   deleteDoc,
-  arrayUnion,
+  addDoc,
+  collection,
+  serverTimestamp,
+  getDoc,
 } from "firebase/firestore";
 
 export default function Lop() {
@@ -34,14 +38,38 @@ export default function Lop() {
   const [moChonBoThe, setMoChonBoThe] = useState(false);
   const [daYeuCau, setDaYeuCau] = useState(false);
 
-  // session hiện tại (fallback nếu chưa có auth.currentUser)
-  const session = useMemo(() => {
-    try { return JSON.parse(sessionStorage.getItem("session") || "null"); }
-    catch { return null; }
-  }, []);
-  const uid = auth.currentUser?.uid || session?.idNguoiDung || null;
+  // Preview bộ thẻ đầu tiên
+  const [firstDeck, setFirstDeck] = useState(null);
+  const [firstCards, setFirstCards] = useState([]);
+  const [loadingFirst, setLoadingFirst] = useState(false);
 
-  // nạp khóa học theo id (Firestore)
+  /* ===== 1) Xác định danh tính hiện tại (chuẩn) ===== */
+  const [authUid, setAuthUid] = useState(null); // Firebase Auth UID
+  const [altId, setAltId] = useState(null);     // nguoiDung.idNguoiDung (legacy)
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setAuthUid(u?.uid || null));
+    return () => unsub();
+  }, []);
+
+  // Lấy altId từ hồ sơ người dùng
+  useEffect(() => {
+    (async () => {
+      if (!authUid) { setAltId(null); return; }
+      try {
+        const snap = await getDoc(doc(db, "nguoiDung", String(authUid)));
+        const idField = snap.exists() ? snap.data()?.idNguoiDung : null;
+        setAltId(idField ? String(idField) : null);
+      } catch {
+        setAltId(null);
+      }
+    })();
+  }, [authUid]);
+
+  // Tập hợp các ID đại diện cho "tôi"
+  const myIds = useMemo(() => [authUid, altId].filter(Boolean).map(String), [authUid, altId]);
+
+  /* ===== 2) Nạp khóa học theo id (Firestore) ===== */
   useEffect(() => {
     if (!id) return;
     const ref = doc(db, "khoaHoc", String(id));
@@ -53,12 +81,10 @@ export default function Lop() {
           return;
         }
         const kh = snap.data() || null;
-
         // đảm bảo các trường mảng tồn tại
         ["thanhVienIds", "boTheIds", "folderIds", "kienThuc", "yeuCauThamGiaIds"].forEach((k) => {
           if (!Array.isArray(kh[k])) kh[k] = [];
         });
-
         setChiTietKhoaHoc(kh);
       },
       () => setChiTietKhoaHoc(null)
@@ -66,34 +92,40 @@ export default function Lop() {
     return () => unsub();
   }, [id]);
 
+  /* ===== 3) Quyền: Owner / Member ===== */
+  const ownerId = useMemo(
+    () => String(chiTietKhoaHoc?.idNguoiDung || ""),
+    [chiTietKhoaHoc]
+  );
+  const memberIds = useMemo(
+    () => (Array.isArray(chiTietKhoaHoc?.thanhVienIds) ? chiTietKhoaHoc.thanhVienIds.map(String) : []),
+    [chiTietKhoaHoc]
+  );
+
+  // Chủ lớp khi idNguoiDung khớp bất kỳ ID của tôi (authUid hoặc altId)
   const isOwner = useMemo(() => {
-    if (!chiTietKhoaHoc || !uid) return false;
-    return String(chiTietKhoaHoc.idNguoiDung) === String(uid);
-  }, [chiTietKhoaHoc, uid]);
+    if (!chiTietKhoaHoc || myIds.length === 0) return false;
+    return myIds.includes(ownerId);
+  }, [chiTietKhoaHoc, myIds, ownerId]);
 
-  const canLeave = useMemo(() => {
-    if (!chiTietKhoaHoc || !uid) return false;
-    if (String(chiTietKhoaHoc.idNguoiDung) === String(uid)) return false; // chủ không rời
-    const tv = Array.isArray(chiTietKhoaHoc.thanhVienIds) ? chiTietKhoaHoc.thanhVienIds : [];
-    return tv.some((x) => String(x) === String(uid));
-  }, [chiTietKhoaHoc, uid]);
+  // Thành viên khi thanhVienIds chứa bất kỳ ID của tôi
+  const isMember = useMemo(() => {
+    if (!chiTietKhoaHoc || myIds.length === 0) return false;
+    return memberIds.some((x) => myIds.includes(String(x)));
+  }, [chiTietKhoaHoc, myIds, memberIds]);
 
-  const isMember = isOwner || canLeave;
-  const canViewInside = isOwner || isMember;
+  const canLeave = isMember && !isOwner;         // chỉ thành viên mới rời được
+  const canViewInside = isOwner || isMember;     // xem thư viện khi là chủ hoặc thành viên
 
-  // đã gửi yêu cầu?
-  useEffect(() => {
-    if (!chiTietKhoaHoc || !uid) { setDaYeuCau(false); return; }
-    setDaYeuCau((chiTietKhoaHoc.yeuCauThamGiaIds || []).includes(uid));
-  }, [chiTietKhoaHoc, uid]);
+  // Reset "đang xử lý" khi đổi lớp / user
+  useEffect(() => { setDaYeuCau(false); }, [chiTietKhoaHoc, authUid]);
 
   const doiTrangThaiDropdown = () => setHienDropdown((prev) => !prev);
   const moHopThoaiChiTiet = () => setMoChiTietKhoaHoc(true);
 
-  // Xoá khóa học (Firestore)
+  /* ===== 4) Xoá khóa học ===== */
   const xoaKhoaHoc = async () => {
-    if (!chiTietKhoaHoc) return;
-    if (!isOwner) return;
+    if (!chiTietKhoaHoc || !isOwner) return;
     const xacNhan = window.confirm(`Xóa khóa học "${chiTietKhoaHoc.tenKhoaHoc || ""}"?`);
     if (!xacNhan) return;
     try {
@@ -106,12 +138,12 @@ export default function Lop() {
     }
   };
 
-  // Lưu chi tiết khóa học (từ modal)
+  /* ===== 5) Lưu chi tiết khóa học (từ modal) ===== */
   const luuChiTietKhoaHoc = async (khDaSua) => {
     try {
       if (!khDaSua?.idKhoaHoc) return;
       await updateDoc(doc(db, "khoaHoc", String(khDaSua.idKhoaHoc)), khDaSua);
-      // onSnapshot sẽ tự cập nhật UI
+      alert("Đã lưu thay đổi khóa học.");
       setMoChiTietKhoaHoc(false);
     } catch (e) {
       console.error(e);
@@ -119,47 +151,133 @@ export default function Lop() {
     }
   };
 
-  // Gửi yêu cầu tham gia
-  const guiYeuCau = async () => {
-    if (!uid) {
-      if (window.confirm("Bạn cần đăng nhập để gửi yêu cầu. Đi đến trang đăng nhập?")) {
+  /* ===== 6) Giá / thời hạn / định dạng ===== */
+  const getGiaThamGia = (kh) => {
+    const v = kh?.giaThamGia ?? kh?.hocPhi ?? kh?.giaKhoaHoc ?? 0;
+    return Number(v) || 0;
+  };
+  const getThoiHanNgay = (kh) => {
+    const v = kh?.thoiHanNgay ?? 30;
+    return Number(v) || 30;
+  };
+  const fmtVND = (v, donVi = "VND") => {
+    if (String(donVi).toUpperCase() === "VND") {
+      return (Number(v) || 0).toLocaleString("vi-VN") + " đ";
+    }
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: donVi }).format(Number(v) || 0);
+  };
+
+  /* ===== 7) Tạo hóa đơn tham gia lớp (JOIN_CLASS) ===== */
+  const xuLyThamGia = async () => {
+    if (!authUid) {
+      if (window.confirm("Bạn cần đăng nhập để thanh toán. Đi đến trang đăng nhập?")) {
         navigate("/dang-nhap");
       }
       return;
     }
+    if (!chiTietKhoaHoc) return;
     try {
-      await updateDoc(doc(db, "khoaHoc", String(id)), {
-        yeuCauThamGiaIds: arrayUnion(String(uid)),
-      });
       setDaYeuCau(true);
-      alert("Đã gửi yêu cầu tham gia. Vui lòng chờ giảng viên duyệt.");
+      const soTien = getGiaThamGia(chiTietKhoaHoc);
+      const thoiHan = getThoiHanNgay(chiTietKhoaHoc);
+
+      const ref = await addDoc(collection(db, "hoaDon"), {
+        idNguoiDung: String(authUid),
+        tenGoi: `Tham gia: ${chiTietKhoaHoc.tenKhoaHoc || "Khóa học"}`,
+        thoiHanNgay: thoiHan,
+        soTienThanhToan: soTien,
+        giamGia: Number(chiTietKhoaHoc?.giamGia || 0),
+        trangThai: "pending",
+        createdAt: serverTimestamp(),
+
+        // Phân loại hóa đơn
+        loaiThanhToan: "muaKhoaHoc",
+        idKhoaHoc: String(chiTietKhoaHoc.idKhoaHoc || id),
+      });
+
+      navigate("/checkout", { state: { orderId: ref.id } });
     } catch (e) {
       console.error(e);
-      alert("Không thể gửi yêu cầu. Vui lòng thử lại.");
+      setDaYeuCau(false);
+      alert("Không thể tạo đơn tham gia. Vui lòng thử lại.");
     }
   };
 
-  const GateCard = () => {
-    const soBoThe = chiTietKhoaHoc?.boTheIds?.length || 0;
-    const soTV = chiTietKhoaHoc?.thanhVienIds?.length || 0;
-    const tags = chiTietKhoaHoc?.kienThuc || [];
+  /* ===== 8) LẤY BỘ THẺ ĐẦU TIÊN (preview) ===== */
+  useEffect(() => {
+    const loadFirstDeck = async () => {
+      try {
+        setLoadingFirst(true);
+        setFirstDeck(null);
+        setFirstCards([]);
+        const ids = Array.isArray(chiTietKhoaHoc?.boTheIds) ? chiTietKhoaHoc.boTheIds : [];
+        const firstId = ids.length ? String(ids[0]) : null;
+        if (!firstId) { setLoadingFirst(false); return; }
+
+        const snap = await getDoc(doc(db, "boThe", firstId));
+        if (!snap.exists()) { setLoadingFirst(false); return; }
+
+        const data = snap.data() || {};
+        const danhSachThe = Array.isArray(data.danhSachThe) ? data.danhSachThe : [];
+        setFirstDeck({
+          idBoThe: data.idBoThe ?? firstId,
+          tenBoThe: data.tenBoThe || `Bộ thẻ #${firstId}`,
+          soTu: data.soTu ?? danhSachThe.length
+        });
+
+        const pickPair = (c) => {
+          if (typeof c === "string") return { front: c, back: "" };
+          if (!c || typeof c !== "object") return { front: "—", back: "" };
+          const f = c.front || c.matTruoc || c.tu || c.word || c.term || c.question || c.q || "";
+          const b = c.back || c.matSau || c.nghia || c.meaning || c.definition || c.answer || c.a || "";
+          const fallback = Object.values(c).find((v) => typeof v === "string") || "";
+          return { front: f || fallback || "—", back: b };
+        };
+
+        setFirstCards(danhSachThe.slice(0, 6).map(pickPair));
+      } catch (e) {
+        console.error("Load first deck failed:", e);
+        setFirstDeck(null);
+        setFirstCards([]);
+      } finally {
+        setLoadingFirst(false);
+      }
+    };
+    loadFirstDeck();
+  }, [chiTietKhoaHoc]);
+
+  /* ===== 9) Hiển thị thông tin khóa học + preview ===== */
+  const ThongTinKhoaHoc = () => {
+    if (!chiTietKhoaHoc) return null;
+
+    const soBoThe = Array.isArray(chiTietKhoaHoc.boTheIds) ? chiTietKhoaHoc.boTheIds.length : 0;
+    const soThanhVien = Array.isArray(chiTietKhoaHoc.thanhVienIds) ? chiTietKhoaHoc.thanhVienIds.length : 0;
+    const tags = chiTietKhoaHoc.kienThuc || [];
+    const donVi = chiTietKhoaHoc.donViTien || "VND";
+
+    const giaGoc = getGiaThamGia(chiTietKhoaHoc);
+    const giamGia = Number(chiTietKhoaHoc?.giamGia || 0);
+    const giaSauGiam = Number(
+      chiTietKhoaHoc?.giaSauGiam ||
+      (giaGoc && giamGia ? Math.round((giaGoc * (100 - giamGia)) / 100) : 0)
+    );
+
     return (
-      <div
-        style={{
-          gridColumn: "1 / -1",
-          border: "1px solid #e5e7eb",
-          borderRadius: 12,
-          padding: 16,
-          background: "#fff",
-          boxShadow: "0 8px 20px rgba(0,0,0,.06)",
-        }}
-      >
+      <div style={{
+        gridColumn: "1 / -1",
+        border: "1px solid #e5e7eb",
+        borderRadius: 12,
+        padding: 16,
+        background: "#fff",
+        boxShadow: "0 8px 20px rgba(0,0,0,.06)",
+        marginBottom: 12
+      }}>
         <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Thông tin khóa học</h3>
-        <div style={{ marginTop: 10, color: "#374151" }}>
-          <div style={{ marginBottom: 6 }}>
-            <strong>Mô tả:</strong> {chiTietKhoaHoc?.moTa || "—"}
-          </div>
-          <div style={{ marginBottom: 6 }}>
+
+        <div style={{ marginTop: 10, color: "#374151", display: "grid", gap: 6 }}>
+          <div><strong>Tên khóa học:</strong> {chiTietKhoaHoc.tenKhoaHoc || "—"}</div>
+          <div><strong>Mô tả:</strong> {chiTietKhoaHoc.moTa || "—"}</div>
+          <div>
             <strong>Kiến thức:</strong>{" "}
             {tags.length ? tags.map((t, i) => (
               <span key={i} style={{
@@ -173,22 +291,109 @@ export default function Lop() {
               }}>{t}</span>
             )) : "—"}
           </div>
-          <div style={{ marginBottom: 6 }}>
-            <strong>Số bộ thẻ:</strong> {soBoThe}
-          </div>
-          <div style={{ marginBottom: 6 }}>
-            <strong>Thành viên:</strong> {soTV}
+
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 6 }}>
+            <div><strong>Bộ thẻ:</strong> {soBoThe}</div>
+            <div><strong>Thành viên:</strong> {soThanhVien}</div>
+            {giaGoc > 0 && (
+              <div>
+                <strong>Giá:</strong>{" "}
+                {giamGia > 0 || giaSauGiam > 0 ? (
+                  <>
+                    <span style={{ textDecoration: "line-through", color: "#6b7280", marginRight: 6 }}>
+                      {fmtVND(giaGoc, donVi)}
+                    </span>
+                    <span style={{ fontWeight: 800, color: "#111827" }}>
+                      {fmtVND(giaSauGiam || giaGoc, donVi)}
+                    </span>
+                    {giamGia > 0 && <span style={{ marginLeft: 8, color: "#ef4444" }}>-{giamGia}%</span>}
+                  </>
+                ) : (
+                  <span style={{ fontWeight: 800 }}>{fmtVND(giaGoc, donVi)}</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
-          <button className="btn-join" onClick={guiYeuCau} disabled={daYeuCau}>
-            {daYeuCau ? "Đã gửi yêu cầu" : "Yêu cầu tham gia"}
-          </button>
-          <span style={{ color: "#6b7280", fontSize: 14 }}>
-            Sau khi được duyệt, bạn sẽ xem toàn bộ nội dung.
-          </span>
+        {!canViewInside && (
+          <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
+            <button className="btn-join" onClick={xuLyThamGia} disabled={daYeuCau}>
+              {daYeuCau ? "Đang mở thanh toán..." : "Tham gia khóa học"}
+            </button>
+            <span style={{ color: "#6b7280", fontSize: 14 }}>
+              Sau khi thanh toán, bạn sẽ truy cập toàn bộ nội dung.
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const FirstDeckPreview = () => {
+    if (!canViewInside) return null;
+    if (loadingFirst) {
+      return (
+        <div style={{
+          gridColumn: "1 / -1",
+          border: "1px solid #e5e7eb",
+          borderRadius: 12,
+          padding: 16,
+          background: "#fff",
+          boxShadow: "0 8px 20px rgba(0,0,0,.06)",
+          marginBottom: 12
+        }}>
+          Đang tải bộ thẻ đầu tiên…
         </div>
+      );
+    }
+    if (!firstDeck) return null;
+
+    return (
+      <div style={{
+        gridColumn: "1 / -1",
+        border: "1px solid #e5e7eb",
+        borderRadius: 12,
+        padding: 16,
+        background: "#fff",
+        boxShadow: "0 8px 20px rgba(0,0,0,.06)",
+        marginBottom: 12
+      }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
+            Xem trước bộ thẻ đầu tiên: {firstDeck.tenBoThe}
+          </h3>
+          <span style={{ color: "#6b7280" }}>{firstDeck.soTu} thẻ</span>
+        </div>
+
+        {firstCards.length === 0 ? (
+          <div style={{ marginTop: 8, color: "#6b7280" }}>Bộ thẻ này chưa có thẻ nào.</div>
+        ) : (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+            gap: 10,
+            marginTop: 12
+          }}>
+            {firstCards.map((c, i) => (
+              <div key={i} style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 10,
+                padding: 10,
+                background: "#fafafa"
+              }}>
+                <div style={{ fontWeight: 700, color: "#111827", marginBottom: 6 }}>
+                  {c.front || "—"}
+                </div>
+                {c.back ? (
+                  <div style={{ color: "#374151", fontSize: 14 }}>{c.back}</div>
+                ) : (
+                  <div style={{ color: "#9ca3af", fontSize: 13 }}>—</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -241,9 +446,7 @@ export default function Lop() {
               idKhoaHoc={chiTietKhoaHoc?.idKhoaHoc}
               isOwner={isOwner}
               canLeave={canLeave}
-              onLeft={() => {
-                // Không cần làm gì: onSnapshot sẽ tự cập nhật sau khi rời lớp
-              }}
+              onLeft={() => {}}
             />
           </div>
         </div>
@@ -278,14 +481,18 @@ export default function Lop() {
 
         {tabDangChon === "thuVien" && chiTietKhoaHoc && (
           <div className="tab-content">
+            {/* Thông tin khóa học luôn hiển thị */}
+            <ThongTinKhoaHoc />
+
+            {/* Preview bộ thẻ đầu tiên (chỉ khi đã tham gia/chủ) */}
+            <FirstDeckPreview />
+
             {canViewInside ? (
               <ThuVienLop
                 khoaHoc={chiTietKhoaHoc}
-                onCapNhat={(khMoi) => setChiTietKhoaHoc(khMoi)} // hoặc để onSnapshot cập nhật
+                onCapNhat={(khMoi) => setChiTietKhoaHoc(khMoi)}
               />
-            ) : (
-              <GateCard />
-            )}
+            ) : null}
           </div>
         )}
 

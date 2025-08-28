@@ -45,6 +45,8 @@ import Checkout from "./pages/NguoiDung/Checkout/checkout";
 import CheckoutResult from "./pages/NguoiDung/Checkout/checkoutResult";
 import LichSuThanhToan from "./pages/NguoiDung/TraPhi/lichSuThanhToan";
 import NguoiDungDetail from "./pages/NguoiDung/NguoiDungDetail/NguoiDungDetail";
+import BoTheDetail from "./pages/NguoiDung/HocBoThe/BoTheDetail";
+import ViDetail from "./pages/NguoiDung/Vi/viDetail";
 
 
 export default function App() {
@@ -83,6 +85,8 @@ export default function App() {
             <Route path="/checkout/result" element={<CheckoutResult />} />
             <Route path="/lichSuThanhToan" element={<LichSuThanhToan />}/>
             <Route path="/nguoiDung/:uid" element={<NguoiDungDetail />} />
+            <Route path="/bothe/:id" element={<BoTheDetail />} />
+            <Route path="/vi" element={<ViDetail/>}/>
 
             {/* 🔒 Chỉ người có gói trả phí còn hiệu lực mới truy cập được Video */}
             <Route element={<YeuCauTraPhi />}>

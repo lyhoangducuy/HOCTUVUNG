@@ -161,47 +161,6 @@ export default function AIButton() {
     }
   };
 
-  /* ============= ADMIN: thêm user ảo (Firestore) ============= */
-  const addFakeUsers = async () => {
-    try {
-      if (!user?.idNguoiDung) return alert("Vui lòng đăng nhập.");
-      if (user?.vaiTro !== "ADMIN") return alert("Chức năng này chỉ dành cho ADMIN.");
-
-      const nStr = window.prompt("Thêm bao nhiêu người dùng ảo? (VD: 5)");
-      const n = Number(nStr);
-      const total = Number.isFinite(n) && n > 0 ? n : 3;
-
-      const batch = writeBatch(db);
-      const now = Date.now();
-
-      for (let i = 0; i < total; i++) {
-        const ref = doc(collection(db, "nguoiDung")); // id ngẫu nhiên
-        const idNguoiDung = ref.id;
-        const username = "user" + String(now + i).slice(-5);
-
-        batch.set(ref, {
-          idNguoiDung,
-          tenNguoiDung: username,
-          hoten: "Người dùng ảo " + (i + 1),
-          email: `${username}@example.com`,
-          matkhau: "123123", // chỉ để mock hiển thị
-          vaiTro: "HOC_VIEN",
-          ngayTaoTaiKhoan: serverTimestamp(),
-          anhDaiDien: "",
-          isFake: true,
-        });
-      }
-
-      await batch.commit();
-      alert(`Đã thêm ${total} người dùng ảo vào Firestore (collection "nguoiDung").`);
-    } catch (e) {
-      console.error("AI thêm người dùng ảo thất bại", e);
-      alert("Không thể thêm người dùng ảo. Vui lòng thử lại.");
-    } finally {
-      setOpen(false);
-    }
-  };
-
   /* ============= Helper: tạo idBoThe 6 số & check trùng ============= */
   const genUniqueIdBoThe = async () => {
     for (let i = 0; i < 5; i++) {
@@ -230,44 +189,54 @@ export default function AIButton() {
     setPreviewOpen(false);
   };
 
-  /* ============= LƯU: flow GIỐNG NewBoThe ============= */
-  const onSavePreview = async () => {
-    const userCreated = user?.idNguoiDung;
+  // --- giữ nguyên mọi thứ ở trên ---
 
-    // Lọc thẻ hợp lệ
-    const valid = previewList
-      .map((t) => ({
-        tu: String(t?.tu || "").trim(),
-        nghia: String(t?.nghia || "").trim(),
-      }))
-      .filter((t) => t.tu && t.nghia);
+/* ============= LƯU: flow GIỐNG NewBoThe, bổ sung ngày tạo/chỉnh sửa ============= */
+const onSavePreview = async () => {
+  const userCreated = user?.idNguoiDung;
 
-    if (!valid.length) return alert("Danh sách thẻ trống hoặc không hợp lệ.");
-    if (!userCreated) return alert("Vui lòng đăng nhập.");
+  // Lọc thẻ hợp lệ
+  const valid = previewList
+    .map((t) => ({
+      tu: String(t?.tu || "").trim(),
+      nghia: String(t?.nghia || "").trim(),
+    }))
+    .filter((t) => t.tu && t.nghia);
 
-    try {
-      // idBoThe 6 chữ số + docId = idBoThe
-      const idBoThe = await genUniqueIdBoThe();
+  if (!valid.length) return alert("Danh sách thẻ trống hoặc không hợp lệ.");
+  if (!userCreated) return alert("Vui lòng đăng nhập.");
 
-      // LƯU ĐÚNG CẤU TRÚC: { idBoThe, tenBoThe, soTu, idNguoiDung, danhSachThe, luotHoc, cheDo }
-      await setDoc(doc(db, "boThe", String(idBoThe)), {
+  try {
+    // idBoThe 6 chữ số + docId = idBoThe
+    const idBoThe = await genUniqueIdBoThe();
+
+    // LƯU ĐÚNG CẤU TRÚC:
+    // cheDo, danhSachThe, idBoThe, idNguoiDung, luotHoc, ngayChinhSua, ngayTao, soTu, tenBoThe
+    await setDoc(
+      doc(db, "boThe", String(idBoThe)),
+      {
         idBoThe,
         tenBoThe: String(previewTopic || "").trim(),
         soTu: valid.length,
         idNguoiDung: String(userCreated),
         danhSachThe: valid,
         luotHoc: 0,
-        cheDo, // "cong_khai" | "ca_nhan"
-      }, { merge: true });
+        cheDo,                          // "cong_khai" | "ca_nhan"
+        ngayTao: serverTimestamp(),     // ➕ thêm
+        ngayChinhSua: serverTimestamp() // ➕ thêm
+      },
+      { merge: true }
+    );
 
-      window.dispatchEvent(new Event("boTheUpdated"));
-      setPreviewOpen(false);
-      alert("Đã lưu bộ thẻ: " + previewTopic);
-    } catch (e) {
-      console.error("Lưu bộ thẻ thất bại:", e);
-      alert("Không thể lưu bộ thẻ. Vui lòng thử lại.");
-    }
-  };
+    window.dispatchEvent(new Event("boTheUpdated"));
+    setPreviewOpen(false);
+    alert("Đã lưu bộ thẻ: " + previewTopic);
+  } catch (e) {
+    console.error("Lưu bộ thẻ thất bại:", e);
+    alert("Không thể lưu bộ thẻ. Vui lòng thử lại.");
+  }
+};
+
 
   const isAdmin = user?.vaiTro === "ADMIN";
 
@@ -302,12 +271,6 @@ export default function AIButton() {
           >
             {loading ? "Đang tạo..." : "Tạo bộ thẻ theo chủ đề"}
           </div>
-
-          {isAdmin && (
-            <div className="ai-item" onClick={addFakeUsers}>
-              Thêm người dùng ảo
-            </div>
-          )}
         </div>
       )}
        {showHelp && <HelpBot defaultOpen={true} />} {/* chỉ render khi click */}

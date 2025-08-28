@@ -1,6 +1,10 @@
+// src/pages/Home/ThuVienCuaToi.jsx
 import { useEffect, useMemo, useState } from "react";
 import "./ThuVienCuaToi.css";
 import { useNavigate } from "react-router-dom";
+
+import ItemBo from "../../../components/BoThe/itemBo";
+import ItemKH from "../../../components/BoThe/itemKH"; // <-- THÊM
 
 import { auth, db } from "../../../../lib/firebase";
 import {
@@ -18,8 +22,8 @@ function ThuVienCuaToi() {
   const [cardLib, setCardLib] = useState([]);
   const [actionTab, setActionTab] = useState("boThe");
 
-  const [khOwner, setKhOwner] = useState([]);   // khóa học do mình tạo
-  const [khMember, setKhMember] = useState([]); // khóa học mình là thành viên
+  const [khOwner, setKhOwner] = useState([]);
+  const [khMember, setKhMember] = useState([]);
   const [khoaHocList, setKhoaHocList] = useState([]);
 
   const [userMap, setUserMap] = useState({}); // { uid: {tenNguoiDung, anhDaiDien} }
@@ -44,8 +48,9 @@ function ThuVienCuaToi() {
             typeof data.soTu === "number"
               ? data.soTu
               : Array.isArray(data.danhSachThe)
-              ? data.danhSachThe.length
-              : 0,
+                ? data.danhSachThe.length
+                : 0,
+          luotHoc: Number(data.luotHoc || 0),
         };
       });
       setCardLib(items);
@@ -114,18 +119,11 @@ function ThuVienCuaToi() {
   }, [cardLib, khoaHocList]);
 
   const handleStudy = (id) => navigate(`/flashcard/${id}`);
-  const handleKhoaHoc = (id) => navigate(`/khoaHoc/${id}`);
+  const handleKhoaHoc = (id) => navigate(`/khoaHoc/${id}`); // giữ nguyên route hiện tại
 
-  const renderAvatarMini = (url, name) => {
-    return (
-      <div
-        className="mini-avatar"
-        style={url ? { backgroundImage: `url(${url})` } : {}}
-        aria-label={name || "user"}
-        title={name || ""}
-      />
-    );
-  };
+  // helper giá hiển thị cho ItemKH
+  const getGiaKhoaHoc = (k) =>
+    Number(k?.giaThamGia ?? k?.hocPhi ?? k?.giaKhoaHoc ?? 0);
 
   return (
     <div className="myLib-container">
@@ -149,37 +147,14 @@ function ThuVienCuaToi() {
       {actionTab === "boThe" && (
         <div className="myLibCard">
           {cardLib.map((item) => {
-            const owner = userMap[String(item.idNguoiDung)] || {};
-            const tenNguoiTao = owner.tenNguoiDung || "Ẩn danh";
-            const anhNguoiTao = owner.anhDaiDien || "";
-
+            const author = userMap[String(item.idNguoiDung)] || {};
             return (
-              <div
+              <ItemBo
                 key={item.idBoThe}
-                className="mini-card"
-                onClick={() => handleStudy(item.idBoThe)}
-              >
-                <div className="mini-title">{item?.tenBoThe || "Không tên"}</div>
-                <div className="mini-sub">
-                  {item.soTu ?? (Array.isArray(item.danhSachThe) ? item.danhSachThe.length : 0)} thẻ
-                </div>
-                <div className="mini-meta">
-                  {renderAvatarMini(anhNguoiTao, tenNguoiTao)}
-                  <span className="mini-name">{tenNguoiTao}</span>
-                </div>
-
-                <div className="mini-actions">
-                  <button
-                    className="btn ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStudy(item.idBoThe);
-                    }}
-                  >
-                    Học
-                  </button>
-                </div>
-              </div>
+                item={item}
+                author={author}
+                onClick={(id) => handleStudy(id)}
+              />
             );
           })}
           {cardLib.length === 0 && <p className="emty">Không có bộ thẻ nào cả</p>}
@@ -187,46 +162,25 @@ function ThuVienCuaToi() {
       )}
 
       {actionTab === "khoaHoc" && (
-        <div className="myLop">
-          {khoaHocList.map((item) => {
-            const owner = userMap[String(item.idNguoiDung)] || {};
-            const tenNguoiTao = owner.tenNguoiDung || "Ẩn danh";
-            const anhNguoiTao = owner.anhDaiDien || "";
+  <div className="myLop">
+    {khoaHocList.map((k) => {
+      const owner = userMap[String(k.idNguoiDung)] || null;
 
-            return (
-              <div
-                key={item.idKhoaHoc}
-                className="mini-card"
-                onClick={() => handleKhoaHoc(item.idKhoaHoc)}
-              >
-                <div className="mini-title">{item?.tenKhoaHoc || "Khóa học"}</div>
-                <div className="mini-sub">
-                  {(item.boTheIds?.length || 0)} bộ thẻ • {(item.thanhVienIds?.length || 0)} thành viên
-                </div>
+      return (
+        <ItemKH
+          key={k.idKhoaHoc}
+          item={k}
+          author={owner}
+        isJoined       // ✅ đã tham gia -> ẩn giá + sao, hiện nút "Vào lớp"
+          onClick={(id) => navigate(`/khoaHoc/${id}`)}
+          onEnter={(id) => navigate(`/khoaHoc/${id}`)}
+        />
+      );
+    })}
+  </div>
+)}
 
-                <div className="mini-meta">
-                  {renderAvatarMini(anhNguoiTao, tenNguoiTao)}
-                  <span className="mini-name">{tenNguoiTao}</span>
-                </div>
 
-                <div className="mini-actions">
-                  <button
-                    className="btn ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleKhoaHoc(item.idKhoaHoc);
-                    }}
-                  >
-                    Vào khóa học
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-
-          {khoaHocList.length === 0 && <p className="emty">Không có khóa học nào cả</p>}
-        </div>
-      )}
     </div>
   );
 }

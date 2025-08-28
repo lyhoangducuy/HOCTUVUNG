@@ -1,50 +1,140 @@
 import { useMemo } from "react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  LabelList
+} from "recharts";
 
-/** Màu giữ nguyên như legend cũ */
 const COLORS = {
-  users: "#3b82f6",   // xanh dương
-  classes: "#10b981", // xanh lá
-  cards: "#f59e0b",   // cam
+  users: "#3b82f6",
+  classes: "#10b981",
+  cards: "#f59e0b",
 };
 
-export default function MiniCharts({ users = [], classes = [], cards = [] }) {
-  // Dùng số lượng phần tử như trước
-  const { vals, labels, max } = useMemo(() => {
-    const u = Array.isArray(users) ? users.length : Number(users || 0);
-    const c = Array.isArray(classes) ? classes.length : Number(classes || 0);
-    const b = Array.isArray(cards) ? cards.length : Number(cards || 0);
-    const mx = Math.max(u, c, b, 1); // tránh chia 0
-    return {
-      vals: [u, c, b],
-      labels: ["Người dùng", "Lớp học", "Bộ thẻ"],
-      max: mx,
+// Helpers
+const asDate = (val) => {
+  if (!val) return null;
+  try {
+    // Firestore Timestamp object
+    if (typeof val?.toDate === "function") return val.toDate();
+    // Firestore timestamp plain object { seconds, nanoseconds }
+    if (typeof val === "object" && typeof val.seconds === "number") {
+      return new Date(val.seconds * 1000);
+    }
+    if (val instanceof Date) return val;
+    if (typeof val === "number") {
+      // treat as ms if looks like ms, else seconds
+      return new Date(val > 1e12 ? val : val * 1000);
+    }
+    if (typeof val === "string") {
+      // Try ISO first
+      const iso = new Date(val);
+      if (!isNaN(iso.getTime())) return iso;
+      // Try dd/mm/yyyy
+      const parts = val.split("/");
+      if (parts.length === 3) {
+        const d = Number(parts[0]);
+        const m = Number(parts[1]);
+        const y = Number(parts[2]);
+        if (y) return new Date(y, (m || 1) - 1, d || 1);
+      }
+    }
+  } catch (_) {}
+  return null;
+};
+
+const getItemDate = (item) => {
+  return (
+    asDate(item?.createdAt) ||
+    asDate(item?.created_at) ||
+    asDate(item?.ngayTao) ||
+    asDate(item?.NgayTao) ||
+    asDate(item?.NgayBatDau) ||
+    asDate(item?.createdDate) ||
+    asDate(item?.timestamp) ||
+    asDate(item?.time) ||
+    null
+  );
+};
+
+const ymKey = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+
+const lastNMonthsKeys = (n = 6) => {
+  const now = new Date();
+  const keys = [];
+  for (let i = n - 1; i >= 0; i -= 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    keys.push(ymKey(d));
+  }
+  return keys;
+};
+
+export default function MiniCharts({ users = [], classes = [], cards = [], revenue = { byMonth: {} } }) {
+  const countData = useMemo(() => ([
+    { name: "Người dùng", value: Array.isArray(users) ? users.length : Number(users || 0), key: "users" },
+    { name: "Lớp học", value: Array.isArray(classes) ? classes.length : Number(classes || 0), key: "classes" },
+    { name: "Bộ thẻ", value: Array.isArray(cards) ? cards.length : Number(cards || 0), key: "cards" },
+  ]), [users, classes, cards]);
+
+  const growthData = useMemo(() => {
+    const keys = lastNMonthsKeys(6);
+
+    const countByMonth = (arr) => {
+      const map = Object.fromEntries(keys.map((k) => [k, 0]));
+      (Array.isArray(arr) ? arr : []).forEach((it) => {
+        const dt = getItemDate(it);
+        if (!dt || isNaN(dt.getTime())) return;
+        const k = ymKey(dt);
+        if (k in map) map[k] += 1;
+      });
+      return map;
     };
+
+    const uMap = countByMonth(users);
+    const cMap = countByMonth(classes);
+    const bMap = countByMonth(cards);
+
+    return keys.map((k) => ({ month: k, users: uMap[k], classes: cMap[k], cards: bMap[k] }));
   }, [users, classes, cards]);
 
-  // Kích thước chart
-  const width = 420;
-  const height = 180;
-  const pad = { top: 14, right: 12, bottom: 28, left: 36 };
-  const innerW = width - pad.left - pad.right;
-  const innerH = height - pad.top - pad.bottom;
+  // Percent growth vs. first month with non-zero baseline
+  const growthPctData = useMemo(() => {
+    if (!Array.isArray(growthData) || growthData.length === 0) return [];
 
-  // Scale đơn giản theo index 0..2
-  const xOf = (i) => pad.left + (innerW * i) / (vals.length - 1 || 1);
-  const yOf = (v) => pad.top + innerH - (v / max) * innerH; // 0 ở đáy
+    const firstIdx = 0;
+    const base = {
+      users: growthData[firstIdx]?.users || 0,
+      classes: growthData[firstIdx]?.classes || 0,
+      cards: growthData[firstIdx]?.cards || 0,
+    };
 
-  // Tạo area path cho từng "đỉnh" (tam giác ở vị trí category)
-  const mkAreaPath = (peakIndex) => {
-    const pts = vals.map((v, i) => ({ x: xOf(i), y: yOf(i === peakIndex ? vals[peakIndex] : 0) }));
-    const d =
-      `M ${xOf(0)} ${yOf(0)}` +            // bắt đầu ở đáy trái
-      pts.map((p) => ` L ${p.x} ${p.y}`).join("") + // lên theo 3 điểm
-      ` L ${xOf(vals.length - 1)} ${yOf(0)}` +     // xuống đáy phải
-      ` Z`; // đóng vùng
-    return d;
-  };
+    const pct = (val, b) => {
+      if (!b || b === 0) return 0;
+      return ((val - b) / b) * 100;
+    };
 
-  // Lưới ngang đơn giản (3 vạch)
-  const gridY = [0.25, 0.5, 0.75].map((t) => pad.top + innerH * t);
+    return growthData.map((row) => ({
+      month: row.month,
+      usersPct: pct(row.users, base.users),
+      classesPct: pct(row.classes, base.classes),
+      cardsPct: pct(row.cards, base.cards),
+      // keep raw for tooltip reference
+      users: row.users,
+      classes: row.classes,
+      cards: row.cards,
+    }));
+  }, [growthData]);
 
   return (
     <div style={{
@@ -53,123 +143,31 @@ export default function MiniCharts({ users = [], classes = [], cards = [] }) {
       padding: 16,
       boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
     }}>
-      <h3 style={{ margin: 0, marginBottom: 8 }}>Biểu đồ miền</h3>
+      <h3 style={{ margin: 0, marginBottom: 12 }}>Thống kê tổng quan</h3>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 160px", gap: 16 }}>
-        {/* Chart */}
-        <svg width={width} height={height} role="img" aria-label="Biểu đồ miền">
-          {/* Khung ngoài */}
-          <rect x="0" y="0" width={width} height={height} rx="8" ry="8" fill="transparent" />
-
-          {/* Lưới ngang */}
-          {gridY.map((y, idx) => (
-            <line
-              key={idx}
-              x1={pad.left}
-              x2={pad.left + innerW}
-              y1={y}
-              y2={y}
-              stroke="#e5e7eb"
-              strokeDasharray="4 4"
-            />
-          ))}
-
-          {/* Vùng người dùng (trái) */}
-          <path
-            d={mkAreaPath(0)}
-            fill={COLORS.users + "40"} // ~25% alpha
-            stroke={COLORS.users}
-            strokeWidth="2"
-          />
-          {/* Vùng lớp học (giữa) */}
-          <path
-            d={mkAreaPath(1)}
-            fill={COLORS.classes + "40"}
-            stroke={COLORS.classes}
-            strokeWidth="2"
-          />
-          {/* Vùng bộ thẻ (phải) */}
-          <path
-            d={mkAreaPath(2)}
-            fill={COLORS.cards + "40"}
-            stroke={COLORS.cards}
-            strokeWidth="2"
-          />
-
-          {/* Điểm đỉnh & nhãn số */}
-          {vals.map((v, i) => {
-            const cx = xOf(i);
-            const cy = yOf(v);
-            const color = i === 0 ? COLORS.users : i === 1 ? COLORS.classes : COLORS.cards;
-            return (
-              <g key={i}>
-                <circle cx={cx} cy={cy} r="4" fill={color} stroke="#fff" strokeWidth="2" />
-                <text
-                  x={cx}
-                  y={cy - 8}
-                  textAnchor="middle"
-                  fontSize="12"
-                  fill="#111827"
-                  fontWeight="600"
-                >
-                  {v}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Trục X + nhãn category */}
-          {labels.map((lb, i) => (
-            <g key={lb} transform={`translate(${xOf(i)},0)`}>
-              <line
-                x1="0"
-                x2="0"
-                y1={pad.top + innerH}
-                y2={pad.top + innerH + 4}
-                stroke="#9ca3af"
-              />
-              <text
-                x="0"
-                y={height - 6}
-                textAnchor="middle"
-                fontSize="12"
-                fill="#374151"
-              >
-                {lb}
-              </text>
-            </g>
-          ))}
-
-          {/* Trục Y (0) */}
-          <line
-            x1={pad.left}
-            x2={pad.left + innerW}
-            y1={pad.top + innerH}
-            y2={pad.top + innerH}
-            stroke="#9ca3af"
-          />
-        </svg>
-
-        {/* Legend + mô tả */}
-        <div>
-          <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>Tương quan số lượng</div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-            <span style={{ width: 12, height: 12, background: COLORS.users, display: "inline-block", borderRadius: 2 }} />
-            <span style={{ fontSize: 13 }}>Người dùng: <b>{vals[0]}</b></span>
-          </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-            <span style={{ width: 12, height: 12, background: COLORS.classes, display: "inline-block", borderRadius: 2 }} />
-            <span style={{ fontSize: 13 }}>Lớp học: <b>{vals[1]}</b></span>
-          </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ width: 12, height: 12, background: COLORS.cards, display: "inline-block", borderRadius: 2 }} />
-            <span style={{ fontSize: 13 }}>Bộ thẻ: <b>{vals[2]}</b></span>
-          </div>
-          <div style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
-            Mỗi “miền” là một danh mục, chiều cao biểu thị độ lớn (số lượng).
-          </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        {/* Biểu đồ cột: số lượng người dùng / lớp / bộ thẻ (tổng) */}
+        <div style={{ width: "100%", height: 240 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={countData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis allowDecimals={false} />
+              <Tooltip formatter={(val) => [val, "Số lượng"]} />
+              <Legend />
+              <Bar dataKey="value" name="Số lượng" radius={[6, 6, 0, 0]}>
+                {countData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[entry.key]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
+
+     
+
+     
     </div>
   );
 }

@@ -1,14 +1,12 @@
+// src/pages/Home/chucNang/ThuVienLop.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ThuVienLop.css";
 
+import ItemBo from "../../../../components/BoThe/itemBo"; // <-- CHỈNH LẠI NẾU ĐƯỜNG DẪN KHÁC
+
 import { auth, db } from "../../../../../lib/firebase";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  arrayRemove,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayRemove } from "firebase/firestore";
 
 export default function ThuVienLop({ khoaHoc, onCapNhat }) {
   const navigate = useNavigate();
@@ -17,15 +15,17 @@ export default function ThuVienLop({ khoaHoc, onCapNhat }) {
 
   // uid hiện tại (fallback session để tương thích phần cũ)
   const session = useMemo(() => {
-    try { return JSON.parse(sessionStorage.getItem("session") || "null"); }
-    catch { return null; }
+    try {
+      return JSON.parse(sessionStorage.getItem("session") || "null");
+    } catch {
+      return null;
+    }
   }, []);
   const uid = auth.currentUser?.uid || session?.idNguoiDung || null;
 
   if (!khoaHoc) return <div className="tvl-empty">Không tìm thấy khóa học.</div>;
 
   const isOwner = !!uid && String(uid) === String(khoaHoc.idNguoiDung);
-
   const boTheIds = Array.isArray(khoaHoc.boTheIds) ? khoaHoc.boTheIds : [];
 
   // Nạp bộ thẻ + tác giả từ Firestore
@@ -39,13 +39,22 @@ export default function ThuVienLop({ khoaHoc, onCapNhat }) {
           return;
         }
 
-        // Lấy boThe/{id} theo từng id
+        // Lấy boThe/{id} theo từng id (KHÔNG lọc cheDo để bộ thẻ trong lớp luôn hiện)
         const boTheDocs = await Promise.all(
           boTheIds.map((id) => getDoc(doc(db, "boThe", String(id))))
         );
+
         const rawBoThe = boTheDocs
           .filter((snap) => snap.exists())
-          .map((snap) => snap.data());
+          .map((snap) => {
+            const data = snap.data() || {};
+            return {
+              ...data,
+              idBoThe: data.idBoThe ?? snap.id,
+              // giữ lại cheDo nếu cần hiển thị đâu đó, NHƯNG KHÔNG dùng để ẩn trong lớp
+              cheDo: data.cheDo || "cong_khai",
+            };
+          });
 
         // Thu thập idNguoiDung duy nhất để lấy thông tin tác giả
         const ownerIds = [
@@ -68,9 +77,14 @@ export default function ThuVienLop({ khoaHoc, onCapNhat }) {
           const creator = userMap[String(bt.idNguoiDung)] || {};
           return {
             ...bt,
-            _tenNguoiTao: creator.tenNguoiDung || "Ẩn danh",
+            _tenNguoiTao: creator.tenNguoiDung || creator.hoten || creator.email || "Ẩn danh",
             _anhNguoiTao: creator.anhDaiDien || "",
-            soTu: bt.soTu ?? (Array.isArray(bt.danhSachThe) ? bt.danhSachThe.length : 0),
+            soTu:
+              typeof bt.soTu === "number"
+                ? bt.soTu
+                : Array.isArray(bt.danhSachThe)
+                ? bt.danhSachThe.length
+                : 0,
           };
         });
 
@@ -82,8 +96,9 @@ export default function ThuVienLop({ khoaHoc, onCapNhat }) {
       }
     }
     load();
-    return () => { cancelled = true; };
-  }, [db, JSON.stringify(boTheIds)]); // stringify để trigger khi mảng đổi
+    // stringify để trigger khi mảng đổi
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(boTheIds)]);
 
   const xemBoThe = (id) => navigate(`/flashcard/${id}`);
 
@@ -98,56 +113,41 @@ export default function ThuVienLop({ khoaHoc, onCapNhat }) {
       await updateDoc(doc(db, "khoaHoc", String(khoaHoc.idKhoaHoc)), {
         boTheIds: arrayRemove(String(bt.idBoThe)),
       });
-      // UI sẽ tự cập nhật khi parent Lop.jsx onSnapshot thay đổi.
-      // Nếu muốn cập nhật lạc quan ngay:
-      setBoTheHienThi((prev) => prev.filter((x) => String(x.idBoThe) !== String(bt.idBoThe)));
-      onCapNhat && onCapNhat({ ...khoaHoc, boTheIds: khoaHoc.boTheIds.filter((x) => String(x) !== String(bt.idBoThe)) });
+      // Cập nhật lạc quan
+      setBoTheHienThi((prev) =>
+        prev.filter((x) => String(x.idBoThe) !== String(bt.idBoThe))
+      );
+      onCapNhat &&
+        onCapNhat({
+          ...khoaHoc,
+          boTheIds: (khoaHoc.boTheIds || []).filter(
+            (x) => String(x) !== String(bt.idBoThe)
+          ),
+        });
     } catch (e) {
       console.error(e);
       alert("Không thể gỡ bộ thẻ. Vui lòng thử lại.");
     }
   };
 
-  if (loading) {
-    return <div className="tvl-empty">Đang tải...</div>;
-  }
-
-  if (boTheHienThi.length === 0) {
+  if (loading) return <div className="tvl-empty">Đang tải...</div>;
+  if (boTheHienThi.length === 0)
     return <div className="tvl-empty">Chưa có bộ thẻ nào. Bấm “+ → Thêm bộ thẻ”.</div>;
-  }
 
   return (
     <div className="tvl-grid">
       {boTheHienThi.map((bt) => (
-        <div key={bt.idBoThe} className="tvl-card" onClick={() => xemBoThe(bt.idBoThe)}>
-          <div className="tvl-title">{bt.tenBoThe || `Bộ thẻ #${bt.idBoThe}`}</div>
-          <div className="tvl-sub">{bt.soTu} từ</div>
-
-          <div className="tvl-meta" onClick={(e) => e.stopPropagation()}>
-            {bt._anhNguoiTao ? (
-              <img className="tvl-avatar" src={bt._anhNguoiTao} alt="" />
-            ) : (
-              <div className="tvl-avatar tvl-avatar--placeholder">
-                {(bt._tenNguoiTao || "?")[0]?.toUpperCase() || "?"}
-              </div>
-            )}
-            <span className="tvl-name">{bt._tenNguoiTao}</span>
-          </div>
-
-          <div className="tvl-actions" onClick={(e) => e.stopPropagation()}>
-            <button className="tvl-btn tvl-btn--ghost" onClick={() => xemBoThe(bt.idBoThe)}>
-              Học
-            </button>
-            {isOwner && (
-              <button
-                className="tvl-btn tvl-btn--danger"
-                onClick={() => goBoTheKhoiKhoaHoc(bt)}
-              >
-                Gỡ khỏi khóa học
-              </button>
-            )}
-          </div>
-        </div>
+        <ItemBo
+          key={bt.idBoThe}
+          item={bt}
+          author={{ tenNguoiDung: bt._tenNguoiTao, anhDaiDien: bt._anhNguoiTao }}
+          onClick={xemBoThe}
+          onLearn={xemBoThe}
+          inCourse={true} // để hiện nhóm nút học + (có thể) gỡ
+          onRemoveFromCourse={
+            isOwner ? () => goBoTheKhoiKhoaHoc(bt) : undefined
+          }
+        />
       ))}
     </div>
   );

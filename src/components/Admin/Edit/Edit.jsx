@@ -3,46 +3,87 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import "./Edit.css";
 
 /**
- * Props chính:
+ * Props:
  * - user: object dữ liệu đang chỉnh
  * - onClose(): đóng modal
- * - onSave(payload, isEditFlag?): parent tự đóng khi thành công (component này KHÔNG auto close)
+ * - onSave(payload, isEditFlag?): parent tự đóng khi thành công
  * - isEditMode: boolean (parent bật bằng cách gọi onSave(user, true))
- * - Colums: [{ name, key, options? }]
- * - showAvatar: boolean
+ * - Colums: [{ name, key, options? }]           // nếu có options sẽ render dropdown
+ * - showAvatar?: boolean
  *
- * Props mở rộng:
- * - readOnlyKeys: string[]
- * - selectFields: { [key]: Array<{value,label}> }
- * - selectLabels: { [key]: (v)=>string }
+ * Mở rộng:
+ * - readOnlyKeys?: string[]
+ * - selectOptions?: { [key]: Array<string | {value,label}> }  // có thể truyền ngoài cột
  *
  * Validate:
- * - validationSchema: Yup schema
- * - validateOnChange: boolean (mặc định false, chỉ validate onBlur + khi bấm Lưu)
+ * - validationSchema?: Yup schema
+ * - validateOnChange?: boolean (mặc định false: chỉ onBlur + khi Lưu)
  */
 const Edit = ({
   user,
   onClose,
   onSave,
   isEditMode = false,
-  Colums,
-  showAvatar,
+  Colums = [],
+  showAvatar = false,
   readOnlyKeys = [],
-  selectFields = {},
-  selectLabels = {},
-  validationSchema,       // <-- nhận Yup schema
+  selectOptions = {},           // map key -> options
+  validationSchema,             // Yup schema
   validateOnChange = false,
 }) => {
   const [formData, setFormData] = useState({ ...user });
   const [errors, setErrors] = useState({}); // { key: "message" }
   const fileInputRef = useRef(null);
 
+  /* ========== sync dữ liệu ========== */
   useEffect(() => {
     setFormData({ ...user });
     setErrors({});
   }, [user]);
 
-  /* ======= helpers ======= */
+  /* ========== helpers ========== */
+  const isTimestamp = (v) =>
+    v && (typeof v?.toDate === "function" || (typeof v?.seconds === "number" && typeof v?.nanoseconds === "number"));
+
+  const toDate = (v) => {
+    try {
+      if (typeof v?.toDate === "function") return v.toDate();
+      if (typeof v?.seconds === "number") return new Date(v.seconds * 1000);
+      if (v instanceof Date) return v;
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? null : d;
+    } catch {
+      return null;
+    }
+  };
+
+  const displayValue = (v) => {
+    if (v == null) return "";
+    if (isTimestamp(v)) {
+      const d = toDate(v);
+      return d ? d.toLocaleString("vi-VN") : "";
+    }
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  };
+
+  const normalizeOptions = (opts) => {
+    if (!opts) return null;
+    return opts.map((o) =>
+      typeof o === "string" ? { value: o, label: o } : { value: String(o.value), label: o.label ?? o.value }
+    );
+  };
+
+  const optionsForKey = (key, colOpts) =>
+    normalizeOptions(Array.isArray(colOpts) ? colOpts : selectOptions[key]);
+
+  const getLabelFromOpts = (value, opts) => {
+    const val = String(value ?? "");
+    const found = (opts || []).find((o) => String(o.value) === val);
+    return found ? found.label : val;
+  };
+
+  /* ========== Validate (Yup) ========== */
   const setFieldError = (key, message) =>
     setErrors((prev) => ({ ...prev, [key]: message || "" }));
 
@@ -75,16 +116,15 @@ const Edit = ({
     } catch (err) {
       if (err?.name === "ValidationError") {
         const map = {};
-        for (const e of err.inner || []) {
-          if (e.path && !map[e.path]) map[e.path] = e.message;
-        }
+        for (const e of err.inner || []) if (e.path && !map[e.path]) map[e.path] = e.message;
         setErrors(map);
       }
       return { ok: false };
     }
   }, [validationSchema, formData]);
 
-  const handleInputChange = (key) => async (e) => {
+  /* ========== Handlers ========== */
+  const handleInputChange = (key) => (e) => {
     const value = e.target.value;
     setFormData((prev) => {
       const next = { ...prev, [key]: value };
@@ -93,51 +133,26 @@ const Edit = ({
     });
   };
 
-  const handleBlur = (key) => async () => {
-    await validateField(key, formData);
-  };
+  const handleBlur = (key) => () => validateField(key, formData);
 
   const handleSave = async () => {
     const { ok } = await validateAll();
-    if (!ok) return; // giữ modal & hiển thị lỗi dưới ô
-    onSave(formData); // parent sẽ tự đóng khi cập nhật thành công
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setFormData((prev) => ({ ...prev, image: ev.target.result }));
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!ok) return;
+    onSave(formData); // parent tự đóng khi xong
   };
 
   const handleAvatarClick = () => {
     if (isEditMode) fileInputRef.current?.click();
   };
-
-  const defaultRoleOptions = [
-    { value: "HOC_VIEN", label: "Học viên" },
-    { value: "GIANG_VIEN", label: "Giảng viên" },
-    { value: "ADMIN", label: "Admin" },
-  ];
-  const defaultStatusOptions = [
-    { value: "Đang hoạt động", label: "Đang hoạt động" },
-    { value: "Hết hạn", label: "Hết hạn" },
-    { value: "Đã hủy", label: "Đã hủy" },
-  ];
-
-  const getLabelFromOptions = (key, value, opts) => {
-    if (typeof selectLabels[key] === "function") return selectLabels[key](value);
-    if (Array.isArray(opts)) {
-      const found = opts.find((o) => String(o.value) === String(value));
-      if (found) return found.label ?? found.value;
-    }
-    return value ?? "";
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setFormData((p) => ({ ...p, image: ev.target.result }));
+    reader.readAsDataURL(file);
   };
 
+  /* ========== UI ========== */
   return (
     <div className="user-detail-modal-overlay">
       <div className="user-detail-modal">
@@ -170,122 +185,35 @@ const Edit = ({
           )}
 
           <div className="user-info-section">
-            {Colums.map((item, index) => {
-              const key = item.key;
-              const val = formData[key] ?? "";
+            {Colums.map((col, idx) => {
+              const key = col.key;
               const readOnly = readOnlyKeys.includes(key);
+              const val = formData[key];
               const errMsg = errors[key];
+              const opts = optionsForKey(key, col.options);
 
-              // ROLE
-              if (key === "role") {
-                const opts = Array.isArray(item.options) ? item.options : defaultRoleOptions;
+              // --- Dropdown ---
+              if (opts) {
                 if (!isEditMode || readOnly) {
                   return (
-                    <div key={index} className="info-row">
-                      <label>{item.name}</label>
-                      <span>{getLabelFromOptions(key, val, opts)}</span>
+                    <div className="info-row" key={idx}>
+                      <label>{col.name}</label>
+                      <span>{getLabelFromOpts(val, opts)}</span>
                     </div>
                   );
                 }
                 return (
-                  <div key={index} className="info-row">
-                    <label>{item.name}</label>
+                  <div className="info-row" key={idx}>
+                    <label>{col.name}</label>
                     <select
-                      value={val}
+                      value={val ?? ""}
                       onChange={handleInputChange(key)}
                       onBlur={handleBlur(key)}
                       className={`edit-input ${errMsg ? "error" : ""}`}
                     >
                       {opts.map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
-                    {errMsg && <div className="field-error">{errMsg}</div>}
-                  </div>
-                );
-              }
-
-              // PASSWORD
-              if (key === "password") {
-                return (
-                  <div key={index} className="info-row">
-                    <label>{item.name}</label>
-                    {isEditMode && !readOnly ? (
-                      <>
-                        <input
-                          type="password"
-                          value={val}
-                          onChange={handleInputChange(key)}
-                          onBlur={handleBlur(key)}
-                          className={`edit-input ${errMsg ? "error" : ""}`}
-                        />
-                        {errMsg && <div className="field-error">{errMsg}</div>}
-                      </>
-                    ) : (
-                      <span>••••••</span>
-                    )}
-                  </div>
-                );
-              }
-
-              // STATUS
-              if (key === "status") {
-                const opts = Array.isArray(item.options) ? item.options : defaultStatusOptions;
-                if (!isEditMode || readOnly) {
-                  return (
-                    <div key={index} className="info-row">
-                      <label>{item.name}</label>
-                      <span>{getLabelFromOptions(key, val, opts)}</span>
-                    </div>
-                  );
-                }
-                return (
-                  <div key={index} className="info-row">
-                    <label>{item.name}</label>
-                    <select
-                      value={val}
-                      onChange={handleInputChange(key)}
-                      onBlur={handleBlur(key)}
-                      className={`edit-input ${errMsg ? "error" : ""}`}
-                    >
-                      {opts.map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
-                    {errMsg && <div className="field-error">{errMsg}</div>}
-                  </div>
-                );
-              }
-
-              // GENERIC SELECT
-              const providedOpts = Array.isArray(item.options)
-                ? item.options
-                : Array.isArray(selectFields[key])
-                ? selectFields[key]
-                : null;
-
-              if (providedOpts) {
-                if (!isEditMode || readOnly) {
-                  return (
-                    <div key={index} className="info-row">
-                      <label>{item.name}</label>
-                      <span>{getLabelFromOptions(key, val, providedOpts)}</span>
-                    </div>
-                  );
-                }
-                return (
-                  <div key={index} className="info-row">
-                    <label>{item.name}</label>
-                    <select
-                      value={val}
-                      onChange={handleInputChange(key)}
-                      onBlur={handleBlur(key)}
-                      className={`edit-input ${errMsg ? "error" : ""}`}
-                    >
-                      <option value="">-- chọn --</option>
-                      {providedOpts.map((o) => (
                         <option key={String(o.value)} value={String(o.value)}>
-                          {o.label ?? o.value}
+                          {o.label}
                         </option>
                       ))}
                     </select>
@@ -294,22 +222,47 @@ const Edit = ({
                 );
               }
 
-              // TEXT INPUT mặc định
+              // --- Password (nếu cột đặt type=password) ---
+              if (col.type === "password") {
+                if (!isEditMode || readOnly) {
+                  return (
+                    <div className="info-row" key={idx}>
+                      <label>{col.name}</label>
+                      <span>••••••</span>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="info-row" key={idx}>
+                    <label>{col.name}</label>
+                    <input
+                      type="password"
+                      value={String(val ?? "")}
+                      onChange={handleInputChange(key)}
+                      onBlur={handleBlur(key)}
+                      className={`edit-input ${errMsg ? "error" : ""}`}
+                    />
+                    {errMsg && <div className="field-error">{errMsg}</div>}
+                  </div>
+                );
+              }
+
+              // --- Text: readOnly vs Editable ---
               if (!isEditMode || readOnly) {
                 return (
-                  <div key={index} className="info-row">
-                    <label>{item.name}</label>
-                    <span>{val}</span>
+                  <div className="info-row" key={idx}>
+                    <label>{col.name}</label>
+                    <span>{displayValue(val)}</span>
                   </div>
                 );
               }
 
               return (
-                <div key={index} className="info-row">
-                  <label>{item.name}</label>
+                <div className="info-row" key={idx}>
+                  <label>{col.name}</label>
                   <input
                     type="text"
-                    value={val}
+                    value={String(val ?? "")}
                     onChange={handleInputChange(key)}
                     onBlur={handleBlur(key)}
                     className={`edit-input ${errMsg ? "error" : ""}`}

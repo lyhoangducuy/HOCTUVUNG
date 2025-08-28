@@ -129,7 +129,7 @@ function Traphi() {
 
   const hasActiveSub = !!activeSub;
 
-  // Tạo đơn hàng pending và điều hướng Checkout
+  // Tạo HÓA ĐƠN pending và điều hướng Checkout (đổi sang collection 'hoaDon')
   const handleSub = async (pack) => {
     if (!uid) return;
     if (hasActiveSub) {
@@ -141,7 +141,7 @@ function Traphi() {
       const giaSauGiam = calcDiscounted(pack.giaGoi, pack.giamGia);
 
       const payload = {
-        idDonHang: "",
+        idHoaDon: "",                          // sẽ set = doc.id ngay sau khi tạo
         idNguoiDung: String(uid),
         idGoi: String(pack.idGoi),
         tenGoi: pack.tenGoi || "",
@@ -151,15 +151,19 @@ function Traphi() {
         thoiHanNgay: Number(pack.thoiHan || 0),
         trangThai: "pending",
         createdAt: serverTimestamp(),
+
+        // Phân loại đơn mới:
+        loaiThanhToan: "nangCapTraPhi",       // ⭐ quan trọng
       };
 
-      const ref = await addDoc(collection(db, "donHangTraPhi"), payload);
-      await updateDoc(doc(db, "donHangTraPhi", ref.id), { idDonHang: ref.id });
+      // ➜ Ghi vào collection 'hoaDon' (thay vì 'donHangTraPhi')
+      const ref = await addDoc(collection(db, "hoaDon"), payload);
+      await updateDoc(doc(db, "hoaDon", ref.id), { idHoaDon: ref.id });
 
       navigate("/checkout", { state: { orderId: ref.id } });
     } catch (e) {
       console.error(e);
-      alert("Không thể tạo đơn hàng. Vui lòng thử lại.");
+      alert("Không thể tạo hóa đơn. Vui lòng thử lại.");
     }
   };
 
@@ -169,7 +173,7 @@ function Traphi() {
     return packs.find((p) => String(p.idGoi) === String(activeSub.idGoi)) || null;
   }, [activeSub, packs]);
 
-  // HỦY GÓI: tối ưu — huỷ **tất cả** sub đang hoạt động bằng batch + set endDate = hôm qua
+  // HỦY GÓI
   const handleCancel = async () => {
     if (!uid || isCancelling) return;
     setIsCancelling(true);
