@@ -1,14 +1,18 @@
-// src/pages/Admin/ChiTra/components/WithdrawTable.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import "../../../pages/Admin/ChiTra/ChiTra.css";
 
 const VN = "vi-VN";
-const num  = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-const vnd  = (n) => num(n).toLocaleString(VN) + "đ";
-const toDate = (v) => (typeof v?.toDate === "function" ? v.toDate() : new Date(v || 0));
+const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const vnd = (n) => num(n).toLocaleString(VN) + "đ";
+const toDate = (v) =>
+  typeof v?.toDate === "function" ? v.toDate() : new Date(v || 0);
 const time = (v) => {
-  try { const d = toDate(v); return isNaN(d.getTime()) ? "" : d.toLocaleString(VN); }
-  catch { return ""; }
+  try {
+    const d = toDate(v);
+    return isNaN(d.getTime()) ? "" : d.toLocaleString(VN);
+  } catch {
+    return "";
+  }
 };
 
 export default function WithdrawTable({
@@ -21,6 +25,8 @@ export default function WithdrawTable({
   pageSizeDefault = 5,
   pageSizeOptions = [5, 10, 20, 50],
 }) {
+  console.log(rows, nameById, onApprove, onPaid, onCancel);
+
   /* ===== Pagination state ===== */
   const [pageSize, setPageSize] = useState(pageSizeDefault);
   const [page, setPage] = useState(1);
@@ -39,10 +45,6 @@ export default function WithdrawTable({
     return Array.isArray(rows) ? rows.slice(start, start + pageSize) : [];
   }, [rows, page, pageSize]);
 
-  // 1–10 / 123
-  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to   = Math.min(page * pageSize, total);
-
   // Dãy trang với “…”
   const pages = useMemo(() => {
     const arr = [];
@@ -53,7 +55,7 @@ export default function WithdrawTable({
     arr.push(1);
     if (page > 3) arr.push("…");
     const start = Math.max(2, page - 1);
-    const end   = Math.min(totalPages - 1, page + 1);
+    const end = Math.min(totalPages - 1, page + 1);
     for (let i = start; i <= end; i++) arr.push(i);
     if (page < totalPages - 2) arr.push("…");
     arr.push(totalPages);
@@ -78,9 +80,17 @@ export default function WithdrawTable({
         </thead>
         <tbody>
           {loading ? (
-            <tr><td colSpan={9} className="rt-empty">Đang tải…</td></tr>
+            <tr>
+              <td colSpan={9} className="rt-empty">
+                Đang tải…
+              </td>
+            </tr>
           ) : pageRows.length === 0 ? (
-            <tr><td colSpan={9} className="rt-empty">Chưa có yêu cầu nào.</td></tr>
+            <tr>
+              <td colSpan={9} className="rt-empty">
+                Chưa có yêu cầu nào.
+              </td>
+            </tr>
           ) : (
             pageRows.map((r) => {
               const st = String(r.TinhTrang || "pending");
@@ -147,7 +157,9 @@ export default function WithdrawTable({
               }}
             >
               {pageSizeOptions.map((n) => (
-                <option key={n} value={n}>{n}</option>
+                <option key={n} value={n}>
+                  {n}
+                </option>
               ))}
             </select>
           </label>
@@ -173,11 +185,15 @@ export default function WithdrawTable({
 
           {pages.map((p, i) =>
             p === "…" ? (
-              <span key={`dots-${i}`} className="rt-pagebtn rt-pagebtn--dots">…</span>
+              <span key={`dots-${i}`} className="rt-pagebtn rt-pagebtn--dots">
+                …
+              </span>
             ) : (
               <button
                 key={p}
-                className={`rt-pagebtn ${p === page ? "rt-pagebtn--active" : ""}`}
+                className={`rt-pagebtn ${
+                  p === page ? "rt-pagebtn--active" : ""
+                }`}
                 onClick={() => setPage(p)}
               >
                 {p}
