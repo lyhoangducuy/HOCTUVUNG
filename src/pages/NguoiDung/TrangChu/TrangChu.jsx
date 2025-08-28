@@ -1,8 +1,9 @@
 // src/pages/Home/TrangChu.jsx
-import React, { Suspense, lazy, useEffect, useState } from "react";
+import React, { useEffect, useRef, useState, Suspense, lazy } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBook } from "@fortawesome/free-solid-svg-icons";
+import { useNavigate } from "react-router-dom";
 import "./TrangChu.css";
-
-
 
 import { auth, db } from "../../../../lib/firebase";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
@@ -11,7 +12,9 @@ import BoThePhoBien from "./Tab/BoThePhoBien";
 import KhoaHocPhoBien from "./Tab/KhoaHocPhoBien";
 
 // Lazy-load để nhẹ bundle
-const AIButton = lazy(() => import("../../../components/Admin/AIButton/AIButton"));
+const AIButton = lazy(() =>
+  import("../../../components/Admin/AIButton/AIButton")
+);
 
 export default function TrangChu() {
   const [prime, setPrime] = useState(false);
@@ -20,7 +23,10 @@ export default function TrangChu() {
   useEffect(() => {
     const session = JSON.parse(sessionStorage.getItem("session") || "null");
     const uid = auth.currentUser?.uid || session?.idNguoiDung || null;
-    if (!uid) { setPrime(false); return; }
+    if (!uid) {
+      setPrime(false);
+      return;
+    }
 
     const qSub = query(
       collection(db, "goiTraPhiCuaNguoiDung"),
