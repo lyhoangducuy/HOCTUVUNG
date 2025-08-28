@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, doc } from "firebase/firestore";
 import { db } from "../../../../../lib/firebase";
 import TopContent from "./TopContents/TopContentAdmin";
 import AISummary from "./Alsummary/AISummary";
@@ -15,7 +15,7 @@ export default function MainContent() {
   const [rawClasses, setRawClasses] = useState([]);
   const [rawCards, setRawCards] = useState([]);
   const [rawSciences, setRawSciences] = useState([]);
-
+  const [feePct, setFeePct] = useState(0);
   // Firestore Data
   const [dsNguoiDung, setDsNguoiDung] = useState([]);
   const [dsBoThe, setDsBoThe] = useState([]);
@@ -37,6 +37,14 @@ export default function MainContent() {
     );
 
     return () => listeners.forEach((unsub) => unsub());
+  }, []);
+  // Lấy phí phần trăm từ Firestore
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "cauHinh", "rutTien"), (snap) => {
+      const p = Number(snap.data()?.phiPhanTram);
+      setFeePct(Number.isFinite(p) ? p : 10);
+    });
+    return () => unsub();
   }, []);
 
   // Chạy load() mỗi khi dữ liệu từ Firestore thay đổi
@@ -76,7 +84,7 @@ export default function MainContent() {
             const doanhThu = giaKhoaHoc * soThanhVien;
 
             if (doanhThu > 0) {
-              khoaHocRevenue += doanhThu * 0.2;
+              khoaHocRevenue += doanhThu * (feePct / 100);
             }
           } catch (err) {
             console.error("Lỗi khi tính khóa học " + k.id + ":", err);

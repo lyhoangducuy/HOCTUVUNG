@@ -4,10 +4,13 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.75);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease;
   z-index: 1000;
   backdrop-filter: blur(4px);
 }
@@ -70,7 +73,7 @@
 
 .export-modal-content {
   padding: 24px;
-  max-height: 60vh;
+  max-height: 80vh;
   overflow-y: auto;
 }
 
@@ -82,15 +85,452 @@
   margin-bottom: 20px;
 }
 
-.export-info p {
-  margin: 0;
-  font-size: 14px;
+.export-info button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
   color: #475569;
+  transition: all 0.2s ease;
+}
+
+.export-info button:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .export-info strong {
-  color: #1e293b;
+  color: #2563eb;
   font-weight: 600;
+}
+
+/* Data Table Styles */
+.data-selection-container {
+  margin: 20px 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.selection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.select-all-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.select-all-wrapper .select-all {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+}
+
+.select-all-wrapper input[type="checkbox"] {
+  display: none;
+}
+
+.select-all-text {
+  font-size: 14px;
+  color: #475569;
+  margin-left: 4px;
+}
+
+.selection-count {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.expand-table-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  color: #475569;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.expand-table-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.data-table {
+  width: 100%;
+  overflow-x: auto;
+  position: relative;
+}
+
+.data-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.data-table th {
+  background: #f8fafc;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #1e293b;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.data-table td.data-cell {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.data-table td.data-cell:hover {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+/* Chi tiết modal */
+.detail-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.2s ease;
+}
+
+.detail-modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+.detail-modal.full-screen {
+  width: 95vw;
+  height: 95vh;
+  max-width: none;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-modal.full-screen .detail-modal-content {
+  flex: 1;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-modal.full-screen .fullscreen-table {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 1rem;
+}
+
+.detail-modal.full-screen table {
+  margin: 0;
+}
+
+.detail-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: white;
+  z-index: 20;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.modal-actions .export-button {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-actions .export-button:hover:not(:disabled) {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.modal-actions .export-button:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.minimize-btn {
+  display: inline-flex; /* hoặc flex */
+  align-items: center;
+  gap: 0.5rem;
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  color: #475569;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  /* fix text overflow */
+  white-space: nowrap;
+}
+
+.minimize-text {
+  display: inline-block; /* đảm bảo không xuống dòng */
+}
+
+.minimize-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.close-btn {
+  padding: 8px;
+  border: none;
+  background: none;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.detail-modal-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.detail-modal-header button {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-modal-header button.close-btn:hover {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.detail-modal-header button.minimize-btn:hover {
+  background-color: #f1f5f9;
+  color: #475569;
+  border-color: #94a3b8;
+}
+
+.detail-modal-content {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: calc(85vh - 70px);
+}
+
+.detail-item {
+  display: flex;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.detail-label {
+  width: 180px;
+  font-weight: 500;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  flex-grow: 1;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.data-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.data-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.data-table tbody tr.selected {
+  background: #eff6ff;
+}
+
+.checkbox-column {
+  width: 48px;
+  text-align: center !important;
+}
+
+/* Custom Checkbox */
+.select-all,
+.data-table label {
+  display: flex;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  min-width: 120px;
+  height: 20px;
+  margin: 0;
+  gap: 8px;
+}
+
+.select-all input,
+.data-table label input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 20px;
+  width: 20px;
+  background-color: #fff;
+  border: 2px solid #e2e8f0;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.select-all {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding-left: 28px;
+  cursor: pointer;
+  
+}
+
+.select-all .select-all-text {
+  margin-left: 4px;
+  color: #666;
+  white-space: nowrap;
+  font-size: 14px;
+  position: relative;
+  
+}
+
+.select-all:hover input ~ .checkmark,
+.data-table label:hover input ~ .checkmark {
+  border-color: #3b82f6;
+}
+
+.select-all input:checked ~ .checkmark,
+.data-table label input:checked ~ .checkmark {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 6px;
+  top: 2px;
+  width: 4px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.select-all input:checked ~ .checkmark:after,
+.data-table label input:checked ~ .checkmark:after {
+  display: block;
+}
+
+/* Scrollbar Styles */
+.data-table::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.data-table::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.data-table::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.data-table::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .export-section {
@@ -262,4 +702,179 @@
   .export-modal-title {
     font-size: 16px;
   }
+}
+/* Ẩn bất kỳ input trôi nổi không mong muốn ở overlay */
+.export-modal-overlay > input[type="checkbox"],
+.export-modal-overlay > input[type="text"] {
+  display: none !important;
+}
+
+/* Overlay / Modal chính */
+.export-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.export-modal {
+  width: 94%;
+  max-width: 1200px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(2,6,23,0.45);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.export-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid #eef2f6;
+  background: #fff;
+}
+
+.export-modal-title { font-size: 18px; font-weight: 600; color: #0f172a; }
+.export-modal-close { background: transparent; border: 0; cursor: pointer; padding: 6px; }
+
+/* Content */
+.export-modal-content {
+  padding: 18px 22px;
+  color: #334155;
+  font-size: 14px;
+}
+
+/* Select area */
+.data-selection-container { margin-top: 12px; }
+
+/* Select-all wrapper */
+.selection-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.select-all-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Custom checkbox look */
+.custom-checkbox { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.custom-checkbox input[type="checkbox"] { display: none; }
+.custom-checkbox .checkmark {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid #cbd5e1;
+  display: inline-block;
+  background: #fff;
+  transition: all .15s ease;
+  box-sizing: border-box;
+}
+.custom-checkbox input[type="checkbox"]:checked + .checkmark {
+  background: #2563eb;
+  border-color: #2563eb;
+  box-shadow: inset 0 0 0 3px #fff;
+}
+.select-all-text { font-weight: 600; color: #334155; }
+
+/* Count on the right of header */
+.selection-count { margin-left: auto; color: #64748b; font-size: 13px; }
+
+/* Table container */
+.data-table {
+  border-radius: 8px;
+  border: 1px solid #eef2f7;
+  overflow: auto;
+  max-height: 60vh;
+}
+
+/* Table style */
+.data-table table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 700;
+  color: #0f172a;
+  border-bottom: 1px solid transparent;
+}
+
+.data-table tbody tr {
+  background: #fff;
+  transition: background .12s ease;
+}
+
+/* make rows look like cards with spacing */
+.data-table tbody tr td {
+  padding: 14px 16px;
+  vertical-align: middle;
+  border-bottom: 0;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* checkbox column narrow */
+.checkbox-column { width: 56px; text-align: center; }
+
+/* hover and selected */
+.data-table tbody tr:hover { background: #f8fafc; }
+.data-table tbody tr.selected { background: #eef2ff; }
+
+/* Fullscreen detail modal adjustments */
+.detail-modal.full-screen .detail-modal-content .fullscreen-table {
+  max-height: 75vh;
+  overflow: auto;
+}
+
+/* Make header buttons aligned */
+.modal-actions { display:flex; align-items:center; gap:12px; }
+
+/* Footer export button */
+.modal-footer,
+.export-modal-footer {
+  padding: 16px 22px;
+  border-top: 1px solid #eef2f6;
+  display: flex;
+  justify-content: flex-end;
+  background: #fff;
+}
+
+.export-button {
+  background: #2b7cff;
+  color: #fff;
+  border: 0;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background .12s ease, transform .08s ease;
+}
+.export-button:disabled { opacity: .6; cursor: not-allowed; }
+.export-button:hover:not(:disabled) { background: #2563eb; transform: translateY(-1px); }
+
+/* responsive */
+@media (max-width: 900px) {
+  .export-modal { width: 98%; max-width: 98%; }
+  .data-table thead th, .data-table tbody td { padding: 10px; font-size: 13px; }
 }

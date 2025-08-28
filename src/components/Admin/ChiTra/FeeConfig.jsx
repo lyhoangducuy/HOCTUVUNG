@@ -1,24 +1,11 @@
 // src/pages/Admin/ChiTra/components/FeeConfig.jsx
-import React, { useEffect, useState, useCallback } from "react";
-import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import React, { useState, useCallback } from "react";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db as defaultDb } from "../../../../lib/firebase";
 
 export default function FeeConfig({ feePct, setFeePct, db }) {
   const database = db || defaultDb;
   const [saving, setSaving] = useState(false);
-
-  // Đọc realtime cấu hình phí
-  useEffect(() => {
-    if (!database) return;
-    const unsub = onSnapshot(doc(database, "cauHinh", "rutTien"), (snap) => {
-      const p = Number(snap.data()?.phiPhanTram);
-      if (Number.isFinite(p) && Number(feePct) !== p) {
-        setFeePct(p);
-      }
-    });
-    return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [database]);
 
   const saveFee = useCallback(async () => {
     if (!database) return;
