@@ -15,19 +15,17 @@ function tronMang(arr) {
   }
   return a;
 }
-
 export default function MatchGame() {
   const { id } = useParams();
 
   // ===== State =====
-  const [boThe, setBoThe] = useState(null);             // bộ thẻ đã chọn
-  const [capTuNghia, setCapTuNghia] = useState([]);     // [{id, tu, nghia}]
-  const [oLuoi, setOLuoi] = useState([]);               // [{id, loai:'tu'|'nghia', vanBan}]
+  const [boThe, setBoThe] = useState(null); // bộ thẻ đã chọn
+  const [capTuNghia, setCapTuNghia] = useState([]); // [{id, tu, nghia}]
+  const [oLuoi, setOLuoi] = useState([]); // [{id, loai:'tu'|'nghia', vanBan}]
   const [chiSoDangChon, setChiSoDangChon] = useState([]); // index đang chọn (<=2)
-  const [idDaGhep, setIdDaGhep] = useState(new Set());  // id cặp đã ghép đúng
-  const [viTriAn, setViTriAn] = useState(new Set());    // index đã ẩn (giữ chỗ)
-  const [thongBao, setThongBao] = useState("");         // "ĐÚNG" | "SAI" | ""
-  const [khoaClick, setKhoaClick] = useState(false);    // khoá khi đang xử lý
+  const [viTriAn, setViTriAn] = useState(new Set()); // index đã ẩn (giữ chỗ)
+  const [thongBao, setThongBao] = useState(""); // "ĐÚNG" | "SAI" | ""
+  const [khoaClick, setKhoaClick] = useState(false); // khoá khi đang xử lý
   const [loading, setLoading] = useState(true);
 
   // ===== Lấy bộ thẻ từ Firestore =====
@@ -74,9 +72,12 @@ export default function MatchGame() {
       return;
     }
     const oTu = capTuNghia.map((p) => ({ id: p.id, loai: "tu", vanBan: p.tu }));
-    const oNghia = capTuNghia.map((p) => ({ id: p.id, loai: "nghia", vanBan: p.nghia }));
+    const oNghia = capTuNghia.map((p) => ({
+      id: p.id,
+      loai: "nghia",
+      vanBan: p.nghia,
+    }));
     setOLuoi(tronMang([...oTu, ...oNghia]));
-    setIdDaGhep(new Set());
     setChiSoDangChon([]);
     setViTriAn(new Set());
     setThongBao("");
@@ -95,19 +96,25 @@ export default function MatchGame() {
     if (tiepTheo.length === 2) {
       setKhoaClick(true);
       const [i1, i2] = tiepTheo;
-      const a = oLuoi[i1], b = oLuoi[i2];
-      const dung = a && b && a.id === b.id && a.loai !== b.loai;
+      const a = oLuoi[i1],
+        b = oLuoi[i2];
+
+      const dung = a && b && a.loai !== b.loai && a.id === b.id;
 
       if (dung) {
         setThongBao("ĐÚNG");
-        setIdDaGhep((prev) => new Set(prev).add(a.id));
-        setViTriAn((prev) => {
-          const s = new Set(prev);
-          s.add(i1); s.add(i2);
-          return s;
-        });
-        setChiSoDangChon([]);
-        setTimeout(() => { setThongBao(""); setKhoaClick(false); }, 300);
+        // ẩn sau 300ms để người chơi kịp thấy feedback
+        setTimeout(() => {
+          setViTriAn((prev) => {
+            const s = new Set(prev);
+            s.add(i1);
+            s.add(i2);
+            return s;
+          });
+          setChiSoDangChon([]);
+          setThongBao("");
+          setKhoaClick(false);
+        }, 300);
       } else {
         setThongBao("SAI");
         setTimeout(() => {
@@ -141,13 +148,11 @@ export default function MatchGame() {
                 {oLuoi.map((o, idx) => {
                   const dangChon = chiSoDangChon.includes(idx);
                   const daAn = viTriAn.has(idx);
-                  const daGhep = idDaGhep.has(o.id);
                   return (
                     <div
                       key={`${o.loai}-${o.id}-${idx}`}
                       className={
                         `question-item${dangChon ? " selected" : ""}` +
-                        (daGhep ? " matched" : "") +
                         (daAn ? " gone" : "")
                       }
                       onClick={() => chonO(idx)}
@@ -159,13 +164,23 @@ export default function MatchGame() {
                 })}
               </div>
 
-              <div className={`display ${thongBao === "ĐÚNG" ? "correct" : thongBao === "SAI" ? "wrong" : ""}`}>
+              <div
+                className={`display ${
+                  thongBao === "ĐÚNG"
+                    ? "correct"
+                    : thongBao === "SAI"
+                    ? "wrong"
+                    : ""
+                }`}
+              >
                 {hoanThanh ? (
                   <span className="feedback">Hoàn thành 🎉</span>
                 ) : thongBao ? (
                   <span className="feedback">{thongBao}</span>
                 ) : (
-                  <span className="feedback" style={{ opacity: 0.6 }}>Chọn 2 ô để ghép</span>
+                  <span className="feedback" style={{ opacity: 0.6 }}>
+                    Chọn 2 ô để ghép
+                  </span>
                 )}
               </div>
             </>

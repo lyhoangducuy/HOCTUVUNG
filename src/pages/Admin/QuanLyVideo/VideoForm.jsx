@@ -13,6 +13,8 @@ import {
   faUpload
 } from "@fortawesome/free-solid-svg-icons";
 import { addVideo, updateVideo } from "../../../services/videoService";
+import { storage } from "../../../../lib/firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import "./VideoForm.css";
 
 export default function VideoForm({ video, onClose, onSuccess }) {
@@ -87,16 +89,40 @@ export default function VideoForm({ video, onClose, onSuccess }) {
     try {
       setLoading(true);
 
+      // Chuẩn bị dữ liệu lưu
+      let payload = { ...formData };
+
+      // Nếu admin chọn file, upload lên Firebase Storage trước
+      if (selectedFile) {
+        try {
+          const path = `videos/${Date.now()}_${selectedFile.name}`;
+          const fileRef = storageRef(storage, path);
+          await uploadBytes(fileRef, selectedFile);
+          const downloadURL = await getDownloadURL(fileRef);
+          payload = {
+            ...payload,
+            video: {
+              ...payload.video,
+              src: downloadURL,
+              storagePath: path,
+            },
+          };
+        } catch (uploadErr) {
+          console.error("Upload video thất bại:", uploadErr);
+          throw new Error("Không thể tải video lên Firebase Storage. Vui lòng thử lại.");
+        }
+      }
+
       if (isEditing) {
-        await updateVideo(video.id, formData);
+        await updateVideo(video.id, payload);
       } else {
-        await addVideo(formData);
+        await addVideo(payload);
       }
 
       onSuccess();
     } catch (error) {
       console.error("Lỗi khi lưu video:", error);
-      alert("Có lỗi xảy ra khi lưu video!");
+      alert(error.message || "Có lỗi xảy ra khi lưu video!");
     } finally {
       setLoading(false);
     }
