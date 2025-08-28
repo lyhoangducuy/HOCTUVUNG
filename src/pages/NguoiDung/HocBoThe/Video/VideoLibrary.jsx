@@ -17,7 +17,6 @@ export default function VideoLibrary() {
       setLoading(true);
       const data = await getAllVideos();
       setLessons(data);
-      localStorage.setItem("lessonList", JSON.stringify(data));
     } catch (error) {
       console.error("Lỗi khi tải danh sách video:", error);
       // Fallback to empty array if Firebase fails
@@ -28,7 +27,6 @@ export default function VideoLibrary() {
   };
 
   const openLesson = (lesson) => {
-    localStorage.setItem("selected", JSON.stringify(lesson));
     navigate(`/video/${lesson.id}`);
   };
 

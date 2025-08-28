@@ -46,7 +46,8 @@
 .search-input,
 .search-result {
   width: 100%;
-  box-sizing: border-box;     /* đảm bảo border/padding không làm tràn rộng */
+  box-sizing: border-box;  
+  margin-top: 10px;   /* đảm bảo border/padding không làm tràn rộng */
 }
 
 /* phần còn lại giữ nguyên */

@@ -1,5 +1,9 @@
+/* Font Việt ổn định cho dấu */
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700;800;900&display=swap");
+
 :root{
-  --ui-font: "Inter", "Roboto", "Noto Sans", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --ui-font: "Be Vietnam Pro", "Inter", "Roboto", "Noto Sans", "Segoe UI",
+             system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* ===== Container ===== */

@@ -155,8 +155,14 @@ function Video() {
       }
     }, 100);
   };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
   
-  const formatTime = (seconds) => { /* ... Giữ nguyên ... */ };
+
 
   // --- PHẦN RENDER GIAO DIỆN (ĐÃ TỔ CHỨC LẠI CHO CHẮC CHẮN) ---
   if (loading) {
@@ -229,7 +235,7 @@ function Video() {
                    <span className="transcript-time">{formatTime(item.t)}s</span>
                    {/* ... Phần hiển thị kết quả đúng/sai ... */}
                 </div>
-                
+
                 <div className="transcript-content">
                   {!submit[index] ? (
                     <div className="answer-input-group">
@@ -244,7 +250,7 @@ function Video() {
                       <button
                         className="submit-btn"
                         onClick={() => handleSubmit(item, index)}
-                        disabled={!userAnswers[index] || userAnswers[index].trim() === ""}
+                        disabled={!userAnswers[index]?.trim()}
                       >
                         Nộp
                       </button>

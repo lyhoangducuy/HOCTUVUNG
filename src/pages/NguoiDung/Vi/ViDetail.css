@@ -67,6 +67,54 @@
 .vi-table tbody td.vi-amount.vi-amount--minus  { color: #dc2626; }  /* - đỏ */
 .vi-table tbody td.vi-amount.vi-amount--pending{ color: #374151; }  /* chờ - trung tính */
 
+/* Amount (tiền) — luôn override màu trong <td> */
+.vi-table tbody td.vi-amount{
+  font-weight:700;
+  text-align:left;
+  color:inherit;               /* kế thừa mặc định trong table */
+}
+
+/* Trạng thái số tiền: dùng specificity cao + !important để không bị rule khác đè */
+.vi-table tbody td.vi-amount.vi-amount--plus{
+  color:#059669 !important;    /* + xanh */
+}
+.vi-table tbody td.vi-amount.vi-amount--minus{
+  color:#dc2626 !important;    /* − đỏ (rút tiền / canceled) */
+}
+.vi-table tbody td.vi-amount.vi-amount--pending{
+  color:#374151 !important;    /* chờ duyệt */
+}
+/* Pager */
+.vi-pager{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; margin-top:10px; flex-wrap:wrap;
+}
+.vi-pagesize{ display:flex; align-items:center; gap:10px; color:#374151; font-size:13px; }
+.vi-pagesize select{
+  appearance:none; border:1px solid #e5e7eb; border-radius:8px;
+  padding:6px 8px; background:#fff; font-size:13px; color:#111827;
+}
+.vi-pager-range{ color:#6b7280; }
+
+.vi-pages{ display:flex; align-items:center; gap:6px; }
+.vi-pagebtn{
+  min-width:32px; height:32px; padding:0 8px;
+  border:1px solid #e5e7eb; background:#fff; border-radius:8px;
+  cursor:pointer; font-size:13px; color:#111827;
+}
+.vi-pagebtn:hover{ background:#f9fafb; }
+.vi-pagebtn[disabled]{ opacity:.5; cursor:not-allowed; }
+.vi-pagebtn--active{
+  background:#2563eb; color:#fff; border-color:#2563eb;
+}
+.vi-pagebtn--dots{
+  min-width:auto; padding:0 4px; color:#6b7280; border:none; background:transparent;
+}
+
+/* Responsive: gom hàng trên màn nhỏ */
+@media (max-width: 640px){
+  .vi-pager{ flex-direction:column; align-items:flex-start; }
+}
 
 /* Responsive: stack rows on small screens */
 @media (max-width: 860px){

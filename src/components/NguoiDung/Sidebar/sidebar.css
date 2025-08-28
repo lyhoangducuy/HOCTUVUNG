@@ -1,8 +1,8 @@
 /* ===== Container ===== */
 .sidebar_container{
   width: 260px;
-  height: 80vh;
-  margin-left: 18px;
+  height: 100vh;
+  
   padding: 16px;
   background: #fff;
   border: 1px solid #e5e7eb;

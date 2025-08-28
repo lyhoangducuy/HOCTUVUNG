@@ -16,7 +16,6 @@ import {
   getDocs,
   query,
   updateDoc,
-  setDoc,
   where,
   documentId,
   serverTimestamp,
@@ -28,7 +27,7 @@ import {
 
 /* ===================== Helpers ===================== */
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-const clamp = (x, a, b) => Math.min(Math.max(num(x), a), b);
+// const clamp = (x, a, b) => Math.min(Math.max(num(x), a), b);
 
 /* ===================== (6) useUserMap NHÚNG TRỰC TIẾP ===================== */
 function useUserMapInline(db, rows) {
@@ -60,46 +59,6 @@ function useUserMapInline(db, rows) {
   }, [db, rows]);
 
   return userMap;
-}
-
-/* ===================== (7) Services NHÚNG TRỰC TIẾP ===================== */
-
-/** Cập nhật phí cho toàn bộ YC rút tiền (trừ những YC đã paid/canceled) */
-async function updateAllWithdrawFeesInline(db, feePct) {
-  try {
-    const pct = clamp(Number(feePct), 0, 100);
-    const snap = await getDocs(collection(db, "rutTien"));
-
-    const updates = [];
-    snap.forEach((d) => {
-      const r = d.data() || {};
-      const st = String(r.TinhTrang || "pending");
-      if (st === "paid" || st === "canceled") return;
-
-      const soTien = num(r.SoTien);
-      const fee = Math.round((soTien * pct) / 100);
-      const net = Math.max(0, soTien - fee);
-
-      updates.push(
-        updateDoc(d.ref, {
-          Phi: fee,
-          TienSauPhi: net,
-          PhiPhanTramSnapshot: pct,
-          CapNhatLuc: serverTimestamp(),
-        })
-      );
-    });
-
-    for (const t of updates) {
-      try {
-        await t;
-      } catch {}
-    }
-    alert("Đã cập nhật phí cho toàn bộ yêu cầu chưa tất toán.");
-  } catch (e) {
-    console.error(e);
-    alert("Lỗi khi cập nhật phí hàng loạt.");
-  }
 }
 
 /** tìm log giữ tạm (nếu có) theo refRutTienId để xử lý hoàn tiền chuẩn */
@@ -197,12 +156,8 @@ async function updateWithdrawStatusInline(db, row, next) {
   }
 }
 
-/* ===================== Component chính ===================== */
 export default function QuanLyChiTra() {
-  // Phí mặc định (state ở parent LUÔN sync với cauHinh/rutTien)
   const [feePct, setFeePct] = useState(10);
-
-  // 🔴 SUBSCRIBE cấu hình phí để luôn lấy được % mới nhất khi áp dụng
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "cauHinh", "rutTien"), (snap) => {
       const p = Number(snap.data()?.phiPhanTram);
@@ -228,32 +183,14 @@ export default function QuanLyChiTra() {
     return rows.filter((r) => String(r.TinhTrang || "pending") === filter);
   }, [rows, filter]);
 
-  // Hành động
-  const handleUpdateAllFees = () => updateAllWithdrawFeesInline(db, feePct);
   const handleStatus = (row, next) => updateWithdrawStatusInline(db, row, next);
-
-  // Lưu phí (nếu FeeConfig gọi onSave ở trong nó — giữ để tương thích)
-  const handleSaveFee = async (nextPct) => {
-    const pct = clamp(Number(nextPct), 0, 100);
-    await setDoc(
-      doc(db, "cauHinh", "rutTien"),
-      { phiPhanTram: pct, updatedAt: serverTimestamp() },
-      { merge: true }
-    );
-    // setFeePct sẽ tự cập nhật nhờ onSnapshot ở trên
-  };
 
   return (
     <div className="rt-container">
       <h1 className="rt-title">Chi trả (Rút tiền)</h1>
 
       <div className="rt-config">
-        <FeeConfig
-          feePct={feePct}
-          setFeePct={setFeePct}
-          onSave={handleSaveFee}           // <- để FeeConfig bấm "Lưu" vẫn chạy đúng
-          onUpdateAll={handleUpdateAllFees} // <- "Áp dụng cho toàn bộ"
-        />
+        <FeeConfig feePct={feePct} setFeePct={setFeePct} />
         <StatusFilter value={filter} onChange={setFilter} />
       </div>
 

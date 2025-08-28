@@ -11,6 +11,15 @@
   display: none;
   
 }
+.user-pagination{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.admin-pagesize{display:flex;align-items:center;gap:10px}
+.admin-pagesize select{padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px}
+.admin-range{color:#6b7280;font-size:12px}
+.admin-pages{display:flex;gap:6px;align-items:center}
+.admin-pagebtn{min-width:34px;height:34px;border:1px solid #e5e7eb;background:#fff;border-radius:8px;cursor:pointer}
+.admin-pagebtn[disabled]{opacity:.5;cursor:not-allowed}
+.admin-pagebtn--active{background:#2563eb;color:#fff;border-color:#2563eb}
+.admin-pagebtn--dots{border:none;background:transparent;cursor:default}
 
 .user-table {
   width: 100%;

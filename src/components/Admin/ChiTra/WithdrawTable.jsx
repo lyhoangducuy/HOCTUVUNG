@@ -1,23 +1,67 @@
-// src/pages/Admin/ChiTra/components/WithdrawTable.jsx
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import "../../../pages/Admin/ChiTra/ChiTra.css";
 
 const VN = "vi-VN";
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const vnd = (n) => num(n).toLocaleString(VN) + "đ";
-const toDate = (v) => (typeof v?.toDate === "function" ? v.toDate() : new Date(v || 0));
+const toDate = (v) =>
+  typeof v?.toDate === "function" ? v.toDate() : new Date(v || 0);
 const time = (v) => {
-  try { const d = toDate(v); return isNaN(d.getTime()) ? "" : d.toLocaleString(VN); }
-  catch { return ""; }
+  try {
+    const d = toDate(v);
+    return isNaN(d.getTime()) ? "" : d.toLocaleString(VN);
+  } catch {
+    return "";
+  }
 };
 
 export default function WithdrawTable({
-  loading,
-  rows,
-  nameById,
-  onApprove,
-  onPaid,
-  onCancel,
+  loading = false,
+  rows = [],
+  nameById = () => "",
+  onApprove = () => {},
+  onPaid = () => {},
+  onCancel = () => {},
+  pageSizeDefault = 5,
+  pageSizeOptions = [5, 10, 20, 50],
 }) {
+  console.log(rows, nameById, onApprove, onPaid, onCancel);
+
+  /* ===== Pagination state ===== */
+  const [pageSize, setPageSize] = useState(pageSizeDefault);
+  const [page, setPage] = useState(1);
+
+  const total = Array.isArray(rows) ? rows.length : 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  // Clamp trang khi đổi dữ liệu / pageSize
+  useEffect(() => {
+    const newTotalPages = Math.max(1, Math.ceil(total / pageSize));
+    setPage((p) => Math.min(p, newTotalPages));
+  }, [total, pageSize]);
+
+  const pageRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return Array.isArray(rows) ? rows.slice(start, start + pageSize) : [];
+  }, [rows, page, pageSize]);
+
+  // Dãy trang với “…”
+  const pages = useMemo(() => {
+    const arr = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) arr.push(i);
+      return arr;
+    }
+    arr.push(1);
+    if (page > 3) arr.push("…");
+    const start = Math.max(2, page - 1);
+    const end = Math.min(totalPages - 1, page + 1);
+    for (let i = start; i <= end; i++) arr.push(i);
+    if (page < totalPages - 2) arr.push("…");
+    arr.push(totalPages);
+    return arr;
+  }, [page, totalPages]);
+
   return (
     <div className="rt-table-wrap">
       <table className="rt-table">
@@ -36,11 +80,19 @@ export default function WithdrawTable({
         </thead>
         <tbody>
           {loading ? (
-            <tr><td colSpan={9} className="rt-empty">Đang tải…</td></tr>
-          ) : rows.length === 0 ? (
-            <tr><td colSpan={9} className="rt-empty">Chưa có yêu cầu nào.</td></tr>
+            <tr>
+              <td colSpan={9} className="rt-empty">
+                Đang tải…
+              </td>
+            </tr>
+          ) : pageRows.length === 0 ? (
+            <tr>
+              <td colSpan={9} className="rt-empty">
+                Chưa có yêu cầu nào.
+              </td>
+            </tr>
           ) : (
-            rows.map((r) => {
+            pageRows.map((r) => {
               const st = String(r.TinhTrang || "pending");
               return (
                 <tr key={r.id}>
@@ -52,9 +104,12 @@ export default function WithdrawTable({
                   <td>{r.SoTaiKhoanNganHang || "—"}</td>
                   <td>
                     <span className={`rt-badge rt-badge--${st}`}>
-                      {st === "pending" ? "Đang xử lý"
-                        : st === "approved" ? "Đã duyệt"
-                        : st === "paid" ? "Đã trả"
+                      {st === "pending"
+                        ? "Đang xử lý"
+                        : st === "approved"
+                        ? "Đã duyệt"
+                        : st === "paid"
+                        ? "Đã trả"
                         : "Đã hủy"}
                     </span>
                   </td>
@@ -88,6 +143,82 @@ export default function WithdrawTable({
           )}
         </tbody>
       </table>
+
+      {/* Pagination */}
+      <div className="rt-pagination">
+        <div className="rt-pagesize">
+          <label>
+            Hiển thị
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+            >
+              {pageSizeOptions.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="rt-pages">
+          <button
+            className="rt-pagebtn"
+            onClick={() => setPage(1)}
+            disabled={page === 1}
+            aria-label="Trang đầu"
+          >
+            «
+          </button>
+          <button
+            className="rt-pagebtn"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            aria-label="Trang trước"
+          >
+            ‹
+          </button>
+
+          {pages.map((p, i) =>
+            p === "…" ? (
+              <span key={`dots-${i}`} className="rt-pagebtn rt-pagebtn--dots">
+                …
+              </span>
+            ) : (
+              <button
+                key={p}
+                className={`rt-pagebtn ${
+                  p === page ? "rt-pagebtn--active" : ""
+                }`}
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </button>
+            )
+          )}
+
+          <button
+            className="rt-pagebtn"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            aria-label="Trang sau"
+          >
+            ›
+          </button>
+          <button
+            className="rt-pagebtn"
+            onClick={() => setPage(totalPages)}
+            disabled={page === totalPages}
+            aria-label="Trang cuối"
+          >
+            »
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

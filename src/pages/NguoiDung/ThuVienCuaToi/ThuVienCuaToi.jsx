@@ -15,6 +15,8 @@ import {
   getDocs,
   documentId,
 } from "firebase/firestore";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 function ThuVienCuaToi() {
   const navigate = useNavigate();
@@ -122,7 +124,11 @@ function ThuVienCuaToi() {
   const handleKhoaHoc = (id) => navigate(`/khoaHoc/${id}`);
 
   return (
-    <div className="myLib-container">
+    <>
+      <div className="back" onClick={() => navigate(-1)}>
+        <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
+        Quay lại
+      </div>
       <h2 className="tittle-lib">Thư viện của tôi</h2>
 
       <ul className="header-lib">
@@ -180,7 +186,7 @@ function ThuVienCuaToi() {
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }
 

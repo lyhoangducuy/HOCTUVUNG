@@ -54,7 +54,7 @@ const SidebarAdmin = () => {
             <li>
               <NavLink className="menu-link" to="/admin/quan-ly-tra-phi">
                 <span className="sidebar-icon"><FaMoneyCheckAlt /></span>
-                <span>Quản lý chi trả</span>
+                <span>Quản lý trả phí</span>
               </NavLink>
             </li>
 

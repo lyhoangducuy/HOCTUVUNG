@@ -60,6 +60,10 @@ export default function AccountMenu({ user, prime, balanceText, onLogout, naviga
   const avatarSrc = user?.anhDaiDien || "";
   const displayName = user?.tenNguoiDung || "Người dùng";
 
+  // role để kiểm soát hiển thị "Ví"
+  const role = String(user?.vaiTro || "").toUpperCase();
+  const isTeacher = role === "GIANG_VIEN";
+
   // Text số dư: ưu tiên dữ liệu từ 'vi'; fallback prop cũ nếu chưa load
   const soDuText = wallet._loaded ? fmtMoney(wallet.soDu, wallet.donVi) : (balanceText || "—");
 
@@ -94,15 +98,22 @@ export default function AccountMenu({ user, prime, balanceText, onLogout, naviga
 
           <div className="divide" />
 
-          <div className="confirg" onClick={() => { setOpen(false); navigate("/vi"); }}>
-            <FontAwesomeIcon icon={faWallet} className="icon icon-setting" />
-            <span className="confirg-text">Ví</span>
-            <span className="balance-text" style={{ marginLeft: 8, fontWeight: 600 }}>
-              {soDuText}
-            </span>
-          </div>
-
-          <div className="divide" />
+          {/* Ví: CHỈ GIẢNG_VIÊN mới thấy */}
+          {isTeacher && (
+            <>
+              <div
+                className="confirg"
+                onClick={() => { setOpen(false); navigate("/vi"); }}
+              >
+                <FontAwesomeIcon icon={faWallet} className="icon icon-setting" />
+                <span className="confirg-text">Ví</span>
+                <span className="balance-text" style={{ marginLeft: 8, fontWeight: 600 }}>
+                  {soDuText}
+                </span>
+              </div>
+              <div className="divide" />
+            </>
+          )}
 
           <div className="confirg" onClick={() => { setOpen(false); navigate("/setting"); }}>
             <FontAwesomeIcon icon={faGear} className="icon icon-setting" />
