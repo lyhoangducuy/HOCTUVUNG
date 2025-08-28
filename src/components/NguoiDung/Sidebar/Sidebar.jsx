@@ -5,37 +5,10 @@ import { faHouse, faFolderOpen, faBell, faVideo } from "@fortawesome/free-solid-
 import "./sidebar.css";
 import { useNavigate } from "react-router-dom";
 
-// 🔥 Firebase
+// Firebase
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { auth, db } from "../../../../lib/firebase"; // <- chỉnh đường dẫn đúng với dự án của bạn
-
-/* ===== Helpers ===== */
-// dd/mm/yyyy -> Date | null
-const parseVNDate = (dmy) => {
-  if (!dmy || typeof dmy !== "string") return null;
-  const [d, m, y] = dmy.split("/").map(Number);
-  if (!d || !m || !y) return null;
-  const dt = new Date(y, (m || 1) - 1, d || 1);
-  return Number.isNaN(dt.getTime()) ? null : dt;
-};
-const today0 = () => {
-  const t = new Date();
-  t.setHours(0, 0, 0, 0);
-  return t;
-};
-const toDateFlexible = (val) => {
-  // Firestore Timestamp
-  if (val?.toDate) return val.toDate();
-  // ISO string
-  if (typeof val === "string" && val.includes("-")) {
-    const d = new Date(val);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-  // dd/mm/yyyy
-  if (typeof val === "string" && val.includes("/")) return parseVNDate(val);
-  return null;
-};
+import { doc, onSnapshot } from "firebase/firestore";
+import { auth, db } from "../../../../lib/firebase";
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -53,32 +26,20 @@ function Sidebar() {
     return () => unsubAuth();
   }, []);
 
-  // 2) Theo dõi gói trả phí của user (realtime)
+  // 2) Theo dõi traPhi từ hồ sơ người dùng (nguoiDung/{uid})
   useEffect(() => {
     if (!user?.uid) {
       setPrime(false);
       return;
     }
-    // Collection “goiTraPhiCuaNguoiDung”: trường cần có
-    // - idNguoiDung: string (uid)
-    // - status: string (vd: "Đang hoạt động" | "Đã hủy")
-    // - NgayKetThuc: Firestore Timestamp | ISO | "dd/mm/yyyy"
-    const q = query(
-      collection(db, "goiTraPhiCuaNguoiDung"),
-      where("idNguoiDung", "==", user.uid)
+    const unsub = onSnapshot(
+      doc(db, "nguoiDung", String(user.uid)),
+      (snap) => {
+        const data = snap.data() || {};
+        setPrime(Boolean(data.traPhi)); // true => đã Prime
+      },
+      () => setPrime(false)
     );
-    const unsub = onSnapshot(q, (snap) => {
-      const now0 = today0();
-      const active = snap.docs.some((doc) => {
-        const s = doc.data();
-        if (s.status === "Đã hủy") return false;
-        const end = toDateFlexible(s.NgayKetThuc);
-        if (!end) return false;
-        end.setHours(0, 0, 0, 0);
-        return end >= now0;
-      });
-      setPrime(active);
-    });
     return () => unsub();
   }, [user?.uid]);
 
@@ -102,11 +63,11 @@ function Sidebar() {
       navigate("/dang-nhap");
       return;
     }
-    // if (!prime) {
-    //   alert("Bạn cần nâng cấp tài khoản để dùng chức năng Video.");
-    //   navigate("/tra-phi"); // đồng bộ route trả phí
-    //   return;
-    // }
+    if (!prime) {
+      alert("Bạn cần nâng cấp tài khoản để dùng chức năng Video.");
+      navigate("/tra-phi");
+      return;
+    }
     navigate("/video");
   };
 

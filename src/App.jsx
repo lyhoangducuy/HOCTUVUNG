@@ -68,7 +68,7 @@ export default function App() {
 
       <Route element={<YeuCauDangNhap />}>
         {/* Giảng viên / Học viên / Admin đã đăng nhập */}
-        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN", "HOC_VIEN", "ADMIN"]} />}>
+        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN", "HOC_VIEN"]} />}>
           <Route element={<NguoiDungLayout />}>
             <Route path="/trangchu" element={<TrangChu />} />
             <Route path="/tra-phi" element={<Traphi />} />
@@ -90,10 +90,8 @@ export default function App() {
             <Route path="/vi" element={<ViDetail />} />
 
             {/* 🔒 Chỉ người có gói trả phí còn hiệu lực mới truy cập được Video */}
-            <Route element={<YeuCauTraPhi />}>
               <Route path="/video" element={<VideoLibrary />} />
               <Route path="/video/:id" element={<Video />} />
-            </Route>
           </Route>
         </Route>
 
