@@ -18,7 +18,6 @@ import {
   getDocs,
   documentId,
   doc,
-  getDoc,
   setDoc,
   updateDoc,
   serverTimestamp,
@@ -28,15 +27,16 @@ import {
 export default function HocGanDay() {
   const navigate = useNavigate();
 
-  // uid: undefined = đang chờ Auth; null = chưa đăng nhập; string = đã đăng nhập
+  // uid: undefined = chờ Auth; null = chưa đăng nhập; string = đã đăng nhập
   const [uid, setUid] = useState(undefined);
   const [recentCards, setRecentCards] = useState([]);
 
-  // lấy uid (đảm bảo F5 không mất)
+  // Giữ UID từ session nếu có (F5 không mất)
   const sessionUser = useMemo(() => {
     try { return JSON.parse(sessionStorage.getItem("session") || "null"); }
     catch { return null; }
   }, []);
+
   useEffect(() => {
     const firstUid = auth.currentUser?.uid || sessionUser?.idNguoiDung || null;
     if (firstUid) setUid(firstUid);
@@ -44,12 +44,13 @@ export default function HocGanDay() {
     return () => unsub();
   }, [sessionUser]);
 
-  // nạp “học gần đây”
+  // Nạp danh sách “học gần đây”
   useEffect(() => {
-    if (uid === undefined) return; // chờ auth
+    if (uid === undefined) return; // chờ auth init
     let unsub = () => {};
     let cancelled = false;
 
+    // (A) User đăng nhập: lấy từ tienDoHoc realtime, sort server theo ngayHocGanDay desc
     const loadFromTienDoHoc = () => {
       const qTDH = query(
         collection(db, "tienDoHoc"),
@@ -57,6 +58,7 @@ export default function HocGanDay() {
         orderBy("ngayHocGanDay", "desc"),
         limit(6)
       );
+
       unsub = onSnapshot(
         qTDH,
         async (snap) => {
@@ -65,7 +67,7 @@ export default function HocGanDay() {
             const ids = rows.map((r) => String(r.idBoThe)).filter(Boolean);
             if (ids.length === 0) { if (!cancelled) setRecentCards([]); return; }
 
-            // lấy chi tiết boThe theo thứ tự ids
+            // Lấy boThe theo lô (<=10 id/lần), sau đó reorder đúng theo ids
             const chunks = [];
             for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
             const results = await Promise.all(
@@ -74,23 +76,31 @@ export default function HocGanDay() {
               )
             );
             const map = new Map();
-            results.forEach((rs) => rs.forEach((d) => map.set(d.id, d.data())));
-            const ordered = ids.map((id) => map.get(id)).filter(Boolean).map((data) => ({
-              ...data,
-              soTu:
-                typeof data.soTu === "number"
-                  ? data.soTu
-                  : Array.isArray(data.danhSachThe) ? data.danhSachThe.length : 0,
-              luotHoc: Number(data.luotHoc || 0),
-            }));
+            results.forEach((rs) => rs.forEach((d) => map.set(d.id, d.data() || {})));
+
+            const ordered = ids
+              .map((id) => ({ id, data: map.get(id) }))
+              .filter((x) => !!x.data)
+              .map(({ id, data }) => ({
+                ...data,
+                idBoThe: data.idBoThe ?? id,
+                soTu:
+                  typeof data.soTu === "number"
+                    ? data.soTu
+                    : Array.isArray(data.danhSachThe)
+                    ? data.danhSachThe.length
+                    : 0,
+                luotHoc: Number(data.luotHoc || 0),
+              }));
+
             if (!cancelled) setRecentCards(ordered);
           } catch (e) {
             console.error("Lỗi nạp học gần đây:", e);
             if (!cancelled) setRecentCards([]);
           }
         },
+        // Fallback khi thiếu index: where + sort client
         async (err) => {
-          // fallback khi thiếu index: where + sort client
           if (err?.code === "failed-precondition" && /index/i.test(err?.message || "")) {
             try {
               const snap = await getDocs(
@@ -104,8 +114,10 @@ export default function HocGanDay() {
                     (a?.ngayHocGanDay?.toMillis?.() || 0)
                 )
                 .slice(0, 6);
-              const ids = rows.map((r) => String(r.idBoThe));
+
+              const ids = rows.map((r) => String(r.idBoThe)).filter(Boolean);
               if (ids.length === 0) { if (!cancelled) setRecentCards([]); return; }
+
               const chunks = [];
               for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
               const results = await Promise.all(
@@ -114,15 +126,23 @@ export default function HocGanDay() {
                 )
               );
               const map = new Map();
-              results.forEach((rs) => rs.forEach((d) => map.set(d.id, d.data())));
-              const ordered = ids.map((id) => map.get(id)).filter(Boolean).map((data) => ({
-                ...data,
-                soTu:
-                  typeof data.soTu === "number"
-                    ? data.soTu
-                    : Array.isArray(data.danhSachThe) ? data.danhSachThe.length : 0,
-                luotHoc: Number(data.luotHoc || 0),
-              }));
+              results.forEach((rs) => rs.forEach((d) => map.set(d.id, d.data() || {})));
+
+              const ordered = ids
+                .map((id) => ({ id, data: map.get(id) }))
+                .filter((x) => !!x.data)
+                .map(({ id, data }) => ({
+                  ...data,
+                  idBoThe: data.idBoThe ?? id,
+                  soTu:
+                    typeof data.soTu === "number"
+                      ? data.soTu
+                      : Array.isArray(data.danhSachThe)
+                      ? data.danhSachThe.length
+                      : 0,
+                  luotHoc: Number(data.luotHoc || 0),
+                }));
+
               if (!cancelled) setRecentCards(ordered);
             } catch (e2) {
               console.error("Fallback học gần đây lỗi:", e2);
@@ -135,60 +155,101 @@ export default function HocGanDay() {
       );
     };
 
-    const loadNewestFallback = () => {
-      const qRecent = query(collection(db, "boThe"), orderBy("idBoThe", "desc"), limit(6));
+    // (B) User chưa đăng nhập: lấy top mới nhất công khai (server sort), có fallback
+    const loadNewestPublicFallback = () => {
+      const qNewest = query(
+        collection(db, "boThe"),
+        where("cheDo", "==", "cong_khai"),
+        orderBy("idBoThe", "desc"),
+        limit(6)
+      );
+
       unsub = onSnapshot(
-        qRecent,
+        qNewest,
         (snap) => {
           const items = snap.docs.map((d) => {
-            const data = d.data();
+            const data = d.data() || {};
             return {
               ...data,
+              idBoThe: data.idBoThe ?? d.id,
               soTu:
                 typeof data.soTu === "number"
                   ? data.soTu
-                  : Array.isArray(data.danhSachThe) ? data.danhSachThe.length : 0,
+                  : Array.isArray(data.danhSachThe)
+                  ? data.danhSachThe.length
+                  : 0,
               luotHoc: Number(data.luotHoc || 0),
             };
           });
           if (!cancelled) setRecentCards(items);
         },
-        () => !cancelled && setRecentCards([])
+        async (err) => {
+          // Nếu thiếu index (where + orderBy), fallback: lấy ~40 công khai rồi sort client
+          if (err?.code === "failed-precondition" && /index/i.test(err?.message || "")) {
+            try {
+              const snap = await getDocs(
+                query(collection(db, "boThe"), where("cheDo", "==", "cong_khai"), limit(40))
+              );
+              const items = snap.docs
+                .map((d) => {
+                  const data = d.data() || {};
+                  return {
+                    ...data,
+                    idBoThe: data.idBoThe ?? d.id,
+                    soTu:
+                      typeof data.soTu === "number"
+                        ? data.soTu
+                        : Array.isArray(data.danhSachThe)
+                        ? data.danhSachThe.length
+                        : 0,
+                    luotHoc: Number(data.luotHoc || 0),
+                  };
+                })
+                .sort((a, b) => String(b.idBoThe).localeCompare(String(a.idBoThe)))
+                .slice(0, 6);
+              if (!cancelled) setRecentCards(items);
+            } catch (e2) {
+              console.error("Fallback newest public lỗi:", e2);
+              if (!cancelled) setRecentCards([]);
+            }
+          } else {
+            if (!cancelled) setRecentCards([]);
+          }
+        }
       );
     };
 
     if (uid) loadFromTienDoHoc();
-    else loadNewestFallback();
+    else loadNewestPublicFallback();
 
     return () => { cancelled = true; unsub && unsub(); };
   }, [uid]);
 
-  // click học + tracking
+  // Click học + tracking (KHÔNG cần getDoc để tăng tốc)
   const goLearnTracked = async (idBoThe) => {
     if (!idBoThe) return;
     const idStr = String(idBoThe);
 
     try {
       if (uid) {
-        const btSnap = await getDoc(doc(db, "boThe", idStr));
-        if (btSnap.exists()) {
-          const idTDH = `${uid}_${idStr}`;
-          await setDoc(
-            doc(db, "tienDoHoc", idTDH),
-            {
-              idTDH,
-              idBoThe: Number.isFinite(Number(idStr)) ? Number(idStr) : idStr,
-              idNguoiDung: String(uid),
-              ngayHocGanDay: serverTimestamp(),
-            },
-            { merge: true }
-          );
-          await updateDoc(doc(db, "boThe", idStr), {
-            luotHoc: increment(1),
-            ngayChinhSua: serverTimestamp(),
-          });
-          window.dispatchEvent(new Event("tienDoHocUpdated"));
-        }
+        const idTDH = `${uid}_${idStr}`;
+        await setDoc(
+          doc(db, "tienDoHoc", idTDH),
+          {
+            idTDH,
+            idBoThe: Number.isFinite(Number(idStr)) ? Number(idStr) : idStr,
+            idNguoiDung: String(uid),
+            ngayHocGanDay: serverTimestamp(),
+          },
+          { merge: true }
+        );
+
+        // Tăng lượt học (nếu bộ thẻ còn tồn tại); bỏ qua lỗi để không chặn UX
+        await updateDoc(doc(db, "boThe", idStr), {
+          luotHoc: increment(1),
+          ngayChinhSua: serverTimestamp(),
+        }).catch(() => {});
+        window.dispatchEvent(new Event("tienDoHocUpdated"));
       }
     } catch (e) {
       console.warn("Tracking học gần đây lỗi (bỏ qua):", e);

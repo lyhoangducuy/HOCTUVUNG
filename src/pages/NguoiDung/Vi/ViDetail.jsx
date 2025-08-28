@@ -17,28 +17,24 @@ import {
   documentId,
 } from "firebase/firestore";
 
-import RuTien from "./RutTien/RutTien";
+import RutTien from "../../../components/Vi/RutTien/RutTien";
+import BangBienDongVi from "../../../components/Vi/BienDongVi/BienDongVi";
+import BangRutTien from "../../../components/Vi/BangRutTien/BangRutTien";
 
-/* ===== Helpers ===== */
-const VN = "vi-VN";
-const formatVND = (n) => `${Number(n || 0).toLocaleString("vi-VN")}đ`;
-const toDate = (v) => {
-  if (!v) return null;
-  if (typeof v?.toDate === "function") return v.toDate();
-  if (v instanceof Date) return v;
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d;
-};
-const formatDate = (v) => {
-  const d = toDate(v);
-  return d ? d.toLocaleString(VN) : "";
-};
+import {
+  toDate,
+  formatDate,
+  formatVND,
+  isWithdrawType,
+} from "./utils/dinhDang";
 
 export default function ViDetail() {
   const navigate = useNavigate();
 
   const [uid, setUid] = useState(null);
   const [authReady, setAuthReady] = useState(false);
+
+  // Lấy UID
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (u?.uid) setUid(u.uid);
@@ -58,7 +54,7 @@ export default function ViDetail() {
   }, [authReady, uid, navigate]);
 
   /* Ví + ngân hàng đã lưu */
-  const [wallet, setWallet] = useState({ soDu: 0, ngayCapNhat: null, nganHang: null });
+  const [wallet, setWallet] = useState({ soDu: 0, updatedAt: null, nganHang: null });
   const [loadingWallet, setLoadingWallet] = useState(true);
 
   useEffect(() => {
@@ -72,11 +68,11 @@ export default function ViDetail() {
           setWallet({
             idVi: snap.id,
             soDu: Number(data.soDu || 0),
-            ngayCapNhat: data.ngayCapNhat || null,
+            updatedAt: data.updatedAt || data.ngayCapNhat || null,
             nganHang: data.nganHang || null,
           });
         } else {
-          setWallet({ idVi: String(uid), soDu: 0, ngayCapNhat: null, nganHang: null });
+          setWallet({ idVi: String(uid), soDu: 0, updatedAt: null, nganHang: null });
         }
         setLoadingWallet(false);
       },
@@ -85,7 +81,7 @@ export default function ViDetail() {
     return () => unsub();
   }, [uid]);
 
-  // Fallback: nếu ví chưa có ngân hàng -> lấy từ hồ sơ người dùng
+  // Fallback ngân hàng từ hồ sơ
   useEffect(() => {
     if (!uid) return;
     if (wallet.nganHang) return;
@@ -103,6 +99,7 @@ export default function ViDetail() {
   /* Biến động của ví (bienDongCuaVi) */
   const [bdcv, setBdcv] = useState([]);
   const [loadingBdcv, setLoadingBdcv] = useState(true);
+
   useEffect(() => {
     if (!uid) return;
     setLoadingBdcv(true);
@@ -115,9 +112,10 @@ export default function ViDetail() {
       qBD,
       (snap) => {
         const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        // sort theo updatedAt rồi fallback ngayTao
         rows.sort((a, b) => {
-          const ta = toDate(a.ngayTao)?.getTime() || 0;
-          const tb = toDate(b.ngayTao)?.getTime() || 0;
+          const ta = toDate(a.updatedAt || a.ngayTao)?.getTime() || 0;
+          const tb = toDate(b.updatedAt || b.ngayTao)?.getTime() || 0;
           return tb - ta;
         });
         setBdcv(rows);
@@ -131,7 +129,7 @@ export default function ViDetail() {
     return () => unsub();
   }, [uid]);
 
-  /* JOIN: bdcv -> hoaDon -> nguoiDung */
+  /* JOIN: bdcv -> hoaDon -> nguoiDung (để bảng có buyerName, nội dung…) */
   const [rows, setRows] = useState([]);
   useEffect(() => {
     let cancelled = false;
@@ -141,13 +139,14 @@ export default function ViDetail() {
         return;
       }
 
-      // Lấy hóa đơn
+      // Id hóa đơn cần join
       const orderIds = Array.from(
         new Set(bdcv.map((r) => String(r.idHoaDon || "")).filter(Boolean))
       );
       const orderMap = {};
       for (let i = 0; i < orderIds.length; i += 10) {
         const chunk = orderIds.slice(i, i + 10);
+        if (!chunk.length) continue;
         try {
           const rs = await getDocs(
             query(collection(db, "hoaDon"), where(documentId(), "in", chunk))
@@ -156,7 +155,7 @@ export default function ViDetail() {
         } catch {}
       }
 
-      // Lấy người mua
+      // Người mua cho các dòng doanh thu
       const buyerIds = Array.from(
         new Set(
           Object.values(orderMap)
@@ -167,6 +166,7 @@ export default function ViDetail() {
       const userMap = {};
       for (let i = 0; i < buyerIds.length; i += 10) {
         const chunk = buyerIds.slice(i, i + 10);
+        if (!chunk.length) continue;
         try {
           const rs = await getDocs(
             query(collection(db, "nguoiDung"), where(documentId(), "in", chunk))
@@ -179,21 +179,41 @@ export default function ViDetail() {
 
       const joined = bdcv.map((r) => {
         const od = orderMap[String(r.idHoaDon)] || {};
-        const buyer = userMap[String(od.idNguoiDung)] || {};
-        const soTien = Number(od.soTienThanhToan ?? 0) || 0;
+        const withdraw = isWithdrawType(r.loai);
+
+        // số tiền hiển thị: trị tuyệt đối, dấu theo loại & trạng thái
+        const raw = Number(r.soTien ?? od.soTienThanhToan ?? 0) || 0;
+        const soTienAbs = Math.abs(raw);
+
         const st = String(r.trangThai || "").toLowerCase(); // pending | done | canceled
-        const sign = st === "done" ? "+" : st === "canceled" ? "" : "+";
+        const sign = st === "canceled" ? "" : withdraw ? "-" : "+";
+
+        const noiDung =
+          r.noiDung ||
+          r.moTa ||
+          (withdraw
+            ? "Rút tiền"
+            : od.tenGoi
+            ? `Doanh thu: ${od.tenGoi}`
+            : "—");
+
+        const buyer =
+          withdraw ? {} : userMap[String(od.idNguoiDung)] || {};
 
         return {
           id: r.id,
-          ngayTao: r.ngayTao,
+          ngayTao: r.updatedAt || r.ngayTao,
           trangThai: st,
-          tenGoi: od.tenGoi || "—",
-          buyerName: buyer.tenNguoiDung || buyer.hoTen || "Người dùng",
-          soTien,
+          isWithdraw: withdraw,
+          noiDung,
+          buyerName: withdraw
+            ? "—"
+            : buyer.tenNguoiDung || buyer.hoTen || "Người dùng",
+          soTien: soTienAbs,
           sign,
         };
       });
+
       setRows(joined);
     })();
     return () => {
@@ -218,11 +238,11 @@ export default function ViDetail() {
           const phi = Number(x.Phi ?? x.phi ?? 0);
           const net = x.TienSauPhi != null ? Number(x.TienSauPhi) : Math.max(0, soTien - phi);
           const status = String(x.TinhTrang ?? x.trangThai ?? "pending").toLowerCase();
-        const acct =
-          x.SoTaiKhoanNganHang ||
-          (x.nganHang
-            ? `${x.nganHang.tenNganHang || ""} | ${x.nganHang.chuTaiKhoan || ""} | ${x.nganHang.soTaiKhoan || ""}`.trim()
-            : "—");
+          const acct =
+            x.SoTaiKhoanNganHang ||
+            (x.nganHang
+              ? `${x.nganHang.tenNganHang || ""} | ${x.nganHang.chuTaiKhoan || ""} | ${x.nganHang.soTaiKhoan || ""}`.trim()
+              : "—");
           const created = x.NgayTao || x.createdAt || x.ngayTao || null;
 
           return { id: d.id, soTien, phi, net, status, acct, created };
@@ -257,7 +277,7 @@ export default function ViDetail() {
   }
 
   return (
-    <>
+    <div className="vi-container">
       <div className="vi-back" onClick={() => navigate(-1)}>
         ← Quay lại
       </div>
@@ -269,7 +289,7 @@ export default function ViDetail() {
         <div className="vi-balance-value">
           {loadingWallet ? "…" : formatVND(wallet.soDu)}
         </div>
-        <div className="vi-balance-sub">Cập nhật: {formatDate(wallet.ngayCapNhat)}</div>
+        <div className="vi-balance-sub">Cập nhật: {formatDate(wallet.updatedAt)}</div>
         <div className="vi-actions">
           <button
             className="vi-btn-primary"
@@ -286,135 +306,20 @@ export default function ViDetail() {
         </div>
       </div>
 
-      {/* Biến động */}
-      <div className="vi-table-wrap">
-        <div className="vi-table-headline">
-          <h2>Biến động của ví</h2>
-          <span className="vi-muted">{rows.length} dòng gần nhất</span>
-        </div>
+      {/* BẢNG: Biến động ví */}
+      <BangBienDongVi rows={rows} loading={loadingBdcv} />
 
-        {loadingBdcv ? (
-          <div className="vi-empty">Đang tải…</div>
-        ) : rows.length === 0 ? (
-          <div className="vi-empty">Chưa có đối soát nào.</div>
-        ) : (
-          <table className="vi-table">
-            <thead>
-              <tr>
-                <th>Trạng thái</th>
-                <th>Người mua</th>
-                <th>Số tiền</th>
-                <th>Nội dung</th>
-                <th>Thời gian</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
-                const moneyMod =
-                  r.trangThai === "done"
-                    ? "vi-amount--plus"
-                    : r.trangThai === "canceled"
-                    ? "vi-amount--minus"
-                    : "vi-amount--pending";
-                const badgeMod =
-                  r.trangThai === "done"
-                    ? "vi-badge--plus"
-                    : r.trangThai === "canceled"
-                    ? "vi-badge--minus"
-                    : "vi-badge--pending";
+      {/* BẢNG: Lịch sử rút tiền */}
+      <BangRutTien withdraws={withdraws} loading={loadingWd} />
 
-                return (
-                  <tr key={r.id}>
-                    <td data-label="Trạng thái">
-                      <span className={`vi-badge ${badgeMod}`}>
-                        {r.trangThai === "done"
-                          ? "Hoàn tất"
-                          : r.trangThai === "canceled"
-                          ? "Hủy"
-                          : "Đang xử lý"}
-                      </span>
-                    </td>
-                    <td data-label="Người mua">{r.buyerName}</td>
-                    <td data-label="Số tiền" className={`vi-amount ${moneyMod}`}>
-                      {r.trangThai === "canceled"
-                        ? "0đ"
-                        : `${r.sign}${formatVND(r.soTien)}`}
-                    </td>
-                    <td data-label="Tên gói">{r.tenGoi}</td>
-                    <td data-label="Thời gian">{formatDate(r.ngayTao)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Lịch sử rút tiền */}
-      <div className="vi-table-wrap" style={{ marginTop: 24 }}>
-        <div className="vi-table-headline">
-          <h2>Lịch sử rút tiền</h2>
-          <span className="vi-muted">{withdraws.length} yêu cầu</span>
-        </div>
-
-        {loadingWd ? (
-          <div className="vi-empty">Đang tải…</div>
-        ) : withdraws.length === 0 ? (
-          <div className="vi-empty">Chưa có yêu cầu rút nào.</div>
-        ) : (
-          <table className="vi-table">
-            <thead>
-              <tr>
-                <th>Trạng thái</th>
-                <th>Số tiền yêu cầu</th>
-                <th>Phí</th>
-                <th>Thực nhận</th>
-                <th>STK ngân hàng</th>
-                <th>Thời gian</th>
-              </tr>
-            </thead>
-            <tbody>
-              {withdraws.map((w) => {
-                const badge =
-                  w.status === "paid"
-                    ? "vi-badge vi-badge--plus"
-                    : w.status === "canceled" || w.status === "rejected"
-                    ? "vi-badge vi-badge--minus"
-                    : "vi-badge vi-badge--pending";
-                return (
-                  <tr key={w.id}>
-                    <td data-label="Trạng thái">
-                      <span className={badge}>
-                        {w.status === "paid"
-                          ? "Đã trả"
-                          : w.status === "approved"
-                          ? "Đã duyệt"
-                          : w.status === "canceled" || w.status === "rejected"
-                          ? "Đã hủy"
-                          : "Đang xử lý"}
-                      </span>
-                    </td>
-                    <td data-label="Số tiền yêu cầu">{formatVND(w.soTien)}</td>
-                    <td data-label="Phí">{formatVND(w.phi)}</td>
-                    <td data-label="Thực nhận">{formatVND(w.net)}</td>
-                    <td data-label="STK ngân hàng">{w.acct || "—"}</td>
-                    <td data-label="Thời gian">{formatDate(w.created)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Modal rút tiền: truyền savedBank để auto-fill */}
-      <RuTien
+      {/* Modal rút tiền */}
+      <RutTien
         open={showWithdraw}
         onClose={() => setShowWithdraw(false)}
         soDuHienTai={Number(wallet.soDu || 0)}
         uid={uid}
         savedBank={wallet.nganHang || null}
       />
-    </>
+    </div>
   );
 }

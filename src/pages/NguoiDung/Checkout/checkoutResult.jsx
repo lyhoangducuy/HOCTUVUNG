@@ -161,15 +161,17 @@ async function creditOwnerWalletOnce(orderRef, orderData, paidAmount) {
       );
     }
 
-    // 3) Log giao dịch ví (để màn Ví đọc realtime)
-    await addDoc(collection(db, "bienDongSoDu"), {
-      idVi: ownerId,
-      soTien: amount, // dương = cộng
-      moTa: `Doanh thu từ hóa đơn ${orderRef.id} (khóa học ${idKhoaHoc})`,
-      maThamChieu: orderRef.id,
-      loai: "thu_ban_khoa_hoc",
-      ngayTao: serverTimestamp(),
-    });
+    // ví dụ khi admin mark paid:
+    await setDoc(doc(db, "bienDongCuaVi", `${uid}__withdraw_${withdrawId}`), {
+      idVi: uid,
+      idHoaDon: String(withdrawId),
+      loai: "chi_rut_tien",
+      soTien: -Number(net),           // âm để hiển thị “−”
+      trangThai: "done",
+      moTa: `Rút tiền #${withdrawId}`,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
 
     // 4) BDCV = done
     await upsertBDCV({ idVi: ownerId, idHoaDon: orderRef.id, trangThai: "done" });
@@ -326,7 +328,7 @@ export default function CheckoutResult() {
         }
 
         // ghi BDCV 'canceled' cho chủ lớp (nếu là muaKhoaHoc)
-        try { await cancelBDCVIfNeeded(o, orderRef.id); } catch {}
+        try { await cancelBDCVIfNeeded(o, orderRef.id); } catch { }
 
         setStatus("fail");
         setSummary({
