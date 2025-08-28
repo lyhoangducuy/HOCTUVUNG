@@ -122,9 +122,12 @@ function TracNghiem() {
     setChoice(true);
     const isCorrect = item === currentQuestion.nghia;
     setCorrect(isCorrect);
-    setTimeout(() => setChoice(false), 1500);
+    setTimeout(() => {
+      setChoice(false);
+      setStep((prev) => (prev < danhsachthe.length - 1 ? prev + 1 : prev));
+    }, 1500);
 
-    setStep((prev) => (prev < danhsachthe.length - 1 ? prev + 1 : prev));
+    
   };
 
   const total = danhsachthe.length;
