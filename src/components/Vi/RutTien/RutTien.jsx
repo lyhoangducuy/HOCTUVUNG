@@ -1,7 +1,7 @@
 // src/pages/NguoiDung/Vi/RutTien/RutTien.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import "./RutTien.css";
-import { db } from "../../../../../lib/firebase";
+import { db } from "../../../../lib/firebase";
 import {
   addDoc,
   collection,
@@ -16,8 +16,8 @@ import {
 } from "firebase/firestore";
 
 const BANKS = [
-  "Vietcombank","Techcombank","VietinBank","BIDV","Agribank",
-  "MB Bank","ACB","TPBank","Sacombank","VPBank","HDBank",
+  "Vietcombank", "Techcombank", "VietinBank", "BIDV", "Agribank",
+  "MB Bank", "ACB", "TPBank", "Sacombank", "VPBank", "HDBank",
 ];
 
 const toNumber = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -25,11 +25,11 @@ const fmtVND = (n) => `${toNumber(n).toLocaleString("vi-VN")}đ`;
 
 export default function RuTien({
   open = false,
-  onClose = () => {},
+  onClose = () => { },
   uid,
   soDuHienTai = 0,
   savedBank = null,
-  onSubmitted = () => {},
+  onSubmitted = () => { },
 }) {
   const [amountStr, setAmountStr] = useState("");
   const [bankName, setBankName] = useState("");
@@ -102,7 +102,7 @@ export default function RuTien({
         const cfg = await getDoc(doc(db, "cauHinh", "rutTien"));
         const p = Number(cfg.data()?.phiPhanTram);
         feePctNow = Number.isFinite(p) ? Math.max(0, Math.min(100, p)) : feePct;
-      } catch {}
+      } catch { }
 
       const SoTaiKhoanNganHang = `${bankName} | ${bankOwner} | ${bankAccount}`.trim();
 
@@ -266,8 +266,9 @@ export default function RuTien({
               onChange={(e) => setSaveBank(e.target.checked)}
               disabled={submitting}
             />
-            Lưu thông tin ngân hàng cho lần sau
+            <span>Lưu thông tin ngân hàng cho lần sau</span>
           </label>
+
         </div>
 
         <div className="vi-modal-footer">

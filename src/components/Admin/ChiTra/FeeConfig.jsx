@@ -43,7 +43,7 @@ export default function FeeConfig({ feePct, setFeePct, db }) {
     <div className="rt-config-left">
       <label className="rt-label">Phí mặc định (%)</label>
       <input
-        className="rt-input"
+        className="rt-input2"
         type="number"
         min={0}
         max={100}
@@ -59,7 +59,7 @@ export default function FeeConfig({ feePct, setFeePct, db }) {
         onClick={saveFee}
         disabled={saving}
       >
-        {saving ? "Đang lưu…" : "Lưu phí"}
+        {saving ? "Đang lưu…" : "Cập nhật phí"}
       </button>
     </div>
   );
