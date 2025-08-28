@@ -132,7 +132,7 @@ export default function BoThePhoBien() {
       console.warn("Tracking popular lỗi (bỏ qua):", e);
     }
 
-    window.location.href = `/flashcard/${idStr}`;
+    window.location.href = `/bothe/${idStr}`;
   };
 
   return (

@@ -1,73 +1,65 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getAllVideos } from "../../../../services/videoService";
 
 export default function VideoLibrary() {
-  const [lessons, setLessons] = useState([
-    {
-      id: "ls1",
-      tenBoThe: "Luyện nghe mẫu (mp4)",
-      moTa: "Video nội bộ",
-      video: {
-        src: "/src/assets/video/video.mp4",
-        transcript: [
-          { t: 2, answers: "What are you doing today" },
-          { t: 5, answers: "I'm working at the National Railway Museum" },
-          { t: 7, answers: "Well we've been to a hotel for the night" },
-          { t: 11, answers: "As a birthday present from our youngest son, to his mum" },
-          
-        ],
-      },
-    },
-    {
-      id: "ls2",
-      tenBoThe: "Luyện nghe mẫu (mp4)",
-      moTa: "Video nội bộ",
-      video: {
-        src: "/src/assets/video/video.mp4",
-        transcript: [
-           { t: 2, answers: "What are you doing today" },
-          { t: 5, answers: "I'm working at the National Railway Museum" },
-          { t: 7, answers: "Well we've been to a hotel for the night" },
-          { t: 11, answers: "As a birthday present from our youngest son, to his mum" },
-        ],
-      },
-    },
-    {
-      id: "ls3",
-      tenBoThe: "Luyện nghe mẫu (mp4)",
-      moTa: "Video nội bộ",
-      video: {
-        src: "/src/assets/video/video.mp4",
-        transcript: [
-            { t: 2, answers: "What are you doing today" },
-          { t: 5, answers: "I'm working at the National Railway Museum" },
-          { t: 7, answers: "Well we've been to a hotel for the night" },
-          { t: 11, answers: "As a birthday present from our youngest son, to his mum" },
-        ],
-      },
-    },
-  ]);
+  const [lessons, setLessons] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    localStorage.setItem("lessonList",JSON.stringify(lessons));
+    loadVideos();
   }, []);
+
+  const loadVideos = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllVideos();
+      setLessons(data);
+      localStorage.setItem("lessonList", JSON.stringify(data));
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách video:", error);
+      // Fallback to empty array if Firebase fails
+      setLessons([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const openLesson = (lesson) => {
     localStorage.setItem("selected", JSON.stringify(lesson));
     navigate(`/video/${lesson.id}`);
   };
 
+  if (loading) {
+    return (
+      <div className="video-page" style={{ padding: 16 }}>
+        <h2 style={{ marginBottom: 12 }}>Thư viện bài học video</h2>
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p style={{ marginTop: '16px', color: '#6b7280' }}>Đang tải danh sách video...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="video-page" style={{ padding: 16 }}>
       <h2 style={{ marginBottom: 12 }}>Thư viện bài học video</h2>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-          gap: 12,
-        }}
-      >
+      {lessons.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📹</div>
+          <h3 style={{ marginBottom: '8px', color: '#374151' }}>Chưa có video nào</h3>
+          <p style={{ color: '#6b7280' }}>Hãy liên hệ admin để thêm video mới</p>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+            gap: 12,
+          }}
+        >
         {lessons.map((ls) => (
           <div
             key={ls.id}
@@ -99,7 +91,8 @@ export default function VideoLibrary() {
             </button>
           </div>
         ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

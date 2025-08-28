@@ -25,6 +25,21 @@ import {
   getDoc,
 } from "firebase/firestore";
 
+/* ===== Helpers hiển thị ngày từ Firestore Timestamp/epoch ===== */
+const toVNDate = (date) =>
+  date instanceof Date && !Number.isNaN(date) ? date.toLocaleDateString("vi-VN") : "";
+
+const fromMaybeTs = (val) => {
+  if (!val) return null;
+  if (typeof val?.toDate === "function") return val.toDate(); // Firestore Timestamp
+  if (!Number.isNaN(Number(val))) {
+    const n = Number(val);
+    return new Date(n > 1e12 ? n : n * 1000); // ms|s epoch
+  }
+  const d = new Date(val);
+  return Number.isNaN(d) ? null : d;
+};
+
 export default function Lop() {
   const { id } = useParams(); // idKhoaHoc từ route /lop/:id
   const navigate = useNavigate();
@@ -240,7 +255,7 @@ export default function Lop() {
         setFirstDeck(null);
         setFirstCards([]);
       } finally {
-        setLoadingFirst(false);
+               setLoadingFirst(false);
       }
     };
     loadFirstDeck();
@@ -254,6 +269,9 @@ export default function Lop() {
     const soThanhVien = Array.isArray(chiTietKhoaHoc.thanhVienIds) ? chiTietKhoaHoc.thanhVienIds.length : 0;
     const tags = chiTietKhoaHoc.kienThuc || [];
     const donVi = chiTietKhoaHoc.donViTien || "VND";
+
+    // Ngày tạo (chỉ hiển thị, đọc từ 'ngayTao')
+    const ngayTaoStr = toVNDate(fromMaybeTs(chiTietKhoaHoc.ngayTao));
 
     const giaGoc = getGiaThamGia(chiTietKhoaHoc);
     const giamGia = Number(chiTietKhoaHoc?.giamGia || 0);
@@ -277,6 +295,10 @@ export default function Lop() {
         <div style={{ marginTop: 10, color: "#374151", display: "grid", gap: 6 }}>
           <div><strong>Tên khóa học:</strong> {chiTietKhoaHoc.tenKhoaHoc || "—"}</div>
           <div><strong>Mô tả:</strong> {chiTietKhoaHoc.moTa || "—"}</div>
+
+          {/* Ngày tạo */}
+          <div><strong>Ngày tạo:</strong> {ngayTaoStr || "—"}</div>
+
           <div>
             <strong>Kiến thức:</strong>{" "}
             {tags.length ? tags.map((t, i) => (

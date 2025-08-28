@@ -68,7 +68,7 @@ export default function ViDetail() {
           setWallet({
             idVi: snap.id,
             soDu: Number(data.soDu || 0),
-            ngayCapNhat: data.ngayCapNhat || data.updatedAt || null,
+            ngayCapNhat: data.ngayCapNhat  || null,
           });
         } else {
           setWallet({ idVi: String(uid), soDu: 0, ngayCapNhat: null });

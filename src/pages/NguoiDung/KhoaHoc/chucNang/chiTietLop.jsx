@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./chiTietLop.css";
 
-import { db } from "../../../../../lib/firebase"; // chỉnh path nếu khác
+import { db } from "../../../../../lib/firebase";
 import {
   doc, getDoc, setDoc, updateDoc,
   collection, query, where, limit, getDocs,
@@ -11,6 +11,18 @@ import {
 /* ===== helpers ===== */
 const safeArr = (v) => (Array.isArray(v) ? v : []);
 const toNum   = (v, d=0) => (Number.isFinite(Number(v)) ? Number(v) : d);
+const toVNDate = (date) =>
+  date instanceof Date && !Number.isNaN(date) ? date.toLocaleDateString("vi-VN") : "";
+const fromMaybeTs = (val) => {
+  if (!val) return null;
+  if (typeof val?.toDate === "function") return val.toDate(); // Firestore Timestamp
+  if (!Number.isNaN(Number(val))) {
+    const n = Number(val);
+    return new Date(n > 1e12 ? n : n * 1000); // ms|s epoch
+  }
+  const d = new Date(val);
+  return Number.isNaN(d) ? null : d;
+};
 
 async function getCourseDocRefByAnyId(id) {
   if (id === undefined || id === null) return null;
@@ -29,7 +41,7 @@ async function getCourseDocRefByAnyId(id) {
 }
 
 export default function ChiTietKhoaHocModal({ open, lop, onClose, onSaved }) {
-  /* ---- hooks luôn đặt trước mọi return để tránh lỗi hooks ---- */
+  /* ---- hooks ---- */
   const [isEditing, setIsEditing] = useState(false);
 
   const [form, setForm] = useState({
@@ -37,7 +49,7 @@ export default function ChiTietKhoaHocModal({ open, lop, onClose, onSaved }) {
     moTa: "",
     kienThucText: "",
     giaKhoaHoc: 0,
-    giamGia: 0
+    giamGia: 0,
   });
 
   useEffect(() => {
@@ -48,7 +60,7 @@ export default function ChiTietKhoaHocModal({ open, lop, onClose, onSaved }) {
       moTa: String(lop.moTa ?? ""),
       kienThucText: Array.isArray(lop.kienThuc) ? lop.kienThuc.join(", ") : "",
       giaKhoaHoc: toNum(lop.giaKhoaHoc, 0),
-      giamGia: toNum(lop.giamGia, 0)
+      giamGia: toNum(lop.giamGia, 0),
     });
   }, [open, lop]);
 
@@ -73,8 +85,8 @@ export default function ChiTietKhoaHocModal({ open, lop, onClose, onSaved }) {
   const soTV    = Array.isArray(lop?.thanhVienIds) ? lop.thanhVienIds.length : 0;
 
   const onChange = (e) => {
-    const { name, value, type } = e.target;
-    setForm((s) => ({ ...s, [name]: type === "number" ? value : value }));
+    const { name, value } = e.target;
+    setForm((s) => ({ ...s, [name]: value }));
   };
 
   const saveFirestore = async (next) => {
@@ -82,14 +94,15 @@ export default function ChiTietKhoaHocModal({ open, lop, onClose, onSaved }) {
     try {
       let ref = await getCourseDocRefByAnyId(anyId);
       if (!ref) {
+        // Tạo mới: chỉ set ngayTao theo yêu cầu
         ref = doc(db, "khoaHoc", anyId);
         await setDoc(ref, {
           ...next,
           idKhoaHoc: anyId,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
+          ngayTao: serverTimestamp(),
         });
       } else {
+        // Cập nhật: không đụng tới ngayTao
         await updateDoc(ref, {
           tenKhoaHoc: next.tenKhoaHoc,
           moTa: next.moTa,
@@ -100,7 +113,6 @@ export default function ChiTietKhoaHocModal({ open, lop, onClose, onSaved }) {
           boTheIds: safeArr(next.boTheIds).map(String),
           thanhVienIds: safeArr(next.thanhVienIds).map(String),
           folderIds: safeArr(next.folderIds).map(String),
-          updatedAt: serverTimestamp(),
         });
       }
       window.dispatchEvent(new Event("khoaHocChanged"));
@@ -135,14 +147,14 @@ export default function ChiTietKhoaHocModal({ open, lop, onClose, onSaved }) {
     const ok = onSaved ? (await onSaved(next)) !== false : await saveFirestore(next);
     if (ok) {
       alert("Đã lưu thay đổi.");
-      setIsEditing(false); // quay lại chế độ xem
+      setIsEditing(false);
     }
   };
 
-  /* cho phép đóng hẳn khi không mở */
   if (!open || !lop) return null;
 
   const money = (n) => Number(n || 0).toLocaleString("vi-VN");
+  const ngayTaoStr = toVNDate(fromMaybeTs(lop.ngayTao));
 
   return (
     <div className="ctl-overlay">
@@ -153,8 +165,26 @@ export default function ChiTietKhoaHocModal({ open, lop, onClose, onSaved }) {
           <button className="ctl-close" onClick={onClose} aria-label="Đóng">×</button>
         </div>
 
-        {/* Body (scroll) */}
+        {/* Body */}
         <div className="ctl-body">
+          {/* Mã khóa học (readonly) */}
+          <div className="ctl-row">
+            <label className="ctl-label">Mã khóa học</label>
+            <div className="ctl-static">{String(lop?.idKhoaHoc ?? "—")}</div>
+          </div>
+
+          {/* Người tạo (readonly) */}
+          <div className="ctl-row">
+            <label className="ctl-label">Người tạo (ID)</label>
+            <div className="ctl-static">{String(lop?.idNguoiDung ?? "—")}</div>
+          </div>
+
+          {/* Ngày tạo (readonly) */}
+          <div className="ctl-row">
+            <label className="ctl-label">Ngày tạo</label>
+            <div className="ctl-static">{ngayTaoStr || "—"}</div>
+          </div>
+
           {/* Tên */}
           <div className="ctl-row">
             <label className="ctl-label">Tên khóa học</label>
@@ -233,9 +263,8 @@ export default function ChiTietKhoaHocModal({ open, lop, onClose, onSaved }) {
           <div className="ctl-grid-2">
             <div className="ctl-row">
               <label className="ctl-label">Giá sau giảm</label>
-              <div className="ctl-static">{money(giaSauGiam)} {form.donViTien}</div>
+              <div className="ctl-static">{money(giaSauGiam)}</div>
             </div>
-
           </div>
 
           <div className="ctl-split" />

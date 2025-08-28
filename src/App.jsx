@@ -33,6 +33,7 @@ import ThuVienCuaToi from "./pages/NguoiDung/ThuVienCuaToi/ThuVienCuaToi";
 import QuanLyUser from "./pages/Admin/QuanLyUser/QuanLyUser";
 import QuanLyBoThe from "./pages/Admin/QuanLyBoThe/QuanLyBoThe";
 import QuanLyKhoaHoc from "./pages/Admin/QuanLyKhoaHoc/QuanLyKhoaHoc";
+import QuanLyVideo from "./pages/Admin/QuanLyVideo/QuanLyVideo";
 import Setting from "./pages/NguoiDung/Setting/Setting";
 import SuaBoThe from "./pages/NguoiDung/HocBoThe/SuaBoThe/SuaBoThe";
 import Landingpage from "./pages/Auth/LandingPage/Landingpage";
@@ -112,6 +113,7 @@ export default function App() {
             <Route path="/admin/quan-ly-tra-phi" element={<QuanLyTraPhi />} />
             <Route path="/admin/quan-ly-bo-the" element={<QuanLyBoThe />} />
             <Route path="/admin/quan-ly-khoa-hoc" element={<QuanLyKhoaHoc />} />
+            <Route path="/admin/quan-ly-video" element={<QuanLyVideo />} />
           </Route>
         </Route>
       </Route>

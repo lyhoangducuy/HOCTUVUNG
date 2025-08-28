@@ -102,11 +102,11 @@ function Sidebar() {
       navigate("/dang-nhap");
       return;
     }
-    if (!prime) {
-      alert("Bạn cần nâng cấp tài khoản để dùng chức năng Video.");
-      navigate("/tra-phi"); // đồng bộ route trả phí
-      return;
-    }
+    // if (!prime) {
+    //   alert("Bạn cần nâng cấp tài khoản để dùng chức năng Video.");
+    //   navigate("/tra-phi"); // đồng bộ route trả phí
+    //   return;
+    // }
     navigate("/video");
   };
 
