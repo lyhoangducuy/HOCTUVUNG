@@ -1,4 +1,12 @@
 /* Base button */
+/* Font Việt ổn định cho dấu */
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700;800;900&display=swap");
+
+:root{
+  --ui-font: "Be Vietnam Pro", "Inter", "Roboto", "Noto Sans", "Segoe UI",
+             system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
 .btn {
   display: inline-block;
   padding: 12px 28px;
@@ -9,39 +17,21 @@
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: 160px;
+
+  /* 👉 THÊM MỚI: ép dùng font Việt mượt */
+  font-family: var(--ui-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* Đăng ký (xanh) */
-.btn-register {
-  background: #0284c7;
-  color: #fff;
-  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
-}
-
-.btn-register:hover {
-  background: #0369a1;
-  box-shadow: 0 6px 14px rgba(3, 105, 161, 0.4);
-  transform: translateY(-2px);
-}
+.btn-register { background:#0284c7; color:#fff; box-shadow:0 4px 10px rgba(2,132,199,.3); }
+.btn-register:hover { background:#0369a1; box-shadow:0 6px 14px rgba(3,105,161,.4); transform:translateY(-2px); }
 
 /* Hủy (đỏ) */
-.btn-cancel {
-  background: #dc2626;
-  color: #fff;
-  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3);
-}
-
-.btn-cancel:hover {
-  background: #b91c1c;
-  box-shadow: 0 6px 14px rgba(185, 28, 28, 0.4);
-  transform: translateY(-2px);
-}
+.btn-cancel { background:#dc2626; color:#fff; box-shadow:0 4px 10px rgba(220,38,38,.3); }
+.btn-cancel:hover { background:#b91c1c; box-shadow:0 6px 14px rgba(185,28,28,.4); transform:translateY(-2px); }
 
 /* Disabled */
-.btn:disabled {
-  background: #9ca3af;
-  color: #f3f4f6;
-  cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
-}
+.btn:disabled { background:#9ca3af; color:#f3f4f6; cursor:not-allowed; box-shadow:none; transform:none; }

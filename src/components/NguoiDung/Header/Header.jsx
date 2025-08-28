@@ -1,5 +1,4 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faBookOpen } from "@fortawesome/free-solid-svg-icons";
+// src/components/Header/Header.jsx  (đường dẫn của bạn)
 import "./header.css";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -11,7 +10,6 @@ import AccountMenu from "./components/AccountMenu";
 import { auth, db } from "../../../../lib/firebase";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { signOut } from "firebase/auth";
-import { height } from "@fortawesome/free-brands-svg-icons/fa11ty";
 
 /* ===== Helpers riêng của Header ===== */
 const userRef = (id) => doc(db, "nguoiDung", String(id));
@@ -49,7 +47,7 @@ export default function Header() {
   const unsubUserRef = useRef(null);
 
   const [user, setUser] = useState(null);
-  const [prime, setPrime] = useState(false);
+  const [primeActive, setPrimeActive] = useState(false);
 
   // Realtime user (kéo số dư) + prime
   useEffect(() => {
@@ -59,7 +57,7 @@ export default function Header() {
     const init = async () => {
       const ss = JSON.parse(sessionStorage.getItem("session") || "null");
       const uid = auth.currentUser?.uid || ss?.idNguoiDung;
-      if (!uid) { setUser(null); setPrime(false); return; }
+      if (!uid) { setUser(null); setPrimeActive(false); return; }
 
       // user
       unsubUser = onSnapshot(
@@ -86,9 +84,9 @@ export default function Header() {
             end.setHours(0, 0, 0, 0);
             return end >= today;
           });
-          setPrime(hasActive);
+          setPrimeActive(hasActive);
         },
-        () => setPrime(false)
+        () => setPrimeActive(false)
       );
       unsubSubRef.current = unsubSub;
     };
@@ -107,7 +105,7 @@ export default function Header() {
         sessionStorage.removeItem("session");
         unsubSubRef.current?.(); unsubSubRef.current = null;
         unsubUserRef.current?.(); unsubUserRef.current = null;
-        setUser(null); setPrime(false);
+        setUser(null); setPrimeActive(false);
         navigate("/dang-nhap", { replace: true });
       }
     };
@@ -124,14 +122,23 @@ export default function Header() {
     }
   };
 
+  const role = String(user?.vaiTro || "").toUpperCase();      // "GIANG_VIEN" | "HOC_VIEN" | ...
+  const isTeacher = role === "GIANG_VIEN";
+  const isStudent = role === "HOC_VIEN";
+
+  // === QUY TẮC HIỂN THỊ THEO YÊU CẦU ===
+  // Giảng viên: luôn hiện nút nâng cấp; KHÔNG hiện sao (kể cả đã nâng cấp)
+  // Học viên:   nếu chưa nâng cấp -> hiện nút; nếu đã nâng cấp -> ẩn nút + hiện sao
+  const showUpgradeButton = isTeacher ? true : !primeActive;
+  const showPrimeBadge   = isTeacher ? false : !!primeActive;
+
   const balanceText = formatVND(user?.soDu);
 
   return (
     <div className="header-container">
       {/* Left */}
       <div className="left-section">
-        
-        <img src="src\assets\image\logo.jpg" alt="" style={{height : "60px"}} />
+        <img src="src/assets/image/logo.jpg" alt="Logo" style={{ height: "60px" }} />
       </div>
 
       {/* Search */}
@@ -141,7 +148,7 @@ export default function Header() {
       <div className="right-section">
         <PlusMenu role={user?.vaiTro} navigate={navigate} />
 
-        {!prime && (
+        {showUpgradeButton && (
           <button className="btn-upgrade" onClick={() => navigate("/tra-phi")}>
             Nâng cấp tài khoản
           </button>
@@ -149,7 +156,8 @@ export default function Header() {
 
         <AccountMenu
           user={user}
-          prime={prime}
+          // Truyền prime = showPrimeBadge để điều khiển hiển thị sao đúng theo role
+          prime={showPrimeBadge}
           balanceText={balanceText}
           onLogout={logout}
           navigate={navigate}

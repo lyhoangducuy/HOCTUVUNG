@@ -1,0 +1,114 @@
+/* (Tuỳ chọn) Font Việt đẹp: Be Vietnam Pro cho nút Quay lại */
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700&display=swap");
+
+:root{
+  --brand:#2563eb;
+  --accent:#f59e0b;
+  --ink:#0f172a;
+  --muted:#6b7280;
+  --card:#ffffff;
+  --bg: radial-gradient(1200px 800px at 10% 10%, rgba(37,99,235,.12), transparent 40%),
+        radial-gradient(900px 600px at 90% 90%, rgba(245,158,11,.12), transparent 45%),
+        linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+}
+
+.evp-wrap{
+  position:relative; min-height:100vh; display:grid; place-items:center; overflow:hidden;
+  background:var(--bg);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  color:var(--ink);
+}
+.evp-canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+.evp-scene{ position:relative; z-index:2; display:grid; gap:18px; place-items:center; padding:24px; text-align:center; }
+
+/* Glow orb behind card */
+.evp-orb{
+  position:absolute; inset:auto; top:50%; left:50%; width:min(62vmin,560px); aspect-ratio:1/1;
+  translate:-50% -58%; border-radius:50%; filter: blur(18px) saturate(1.2);
+  background: conic-gradient(from 0deg, var(--brand), #7c3aed, var(--accent), #10b981, var(--brand));
+  opacity:.22; animation: spin 12s linear infinite;
+}
+
+/* Floating 3D cube */
+.evp-cube{
+  position:relative; width:min(22vmin,220px); aspect-ratio:1/1; transform-style:preserve-3d;
+  animation: spin3d 18s linear infinite, floaty 5s ease-in-out infinite;
+  filter: drop-shadow(0 10px 24px rgba(2,6,23,.25));
+}
+.evp-cube > span{
+  position:absolute; inset:0; background:linear-gradient(135deg, rgba(37,99,235,.9), rgba(124,58,237,.9));
+  border:1px solid rgba(255,255,255,.15); border-radius:18px; backdrop-filter: blur(4px);
+  box-shadow: inset 0 0 12px rgba(255,255,255,.12);
+}
+.evp-cube .f{ transform: translateZ(calc(0.5 * min(22vmin,220px))); }
+.evp-cube .b{ transform: rotateY(180deg) translateZ(calc(0.5 * min(22vmin,220px))); }
+.evp-cube .l{ transform: rotateY(-90deg) translateZ(calc(0.5 * min(22vmin,220px))); }
+.evp-cube .r{ transform: rotateY(90deg) translateZ(calc(0.5 * min(22vmin,220px))); }
+.evp-cube .t{ transform: rotateX(90deg) translateZ(calc(0.5 * min(22vmin,220px))); }
+.evp-cube .bt{ transform: rotateX(-90deg) translateZ(calc(0.5 * min(22vmin,220px))); }
+
+/* 404 3D text */
+.evp-code{
+  position:relative; font-size: clamp(42px, 10vw, 120px); font-weight: 900; letter-spacing:.04em;
+  color:#fff; text-shadow:
+    0 1px 0 rgba(15,23,42,.12),
+    0 2px 0 rgba(15,23,42,.12),
+    0 3px 0 rgba(15,23,42,.12),
+    0 4px 0 rgba(15,23,42,.12),
+    0 6px 12px rgba(2,6,23,.45);
+  background: linear-gradient(180deg, #ffffff 0%, #dbeafe 60%, #bfdbfe 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  transform: translateZ(0);
+}
+.evp-code[data-glitch]:after, .evp-code[data-glitch]:before{
+  content: attr(data-glitch);
+  position:absolute; inset:0; color:transparent; -webkit-background-clip:text; background-clip:text;
+  background: linear-gradient(180deg, #fff, #e9d5ff);
+  mix-blend-mode: screen; filter: drop-shadow(0 0 6px rgba(168,85,247,.6));
+  animation: glitch 2.4s infinite steps(2, end);
+}
+.evp-code[data-glitch]:before{ transform: translate(-2px,1px); opacity:.45; }
+.evp-code[data-glitch]:after{ transform: translate(2px,-1px); opacity:.35; animation-delay:.8s; }
+
+.evp-card{
+  position:relative; z-index:3; background:rgba(255,255,255,.6); backdrop-filter: blur(10px);
+  border:1px solid rgba(255,255,255,.45); border-radius: 18px; padding: 18px 20px; text-align:center;
+  box-shadow: 0 12px 40px rgba(2,6,23,.16);
+}
+.evp-title{ font-size: clamp(18px, 3.6vw, 28px); font-weight: 800; color: var(--ink); margin: 4px 0; }
+.evp-hint{ color: var(--muted); font-size: 14px; max-width: 720px; margin: 0 auto; }
+
+.evp-cta{ margin-top: 14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.evp-btn{
+  border:1px solid color-mix(in srgb, var(--brand) 50%, white);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 93%, white), color-mix(in srgb, var(--brand) 75%, white));
+  color:#fff; font-weight: 800; letter-spacing:.02em; font-size:14px; padding:10px 14px; border-radius: 12px; cursor:pointer;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--brand) 30%, transparent);
+  transition: transform .12s ease, box-shadow .2s ease, opacity .2s ease;
+}
+.evp-btn:hover{ transform: translateY(-1px); box-shadow: 0 10px 24px color-mix(in srgb, var(--brand) 36%, transparent); }
+.evp-btn:active{ transform: translateY(0); box-shadow: 0 6px 18px color-mix(in srgb, var(--brand) 28%, transparent); }
+
+.evp-btn--ghost{
+  border:1px dashed color-mix(in srgb, var(--accent) 56%, white);
+  background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.65));
+  color: color-mix(in srgb, var(--ink) 86%, black);
+}
+
+/* 🔥 Font riêng cho nút “Quay lại” */
+.evp-btn--back{
+  font-family: "Be Vietnam Pro", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  letter-spacing: .15px;
+}
+
+@keyframes spin{ to{ transform: rotate(360deg); } }
+@keyframes spin3d{ to{ transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); } }
+@keyframes floaty{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-10px); } }
+@keyframes glitch{ 0%{ clip-path: inset(0 0 0 0);} 20%{ clip-path: inset(2% 0 0 0);} 40%{ clip-path: inset(0 0 3% 0);} 60%{ clip-path: inset(1% 0 1% 0);} 80%{ clip-path: inset(0 0 2% 0);} 100%{ clip-path: inset(0 0 0 0);} }
+
+/* Mobile tweaks */
+@media (max-width: 640px){
+  .evp-cube{ width:min(34vmin,220px); }
+  .evp-orb{ width:min(80vmin,560px); translate:-50% -62%; }
+}
