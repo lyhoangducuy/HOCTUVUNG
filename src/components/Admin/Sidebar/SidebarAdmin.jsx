@@ -4,62 +4,70 @@ import {
   FaLayerGroup,
   FaChalkboardTeacher,
   FaMoneyCheckAlt,
+  FaHandHoldingUsd,
 } from "react-icons/fa";
+import { NavLink } from "react-router-dom";
 import "./SidebarAdmin.css";
+
 const SidebarAdmin = () => {
   return (
-    <div className={`sidebar-container`}>
+    <aside className="sidebar-container">
       <div className="sidebar-content">
-        <h3>
-          <a id="trangChuAdmin" href="/admin">
+        <h3 className="sidebar-logo">
+          <NavLink id="trangChuAdmin" to="/admin">
             Học từ Vựng
-          </a>
+          </NavLink>
         </h3>
 
-        <ul>
-          <li>
-            <a href="/admin/thong-ke">
-              <span className="sidebar-icon">
-                <FaChartBar />
-              </span>
-              Thống Kê
-            </a>
-          </li>
-          <li>
-            <a href="/admin/quan-ly-user">
-              <span className="sidebar-icon">
-                <FaUser />
-              </span>
-              Quản Lý Người Dùng
-            </a>
-          </li>
-          <li>
-            <a href="/admin/quan-ly-bo-the">
-              <span className="sidebar-icon">
-                <FaLayerGroup />
-              </span>
-              Quản Lý Bộ Thẻ
-            </a>
-          </li>
-          <li>
-            <a href="/admin/quan-ly-khoa-hoc">
-              <span className="sidebar-icon">
-                <FaChalkboardTeacher />
-              </span>
-              Quản Lý Khóa Học
-            </a>
-          </li>
-          <li>
-            <a href="/admin/quan-ly-tra-phi">
-              <span className="sidebar-icon">
-                <FaMoneyCheckAlt />
-              </span>
-              Quản Lý Trả Phí
-            </a>
-          </li>
-        </ul>
+        <nav aria-label="Admin navigation">
+          <ul className="sidebar-menu">
+            <li>
+              <NavLink className="menu-link" to="/admin/thong-ke">
+                <span className="sidebar-icon"><FaChartBar /></span>
+                <span>Thống Kê</span>
+              </NavLink>
+            </li>
+
+            <li>
+              <NavLink className="menu-link" to="/admin/quan-ly-user">
+                <span className="sidebar-icon"><FaUser /></span>
+                <span>Quản Lý Người Dùng</span>
+              </NavLink>
+            </li>
+
+            <li>
+              <NavLink className="menu-link" to="/admin/quan-ly-bo-the">
+                <span className="sidebar-icon"><FaLayerGroup /></span>
+                <span>Quản Lý Bộ Thẻ</span>
+              </NavLink>
+            </li>
+
+            <li>
+              <NavLink className="menu-link" to="/admin/quan-ly-khoa-hoc">
+                <span className="sidebar-icon"><FaChalkboardTeacher /></span>
+                <span>Quản Lý Khóa Học</span>
+              </NavLink>
+            </li>
+
+            {/* Quản lý thu/chi gói trả phí */}
+            <li>
+              <NavLink className="menu-link" to="/admin/quan-ly-tra-phi">
+                <span className="sidebar-icon"><FaMoneyCheckAlt /></span>
+                <span>Quản lý chi trả</span>
+              </NavLink>
+            </li>
+
+            {/* Payouts (rút tiền) – KHÔNG dùng URL có dấu */}
+            <li>
+              <NavLink className="menu-link" to="/admin/rut-tien">
+                <span className="sidebar-icon"><FaHandHoldingUsd /></span>
+                <span>Chi trả (Payouts)</span>
+              </NavLink>
+            </li>
+          </ul>
+        </nav>
       </div>
-    </div>
+    </aside>
   );
 };
 

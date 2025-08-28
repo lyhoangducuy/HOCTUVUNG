@@ -4,7 +4,7 @@ import "./ThuVienCuaToi.css";
 import { useNavigate } from "react-router-dom";
 
 import ItemBo from "../../../components/BoThe/itemBo";
-import ItemKH from "../../../components/BoThe/itemKH"; // <-- THÊM
+import ItemKH from "../../../components/BoThe/itemKH";
 
 import { auth, db } from "../../../../lib/firebase";
 import {
@@ -119,11 +119,7 @@ function ThuVienCuaToi() {
   }, [cardLib, khoaHocList]);
 
   const handleStudy = (id) => navigate(`/flashcard/${id}`);
-  const handleKhoaHoc = (id) => navigate(`/khoaHoc/${id}`); // giữ nguyên route hiện tại
-
-  // helper giá hiển thị cho ItemKH
-  const getGiaKhoaHoc = (k) =>
-    Number(k?.giaThamGia ?? k?.hocPhi ?? k?.giaKhoaHoc ?? 0);
+  const handleKhoaHoc = (id) => navigate(`/khoaHoc/${id}`);
 
   return (
     <div className="myLib-container">
@@ -144,6 +140,7 @@ function ThuVienCuaToi() {
         </li>
       </ul>
 
+      {/* Tab Bộ thẻ */}
       {actionTab === "boThe" && (
         <div className="myLibCard">
           {cardLib.map((item) => {
@@ -161,26 +158,28 @@ function ThuVienCuaToi() {
         </div>
       )}
 
+      {/* Tab Khóa học */}
       {actionTab === "khoaHoc" && (
-  <div className="myLop">
-    {khoaHocList.map((k) => {
-      const owner = userMap[String(k.idNguoiDung)] || null;
-
-      return (
-        <ItemKH
-          key={k.idKhoaHoc}
-          item={k}
-          author={owner}
-        isJoined       // ✅ đã tham gia -> ẩn giá + sao, hiện nút "Vào lớp"
-          onClick={(id) => navigate(`/khoaHoc/${id}`)}
-          onEnter={(id) => navigate(`/khoaHoc/${id}`)}
-        />
-      );
-    })}
-  </div>
-)}
-
-
+        <div className="myLop">
+          {khoaHocList.length === 0 ? (
+            <p className="emty">Không có khóa học nào cả</p>
+          ) : (
+            khoaHocList.map((k) => {
+              const owner = userMap[String(k.idNguoiDung)] || null;
+              return (
+                <ItemKH
+                  key={k.idKhoaHoc}
+                  item={k}
+                  author={owner}
+                  isJoined
+                  onClick={(id) => handleKhoaHoc(id)}
+                  onEnter={(id) => handleKhoaHoc(id)}
+                />
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 }

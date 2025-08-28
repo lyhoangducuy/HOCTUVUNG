@@ -1,0 +1,215 @@
+/* ============ Theme tokens ============ */
+:root {
+  --rt-bg: #ffffff;
+  --rt-text: #0f172a;
+  --rt-muted: #64748b;
+  --rt-border: #e5e7eb;
+  --rt-soft: #f8fafc;
+
+  --rt-primary: #2563eb;  /* blue-600 */
+  --rt-primary-600: #1d4ed8;
+  --rt-danger: #ef4444;   /* red-500 */
+  --rt-danger-600: #dc2626;
+
+  --rt-success-bg: #dcfce7;
+  --rt-success-fg: #166534;
+  --rt-info-bg: #dbeafe;
+  --rt-info-fg: #1d4ed8;
+  --rt-warn-bg: #fef3c7;
+  --rt-warn-fg: #92400e;
+  --rt-cancel-bg: #fee2e2;
+  --rt-cancel-fg: #991b1b;
+
+  --rt-radius: 12px;
+  --rt-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+}
+
+/* ============ Layout ============ */
+.rt-container {
+  background: var(--rt-bg);
+  border-radius: var(--rt-radius);
+  padding: 20px;
+  box-shadow: var(--rt-shadow);
+  width: 100%;
+  min-height: 80vh;
+  color: var(--rt-text);
+}
+
+.rt-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+
+/* ============ Config bar ============ */
+.rt-config {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.rt-config-left,
+.rt-config-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.rt-label {
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+/* ============ Inputs & Buttons ============ */
+.rt-input {
+  height: 38px;
+  padding: 6px 10px;
+  border: 1px solid var(--rt-border);
+  border-radius: 10px;
+  outline: none;
+  background: #fff;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+
+.rt-input--sm {
+  height: 34px;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.rt-input:focus {
+  border-color: var(--rt-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.rt-btn {
+  height: 38px;
+  border: none;
+  padding: 0 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #eef2f7;
+  color: #111827;
+  transition: background .15s ease, transform .02s ease, opacity .15s ease;
+}
+
+.rt-btn:active { transform: translateY(1px); }
+
+.rt-btn[disabled] {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.rt-btn-primary {
+  background: var(--rt-primary);
+  color: #fff;
+}
+.rt-btn-primary:hover { background: var(--rt-primary-600); }
+
+.rt-btn-danger {
+  background: var(--rt-danger);
+  color: #fff;
+}
+.rt-btn-danger:hover { background: var(--rt-danger-600); }
+
+.rt-btn-light {
+  background: #f3f4f6;
+  color: #111827;
+}
+.rt-btn-light:hover { background: #e5e7eb; }
+
+.rt-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ============ Table ============ */
+.rt-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--rt-border);
+  border-radius: var(--rt-radius);
+}
+
+.rt-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+
+.rt-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--rt-soft);
+  color: #374151;
+  font-weight: 700;
+  text-align: left;
+  border-bottom: 1px solid var(--rt-border);
+  padding: 12px 14px;
+  white-space: nowrap;
+}
+
+.rt-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.rt-table tbody tr:nth-child(odd) td {
+  background: #fcfdff;
+}
+
+.rt-table tbody tr:hover td {
+  background: #f6faff;
+}
+
+/* money preview + muted note */
+.rt-money { display: flex; flex-direction: column; gap: 4px; }
+.rt-muted { color: var(--rt-muted); font-size: 12px; }
+
+/* inline fee editor */
+.rt-fee-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Empty row */
+.rt-empty {
+  text-align: center;
+  padding: 18px;
+  color: var(--rt-muted);
+}
+
+/* ============ Badges ============ */
+.rt-badge {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: inline-block;
+  font-weight: 600;
+}
+
+.rt-badge--pending { background: var(--rt-warn-bg); color: var(--rt-warn-fg); }
+.rt-badge--approved { background: var(--rt-info-bg); color: var(--rt-info-fg); }
+.rt-badge--paid { background: var(--rt-success-bg); color: var(--rt-success-fg); }
+.rt-badge--canceled { background: var(--rt-cancel-bg); color: var(--rt-cancel-fg); }
+
+/* ============ Responsive ============ */
+@media (max-width: 1024px) {
+  .rt-table { font-size: 13px; }
+  .rt-input, .rt-btn { height: 36px; }
+}
+
+@media (max-width: 768px) {
+  .rt-config { flex-direction: column; align-items: stretch; }
+  .rt-config-left, .rt-config-right { gap: 8px; flex-wrap: wrap; }
+  .rt-actions { gap: 6px; }
+  .rt-table thead th, .rt-table td { padding: 10px 12px; }
+}
