@@ -1,3 +1,4 @@
+// src/pages/NguoiDung/Vi/lichSuThanhToan.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/inputs/Button";
@@ -6,14 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
 import { auth, db } from "../../../../lib/firebase";
-import {
-  collection,
-  onSnapshot,
-  query,
-  where,
-  getDocs,
-  documentId,
-} from "firebase/firestore";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 
 const VN = "vi-VN";
 const money = (n) => Number(n || 0).toLocaleString(VN) + " đ";
@@ -23,18 +17,12 @@ const toDateFlexible = (v) => {
   if (v instanceof Date) return v;
   if (typeof v?.toDate === "function") return v.toDate(); // Firestore Timestamp
   if (typeof v === "string") {
-    // dd/mm/yyyy
     const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (m) {
-      const d = Number(m[1]),
-        mo = Number(m[2]) - 1,
-        y = Number(m[3]);
-      return new Date(y, mo, d);
-    }
-    // ISO
+    if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
     const d = new Date(v);
     return isNaN(d) ? null : d;
   }
+  if (typeof v === "number") return new Date(v);
   return null;
 };
 const toVN = (v) => {
@@ -49,13 +37,15 @@ const addDays = (dateLike, days) => {
   return x;
 };
 
-export default function lichSuThanhToan() {
+export default function LichSuThanhToan() {
   const navigate = useNavigate();
   const [uid, setUid] = useState(null);
-  const [orders, setOrders] = useState([]);    // thô từ donHangTraPhi
-  const [packMap, setPackMap] = useState({}); // { idGoi: packDoc }
 
-  // Lấy uid (ưu tiên Firebase Auth, fallback session cũ nếu còn)
+  // 2 luồng dữ liệu theo loại hóa đơn
+  const [ordersCourse, setOrdersCourse] = useState([]);
+  const [ordersUpgrade, setOrdersUpgrade] = useState([]);
+
+  // Lấy uid (Auth -> session)
   useEffect(() => {
     const session = JSON.parse(sessionStorage.getItem("session") || "null");
     const _uid = auth.currentUser?.uid || session?.idNguoiDung || null;
@@ -66,90 +56,75 @@ export default function lichSuThanhToan() {
     setUid(String(_uid));
   }, [navigate]);
 
-  // Nạp đơn hàng theo user
+  // ====== Lấy hóa đơn theo user & loaiThanhToan ======
   useEffect(() => {
     if (!uid) return;
-    const qOrders = query(
-      collection(db, "donHangTraPhi"),
-      where("idNguoiDung", "==", String(uid))
+
+    const qCourse = query(
+      collection(db, "hoaDon"),
+      where("idNguoiDung", "==", String(uid)),
+      where("loaiThanhToan", "==", "muaKhoaHoc")
     );
-    const unsub = onSnapshot(
-      qOrders,
+    const qUpgrade = query(
+      collection(db, "hoaDon"),
+      where("idNguoiDung", "==", String(uid)),
+      where("loaiThanhToan", "==", "nangCapTraPhi")
+    );
+
+    const u1 = onSnapshot(
+      qCourse,
       (snap) => {
-        const list = snap.docs.map((d) => ({ _docId: d.id, ...d.data() }));
-        // sort mới → cũ theo createdAt
-        list.sort(
-          (a, b) =>
-            (toDateFlexible(b.createdAt)?.getTime() || 0) -
-            (toDateFlexible(a.createdAt)?.getTime() || 0)
-        );
-        setOrders(list);
+        const list = snap.docs.map((d) => ({ id: d.id, idHoaDon: d.id, ...d.data() }));
+        setOrdersCourse(list);
       },
-      () => setOrders([])
+      () => setOrdersCourse([])
     );
-    return () => unsub();
+    const u2 = onSnapshot(
+      qUpgrade,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, idHoaDon: d.id, ...d.data() }));
+        setOrdersUpgrade(list);
+      },
+      () => setOrdersUpgrade([])
+    );
+
+    return () => {
+      try { u1(); } catch { }
+      try { u2(); } catch { }
+    };
   }, [uid]);
 
-  // Nạp thông tin gói theo idGoi (batch 'in' ≤ 10 mỗi lần)
-  useEffect(() => {
-    const ids = [
-      ...new Set(
-        orders
-          .map((o) => (o?.idGoi != null ? String(o.idGoi) : null))
-          .filter(Boolean)
-      ),
-    ];
-    if (ids.length === 0) {
-      setPackMap({});
-      return;
-    }
-    const chunks = [];
-    for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
-
-    (async () => {
-      const map = {};
-      for (const c of chunks) {
-        const rs = await getDocs(
-          query(collection(db, "goiTraPhi"), where(documentId(), "in", c))
-        );
-        rs.forEach((docSnap) => {
-          map[docSnap.id] = { idGoi: docSnap.id, ...docSnap.data() };
-        });
-      }
-      setPackMap(map);
-    })();
-  }, [orders]);
-
-  // Merge pack info vào order (tenGoi, thoiHanNgay)
+  // Gộp + sort mới → cũ (ưu tiên paidAt, rồi canceledAt, rồi createdAt)
   const rows = useMemo(() => {
-    return orders.map((o) => {
-      const pack = packMap[String(o.idGoi)] || {};
-      return {
-        ...o,
-        tenGoi: o.tenGoi || pack.tenGoi || "(gói không xác định)",
-        thoiHanNgay:
-          o.thoiHanNgay != null ? o.thoiHanNgay : (pack.thoiHan != null ? pack.thoiHan : 0),
-      };
+    const list = [...ordersCourse, ...ordersUpgrade];
+    list.sort((a, b) => {
+      const tB =
+        toDateFlexible(b.paidAt || b.canceledAt || b.createdAt)?.getTime() || 0;
+      const tA =
+        toDateFlexible(a.paidAt || a.canceledAt || a.createdAt)?.getTime() || 0;
+      return tB - tA;
     });
-  }, [orders, packMap]);
+    return list;
+  }, [ordersCourse, ordersUpgrade]);
 
   const hasData = rows.length > 0;
 
-  const totalPaid = useMemo(() => {
-    return rows
-      .filter((r) => r.trangThai === "paid")
-      .reduce(
-        (s, r) => s + Number(r.soTienThanhToanThucTe ?? r.soTienThanhToan ?? 0),
-        0
-      );
-  }, [rows]);
+  const totalPaid = useMemo(
+    () =>
+      rows
+        .filter((r) => r.trangThai === "paid")
+        .reduce(
+          (s, r) => s + Number(r.soTienThanhToanThucTe ?? r.soTienThanhToan ?? 0),
+          0
+        ),
+    [rows]
+  );
 
   /* ==== Phân trang (client) ==== */
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 5;
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
 
-  // Khi data đổi, đảm bảo trang hiện tại hợp lệ
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [totalPages, page]);
@@ -181,7 +156,6 @@ export default function lichSuThanhToan() {
             {rows.filter((r) => r.trangThai === "paid").length} giao dịch • {money(totalPaid)}
           </div>
         </div>
-        
       </div>
 
       {/* Table */}
@@ -198,7 +172,7 @@ export default function lichSuThanhToan() {
             <thead>
               <tr>
                 <th>Mã đơn</th>
-                <th>Gói</th>
+                <th>Gói / Khoá học</th>
                 <th>Số tiền</th>
                 <th>Trạng thái</th>
                 <th>Tạo lúc</th>
@@ -212,27 +186,28 @@ export default function lichSuThanhToan() {
                   r.trangThai === "paid"
                     ? "is-paid"
                     : r.trangThai === "pending"
-                    ? "is-pending"
-                    : "is-canceled";
+                      ? "is-pending"
+                      : "is-canceled";
+
                 const displayAmount =
                   r.soTienThanhToanThucTe ?? r.soTienThanhToan ?? 0;
+
                 const timeCol =
                   r.trangThai === "paid" ? toVN(r.paidAt) : toVN(r.canceledAt);
 
-                // Tính ngày hết hạn nếu đã thanh toán
                 let endDateText = "—";
-                if (r.trangThai === "paid" && r.thoiHanNgay > 0) {
+                if (r.trangThai === "paid" && Number(r.thoiHanNgay || 0) > 0) {
                   const end = addDays(r.paidAt, r.thoiHanNgay);
                   endDateText = end ? end.toLocaleDateString(VN) : "—";
                 }
 
                 return (
-                  <tr key={r.idDonHang || r._docId}>
-                    <td className="ph-code">{r.idDonHang || r._docId}</td>
+                  <tr key={r.idHoaDon || r.id}>
+                    <td className="ph-code">{r.idHoaDon || r.id}</td>
                     <td>
-                      <div className="ph-pack-name">{r.tenGoi}</div>
+                      <div className="ph-pack-name">{r.tenGoi || "—"}</div>
                       <div className="ph-pack-term">
-                        Thời hạn: {r.thoiHanNgay} ngày
+                        Thời hạn: {Number(r.thoiHanNgay || 0)} ngày
                       </div>
                     </td>
                     <td>
@@ -246,8 +221,8 @@ export default function lichSuThanhToan() {
                         {r.trangThai === "paid"
                           ? "Đã thanh toán"
                           : r.trangThai === "pending"
-                          ? "Đang chờ"
-                          : "Đã hủy"}
+                            ? "Đang chờ"
+                            : "Đã hủy"}
                       </span>
                     </td>
                     <td>{toVN(r.createdAt)}</td>
@@ -262,14 +237,21 @@ export default function lichSuThanhToan() {
           {/* Pagination */}
           <div className="ph-pagination">
             <div className="ph-actions">
-            <Button onClick={() => navigate("/tra-phi")} variant="blue">
-              Nâng cấp gói trả phí mới
-            </Button>
-        </div>
-            <div className="back" onClick={() => navigate(-1)}>
-                    <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
-                    Quay lại
-                  </div>
+              <Button onClick={() => navigate("/tra-phi")} variant="blue">
+                Nâng cấp gói trả phí mới
+              </Button>
+            </div>
+
+            {/* Nút lùi */}
+            <button
+              className="ph-page-btn"
+              onClick={() => goPage(page - 1)}
+              disabled={page <= 1}
+              aria-label="Trang trước"
+            >
+              ← Trước
+            </button>
+
             <div className="ph-page-numbers">
               {Array.from({ length: totalPages }).map((_, i) => {
                 const p = i + 1;
@@ -284,16 +266,18 @@ export default function lichSuThanhToan() {
                 );
               })}
             </div>
+
+            {/* Nút tới */}
             <button
               className="ph-page-btn"
               onClick={() => goPage(page + 1)}
               disabled={page >= totalPages}
+              aria-label="Trang sau"
             >
               Sau →
             </button>
           </div>
 
-          
         </div>
       )}
     </div>

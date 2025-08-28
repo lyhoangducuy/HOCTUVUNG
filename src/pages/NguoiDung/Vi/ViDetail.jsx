@@ -184,7 +184,7 @@ export default function ViDetail() {
 
       // 4) Trả về CHÍNH tài liệu hóa đơn (có thêm buyerName) để truyền thẳng xuống bảng
      const ordersForTable = Object.values(orderMap)
-      .filter((od) => String(od.loaiThanhToan || "") === "muakhoahoc")
+      .filter((od) => String(od.loaiThanhToan || "").toLowerCase() === "muakhoahoc")
       .map((od) => {
         const u = userMap[String(od.idNguoiDung)] || {};
         return {
