@@ -1,16 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import { FaQuestionCircle } from "react-icons/fa";
 import "./HelpBot.css";
 import { helpAssistantReply } from "./ChatBot";
 
 export default function HelpBot({ defaultOpen = false }) {
   const [open, setOpen] = useState(!!defaultOpen);
-  
+
   const [messages, setMessages] = useState([
     {
       role: "assistant",
       content:
-        "Chào bạn! Mình là trợ lý của HOCTUVUNG. Hỏi mình cách tạo bộ thẻ, học flashcard, làm trắc nghiệm, hoặc cách thanh toán nhé.",
+        "Chào bạn! Mình là trợ lý của HOCTUVUNG. Hỏi mình cách tạo bộ thẻ, học flashcard, làm trắc nghiệm, hoặc cách thanh toán, và liên quan tới ngôn ngữ nhé, tôi sẽ giúp bạn.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -50,7 +49,10 @@ export default function HelpBot({ defaultOpen = false }) {
       console.error(e);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "Xin lỗi, mình bị lỗi kết nối. Bạn thử lại giúp mình nhé." },
+        {
+          role: "assistant",
+          content: "Xin lỗi, mình bị lỗi kết nối. Bạn thử lại giúp mình nhé.",
+        },
       ]);
     } finally {
       setLoading(false);
@@ -66,21 +68,17 @@ export default function HelpBot({ defaultOpen = false }) {
 
   return (
     <div className="helpbot-wrap">
-      {/* <button
-        className="helpbot-fab"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        title="Trợ lý sử dụng"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <FaQuestionCircle />
-      </button> */}
-
       {open && (
-        <div className="helpbot-modal" role="dialog" aria-label="Trợ lý hướng dẫn">
+        <div
+          className="helpbot-modal"
+          role="dialog"
+          aria-label="Trợ lý hướng dẫn"
+        >
           <div className="helpbot-head">
             <strong>Trợ lý HOCTUVUNG</strong>
-            <button className="helpbot-close" onClick={() => setOpen(false)}>×</button>
+            <button className="helpbot-close" onClick={() => setOpen(false)}>
+              ×
+            </button>
           </div>
           <div className="helpbot-list" ref={listRef}>
             {messages.map((m, i) => (
@@ -111,5 +109,3 @@ export default function HelpBot({ defaultOpen = false }) {
     </div>
   );
 }
-
-

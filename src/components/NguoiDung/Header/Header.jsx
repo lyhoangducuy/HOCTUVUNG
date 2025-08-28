@@ -11,6 +11,7 @@ import AccountMenu from "./components/AccountMenu";
 import { auth, db } from "../../../../lib/firebase";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { signOut } from "firebase/auth";
+import { height } from "@fortawesome/free-brands-svg-icons/fa11ty";
 
 /* ===== Helpers riêng của Header ===== */
 const userRef = (id) => doc(db, "nguoiDung", String(id));
@@ -129,12 +130,8 @@ export default function Header() {
     <div className="header-container">
       {/* Left */}
       <div className="left-section">
-        <FontAwesomeIcon icon={faBars} className="icon menu-icon" />
-        <FontAwesomeIcon
-          icon={faBookOpen}
-          className="icon book-icon"
-          onClick={() => navigate("/trangchu")}
-        />
+        
+        <img src="src\assets\image\logo.jpg" alt="" style={{height : "60px"}} />
       </div>
 
       {/* Search */}

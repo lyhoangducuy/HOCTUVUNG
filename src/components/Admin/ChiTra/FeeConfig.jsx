@@ -3,13 +3,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { db as defaultDb } from "../../../../lib/firebase";
 
-export default function FeeConfig({
-  feePct,
-  setFeePct,
-  onUpdateAll,
-  updatingAll = false,
-  db,
-}) {
+export default function FeeConfig({ feePct, setFeePct, db }) {
   const database = db || defaultDb;
   const [saving, setSaving] = useState(false);
 
@@ -56,7 +50,9 @@ export default function FeeConfig({
         step={0.5}
         value={feePct}
         onChange={(e) => setFeePct(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") saveFee(); }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") saveFee();
+        }}
       />
       <button
         className="rt-btn rt-btn-primary"

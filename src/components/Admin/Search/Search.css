@@ -1,12 +1,13 @@
 
 .search-input {
-  border: 1px solid #888787;
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 1rem;
+  width: 100%;
+  max-width: 360px;   /* đổi 300–420px tuỳ layout */
+  height: 36px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   outline: none;
-  margin-left: auto;
-  width: 250px;
 }
 .search-input:focus {
   border-color: #007bff;
