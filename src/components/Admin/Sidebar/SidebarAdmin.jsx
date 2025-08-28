@@ -4,6 +4,7 @@ import {
   FaLayerGroup,
   FaChalkboardTeacher,
   FaMoneyCheckAlt,
+  FaVideo,
 } from "react-icons/fa";
 import "./SidebarAdmin.css";
 const SidebarAdmin = () => {
@@ -47,6 +48,14 @@ const SidebarAdmin = () => {
                 <FaChalkboardTeacher />
               </span>
               Quản Lý Khóa Học
+            </a>
+          </li>
+          <li>
+            <a href="/admin/quan-ly-video">
+              <span className="sidebar-icon">
+                <FaVideo />
+              </span>
+              Quản Lý Video
             </a>
           </li>
           <li>
