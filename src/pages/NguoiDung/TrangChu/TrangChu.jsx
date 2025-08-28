@@ -1,5 +1,5 @@
 // src/pages/Home/TrangChu.jsx
-import React, { useEffect, useMemo, useRef, useState, Suspense, lazy } from "react";
+import React, { useEffect, useRef, useState, Suspense, lazy } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
