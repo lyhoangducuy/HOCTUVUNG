@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import "./Newclass.css";
 
 import { auth, db } from "../../../../../lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+
 
 function Newclass() {
   const navigate = useNavigate();
@@ -61,11 +62,12 @@ function Newclass() {
         boTheIds: [],
         folderIds: [],
         thanhVienIds: [],
-        // $$$ giá
-        giaKhoaHoc,          // số VND
-        giamGia,             // % (0–100)
-        giaSauGiam,          // số VND đã áp dụng giảm
+        giaKhoaHoc,
+        giamGia,
+        giaSauGiam,
+        ngayTao: serverTimestamp(), // <- chỉ cần ngày tạo
       };
+
 
       // Firestore: collection "khoaHoc"
       await setDoc(doc(db, "khoaHoc", String(idKhoaHoc)), newCourse);
