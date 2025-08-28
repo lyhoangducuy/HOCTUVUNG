@@ -182,41 +182,24 @@ export default function ViDetail() {
 
       if (cancelled) return;
 
-      // 4) Tạo rows cho bảng Biến động ví (chỉ giao dịch không phải rút tiền)
-      // ...
-      const joined = bdcvNonWithdraw
-        .map((r) => {
-          const od = orderMap[String(r.idHoaDon)] || {};
-          const isCourse =
-            String(od.loai || od.loaiGiaoDich || "").toUpperCase() === "MUA_KHOA_HOC" ||
-            String(od.maDichVu || od.dichVu || "").toUpperCase() === "KHOA_HOC" ||
-            String(od.loaiSanPham || "").toUpperCase() === "COURSE";
-
-          if (!isCourse) return null;
-
-          const raw = Number(r.soTien ?? od.soTienThanhToan ?? 0) || 0;
-          const soTienAbs = Math.abs(raw);
-          const st = String(r.trangThai || "").toLowerCase(); // pending|done|canceled
-          const sign = st === "canceled" ? "" : "+";
-
-          const noiDung =
-            r.noiDung || r.moTa || (od.tenGoi ? `Doanh thu: ${od.tenGoi}` : "—");
-
-          const buyer = userMap[String(od.idNguoiDung)] || {};
-
-          return {
-            id: r.id,
-            ngayTao: r.updatedAt || r.ngayTao,
-            trangThai: st,
-            isWithdraw: false,
-            noiDung,
-            buyerName: buyer.tenNguoiDung || buyer.hoten || buyer.hoTen || "Người dùng",
-            soTien: soTienAbs,
-            sign,
-          };
-        })
-        .filter(Boolean);
-      setRows(joined);
+      // 4) Trả về CHÍNH tài liệu hóa đơn (có thêm buyerName) để truyền thẳng xuống bảng
+     const ordersForTable = Object.values(orderMap)
+      .filter((od) => String(od.loaiThanhToan || "") === "muakhoahoc")
+      .map((od) => {
+        const u = userMap[String(od.idNguoiDung)] || {};
+        return {
+           ...od,
+          id: od.id || od.idHoaDon, // bảo đảm có id
+          buyerName:
+            u.tenNguoiDung || u.hoTen || u.hoten || u.email || "Người dùng",
+         };
+       })
+       .sort((a, b) => {
+         const ta = toDate(a.paidAt || a.createdAt)?.getTime() || 0;
+         const tb = toDate(b.paidAt || b.createdAt)?.getTime() || 0;
+         return tb - ta;
+       });
+     setRows(ordersForTable);
 
     })();
     return () => { cancelled = true; };
@@ -310,7 +293,7 @@ export default function ViDetail() {
 
 
 
-      <BangBienDongVi rows={rows} allowedLoai={["MUA_KHOA_HOC"]} />
+      <BangBienDongVi rows={rows} allowedLoai={["muaKhoaHoc"]} />
 
       {/* BẢNG: Lịch sử rút tiền */}
       <BangRutTien withdraws={withdraws} loading={loadingWd} />

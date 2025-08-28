@@ -11,7 +11,6 @@ import {
   updateDoc,
   serverTimestamp,
   collection,
-  addDoc,
   getDocs,
   query,
   where,
@@ -46,8 +45,16 @@ const RESP_TEXT = {
   "99": "Lỗi khác",
 };
 
-// ===== BDCV helpers =====
+// ===== Helpers =====
 const buildBDCVId = (idVi, idHoaDon) => `${String(idVi)}_${String(idHoaDon)}`;
+
+// Phân loại duy nhất theo loaiThanhToan
+const kindOf = (o) => {
+  const t = String(o?.loaiThanhToan || "").toLowerCase();
+  if (t === "muakhoahoc") return "COURSE";
+  if (t === "nangcaptraphi") return "UPGRADE";
+  return "UNKNOWN";
+};
 
 async function upsertBDCV({ idVi, idHoaDon, trangThai }) {
   const idBDCV = buildBDCVId(idVi, idHoaDon);
@@ -90,7 +97,7 @@ async function ensurePrimeOnUser(orderId, orderData) {
   await updateDoc(userRef, {
     traPhi: true,
     traPhiBatDau: serverTimestamp(),
-    traPhiKetThuc: newEnd, // Date sẽ được lưu thành Firestore Timestamp
+    traPhiKetThuc: newEnd, // Firestore web SDK nhận Date và lưu Timestamp
     traPhiNguon: `hoaDon:${orderId}`,
     traPhiCapNhatLuc: serverTimestamp(),
   });
@@ -161,22 +168,10 @@ async function creditOwnerWalletOnce(orderRef, orderData, paidAmount) {
       );
     }
 
-    // ví dụ khi admin mark paid:
-    await setDoc(doc(db, "bienDongCuaVi", `${uid}__withdraw_${withdrawId}`), {
-      idVi: uid,
-      idHoaDon: String(withdrawId),
-      loai: "chi_rut_tien",
-      soTien: -Number(net),           // âm để hiển thị “−”
-      trangThai: "done",
-      moTa: `Rút tiền #${withdrawId}`,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-
-    // 4) BDCV = done
+    // 3) BDCV = done
     await upsertBDCV({ idVi: ownerId, idHoaDon: orderRef.id, trangThai: "done" });
 
-    // 5) Đặt cờ để không cộng trùng
+    // 4) Đặt cờ để không cộng trùng
     await updateDoc(orderRef, { daChiaTienChoChuKhoaHoc: true });
   } catch (e) {
     console.error("creditOwnerWalletOnce error:", e);
@@ -225,7 +220,7 @@ export default function CheckoutResult() {
 
       const stateOrderId = location.state?.orderId || "";
       const stateStatus = location.state?.status || ""; // 'success' nếu luồng 0đ đã confirm trước
-      const vnpCode = p.get("vnp_ResponseCode");       // "00" = thành công
+      const vnpCode = p.get("vnp_ResponseCode");        // "00" = thành công
       const vnpOrder = sanitizeId(p.get("vnp_TxnRef")); // đã sanitize ở bước checkout
       const vnpAmount = Number(p.get("vnp_Amount") || 0) / 100; // VNPay trả *100
       const queryOrder = sanitizeId(p.get("orderId"));
@@ -294,12 +289,12 @@ export default function CheckoutResult() {
           });
         }
 
-        // Hậu thanh toán theo loại
+        // Hậu thanh toán theo loại (dùng kindOf)
         try {
-          if (o.loaiThanhToan === "nangCapTraPhi") {
-            // ✅ Kích hoạt Prime trực tiếp trên nguoiDung/{uid}
+          const kind = kindOf(o);
+          if (kind === "UPGRADE") {
             await ensurePrimeOnUser(orderRef.id, o);
-          } else if (o.loaiThanhToan === "muaKhoaHoc") {
+          } else if (kind === "COURSE") {
             await ensureCapQuyenVaoLop(o);
             const paidAmount = isFree ? 0 : (vnpAmount || expected);
             await creditOwnerWalletOnce(orderRef, o, paidAmount);
@@ -328,7 +323,7 @@ export default function CheckoutResult() {
         }
 
         // ghi BDCV 'canceled' cho chủ lớp (nếu là muaKhoaHoc)
-        try { await cancelBDCVIfNeeded(o, orderRef.id); } catch { }
+        try { await cancelBDCVIfNeeded(o, orderRef.id); } catch {}
 
         setStatus("fail");
         setSummary({

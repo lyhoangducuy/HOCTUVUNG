@@ -27,17 +27,24 @@
   const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
   // Phân loại hoá đơn
-  const isMuaKhoaHoc = (o) => {
-    const t = (o?.loaiThanhToan || "").toLowerCase();
-    if (t === "muakhoahoc") return true;
-    return (o?.loaiDon || "").toUpperCase() === "JOIN_CLASS";
-  };
-  const isNangCapTraPhi = (o) => {
-    const t = (o?.loaiThanhToan || "").toLowerCase();
-    if (t === "nangcaptraphi") return true;
-    const ld = (o?.loaiDon || "").toUpperCase();
-    return ld === "UPGRADE" || ld === "NANG_CAP";
-  };
+ // Thay cho isMuaKhoaHoc / isNangCapTraPhi
+const kindOf = (o) => {
+  const t = String(o?.loaiThanhToan || "").toLowerCase();
+  if (t === "muakhoahoc") return "COURSE";
+  if (t === "nangcaptraphi") return "UPGRADE";
+  return "UNKNOWN";
+};
+
+// Dùng thống nhất:
+const handleAfterPaid = async (_order) => {
+  const k = kindOf(_order);
+  if (k === "COURSE") {
+    await capQuyenVaoLop(_order);
+  } else if (k === "UPGRADE") {
+    await capQuyenNangCap(_order);
+  }
+};
+
 
   // Chỉ lấy số tiền cần thanh toán từ soTienThanhToan
   function amountOf(o) {

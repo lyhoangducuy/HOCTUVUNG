@@ -1,3 +1,4 @@
+// src/components/Vi/BienDongVi/BangBienDongVi.jsx
 import React, { useMemo, useState, useEffect } from "react";
 import { formatDate, formatVND } from "../../../pages/NguoiDung/Vi/utils/dinhDang";
 
@@ -5,51 +6,78 @@ export default function BangBienDongVi({
   rows = [],
   loading = false,
   pageSizeDefault = 5,
-  // Các loại “mua khóa học” mặc định (tùy schema của bạn):
-  allowedLoai = ["MUA_KHOA_HOC", "COURSE_PURCHASE"],
-  // Nếu muốn tự lọc chi tiết, truyền filterLoai: (row) => boolean
-  filterLoai,
 }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(pageSizeDefault);
 
-  // --- Chỉ lấy hóa đơn mua khóa học ---
-  const filteredRows = useMemo(() => {
-    const isCoursePurchase = (r) => {
-      // Ưu tiên trường “loại” nếu có
-      const loaiRaw =
-        r.loai || r.type || r.loaiGiaoDich || r.kind || r.category || "";
-      const loai = String(loaiRaw).toUpperCase();
-
-      // Một số hệ thống lưu “mã dịch vụ” cho khóa học
-      const mdvRaw = r.maDichVu || r.dichVu || "";
-      const mdv = String(mdvRaw).toUpperCase();
-
-      // Heuristic theo nội dung mô tả
-      const nd = String(r.noiDung || "").toLowerCase();
-
-      return (
-        (allowedLoai?.length && loai && allowedLoai.includes(loai)) ||
-        mdv === "KHOA_HOC" ||
-        mdv === "COURSE" ||
-        nd.includes("khóa học") ||
-        nd.includes("khoa hoc") ||
-        nd.includes("course")
-      );
-    };
-
-    if (typeof filterLoai === "function") {
-      return rows.filter(filterLoai);
+  // Chuẩn hoá thời gian
+  const toPlainDate = (v) => {
+    if (!v) return null;
+    if (v instanceof Date) return v;
+    if (typeof v?.toDate === "function") return v.toDate();
+    if (typeof v === "number") return new Date(v);
+    if (typeof v === "string") {
+      const d = new Date(v);
+      return isNaN(d) ? null : d;
     }
-    return rows.filter(isCoursePurchase);
-  }, [rows, allowedLoai, filterLoai]);
+    return null;
+  };
 
+  // Gom trạng thái về done | canceled | pending (để ăn CSS sẵn có)
+  const normStatus = (s) => {
+    const t = String(s || "").toLowerCase();
+    if (["done", "paid", "success", "succeeded"].includes(t)) return "done";
+    if (["canceled", "cancelled", "failed", "refunded"].includes(t)) return "canceled";
+    return "pending";
+  };
+
+  // 🚩 CHỈ LỌC THEO loaiThanhToan === "muaKhoaHoc"
+  const filteredRows = useMemo(() => {
+    return rows
+      .filter((r) => String(r.loaiThanhToan || "").toLowerCase() === "muakhoahoc")
+      .map((r) => {
+        const status = normStatus(r.trangThai);
+        const amount =
+          Number(
+            r.soTien ??
+            r.soTienThanhToanThucTe ??
+            r.soTienThanhToan ??
+            0
+          ) || 0;
+
+        const time =
+          toPlainDate(r.paidAt) ||
+          toPlainDate(r.createdAt) ||
+          toPlainDate(r.ngayTao) ||
+          toPlainDate(r.updatedAt) ||
+          null;
+
+        const buyerName =
+          r.buyerName ||
+          r.tenNguoiDung ||
+          r.hoTen ||
+          r.hoten ||
+          r.email ||
+          "Người dùng";
+
+        const noiDung = r.noiDung || r.tenGoi || "—";
+
+        return {
+          id: r.id || r.idHoaDon,
+          status,
+          amount,
+          buyerName,
+          noiDung,
+          time,
+          isWithdraw: !!r.isWithdraw,
+        };
+      });
+  }, [rows]);
+
+  // Phân trang
   const total = filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [totalPages, page]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [totalPages, page]);
 
   const pageRows = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -61,21 +89,21 @@ export default function BangBienDongVi({
 
   const pages = useMemo(() => {
     const out = [];
-    const push = (v) => out.push(v);
     if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) push(i);
+      for (let i = 1; i <= totalPages; i++) out.push(i);
       return out;
     }
-    push(1);
-    if (page > 3) push("…");
-    const start = Math.max(2, page - 1);
-    const end = Math.min(totalPages - 1, page + 1);
-    for (let i = start; i <= end; i++) push(i);
-    if (page < totalPages - 2) push("…");
-    push(totalPages);
+    out.push(1);
+    if (page > 3) out.push("…");
+    const s = Math.max(2, page - 1);
+    const e = Math.min(totalPages - 1, page + 1);
+    for (let i = s; i <= e; i++) out.push(i);
+    if (page < totalPages - 2) out.push("…");
+    out.push(totalPages);
     return out;
   }, [page, totalPages]);
 
+  // Render
   return (
     <div className="vi-table-wrap">
       <div className="vi-table-headline">
@@ -103,41 +131,35 @@ export default function BangBienDongVi({
             </thead>
             <tbody>
               {pageRows.map((r) => {
-                const moneyMod =
-                  r.trangThai === "canceled"
-                    ? "vi-amount--minus"
-                    : r.isWithdraw
-                    ? "vi-amount--minus"
-                    : "vi-amount--plus";
-
                 const badgeMod =
-                  r.trangThai === "done"
-                    ? r.isWithdraw
-                      ? "vi-badge--minus"
-                      : "vi-badge--plus"
-                    : r.trangThai === "canceled"
+                  r.status === "done"
+                    ? "vi-badge--plus"
+                    : r.status === "canceled"
                     ? "vi-badge--minus"
                     : "vi-badge--pending";
+
+                const moneyMod =
+                  r.status === "canceled" || r.isWithdraw
+                    ? "vi-amount--minus"
+                    : "vi-amount--plus";
 
                 return (
                   <tr key={r.id}>
                     <td data-label="Trạng thái">
                       <span className={`vi-badge ${badgeMod}`}>
-                        {r.trangThai === "done"
+                        {r.status === "done"
                           ? "Hoàn tất"
-                          : r.trangThai === "canceled"
+                          : r.status === "canceled"
                           ? "Hủy"
                           : "Đang xử lý"}
                       </span>
                     </td>
                     <td data-label="Người mua">{r.buyerName}</td>
                     <td data-label="Số tiền" className={`vi-amount ${moneyMod}`}>
-                      {r.trangThai === "canceled"
-                        ? "0đ"
-                        : `${r.sign}${formatVND(r.soTien)}`}
+                      {r.status === "canceled" ? "0đ" : `+${formatVND(r.amount)}`}
                     </td>
                     <td data-label="Nội dung">{r.noiDung}</td>
-                    <td data-label="Thời gian">{formatDate(r.ngayTao)}</td>
+                    <td data-label="Thời gian">{formatDate(r.time)}</td>
                   </tr>
                 );
               })}
@@ -166,28 +188,12 @@ export default function BangBienDongVi({
             </div>
 
             <div className="vi-pages">
-              <button
-                className="vi-pagebtn"
-                onClick={() => setPage(1)}
-                disabled={page === 1}
-                aria-label="Trang đầu"
-              >
-                «
-              </button>
-              <button
-                className="vi-pagebtn"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                aria-label="Trang trước"
-              >
-                ‹
-              </button>
+              <button className="vi-pagebtn" onClick={() => setPage(1)} disabled={page === 1} aria-label="Trang đầu">«</button>
+              <button className="vi-pagebtn" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} aria-label="Trang trước">‹</button>
 
               {pages.map((p, i) =>
                 p === "…" ? (
-                  <span key={`dots-${i}`} className="vi-pagebtn vi-pagebtn--dots">
-                    …
-                  </span>
+                  <span key={`dots-${i}`} className="vi-pagebtn vi-pagebtn--dots">…</span>
                 ) : (
                   <button
                     key={p}
@@ -199,22 +205,8 @@ export default function BangBienDongVi({
                 )
               )}
 
-              <button
-                className="vi-pagebtn"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                aria-label="Trang sau"
-              >
-                ›
-              </button>
-              <button
-                className="vi-pagebtn"
-                onClick={() => setPage(totalPages)}
-                disabled={page === totalPages}
-                aria-label="Trang cuối"
-              >
-                »
-              </button>
+              <button className="vi-pagebtn" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Trang sau">›</button>
+              <button className="vi-pagebtn" onClick={() => setPage(totalPages)} disabled={page === totalPages} aria-label="Trang cuối">»</button>
             </div>
           </div>
         </>

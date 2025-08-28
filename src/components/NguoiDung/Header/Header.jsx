@@ -133,8 +133,12 @@ export default function Header() {
   // Giảng viên: luôn hiện nút nâng cấp; KHÔNG hiện sao (kể cả đã nâng cấp)
   // Học viên:   nếu chưa nâng cấp -> hiện nút; nếu đã nâng cấp -> ẩn nút + hiện sao
 // mới
-const showUpgradeButton = primeActive;
-const showPrimeBadge   = !primeActive;
+// === QUY TẮC HIỂN THỊ ===
+// Cả giảng viên & học viên như nhau:
+// - Chưa nâng cấp  -> hiện nút Nâng cấp, không hiện sao
+// - Đã nâng cấp    -> ẩn nút Nâng cấp, hiện sao
+const showUpgradeButton = !primeActive;
+const showPrimeBadge   = !!primeActive;
 
 
   const balanceText = formatVND(user?.soDu);

@@ -8,6 +8,7 @@
   --ai-shadow-sm: 0 6px 18px rgba(0,0,0,.12);
   --ai-shadow: 0 10px 30px rgba(0,0,0,.16);
   --ai-ring: 0 0 0 3px color-mix(in srgb, var(--ai-primary) 25%, transparent);
+  
 }
 /* AIButton.css - thêm */
 .ai-item.disabled { opacity: 0.6; pointer-events: auto; cursor: not-allowed; }
@@ -55,8 +56,8 @@
 }
 
 .ai-button-container .icon-btn {
-  width: 56px;
-  height: 56px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   background: var(--ai-primary);
   color: #fff;

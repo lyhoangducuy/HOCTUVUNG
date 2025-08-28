@@ -110,7 +110,7 @@ export default function AIButton() {
               "Đang tạo..."
             ) : (
               <>
-                Tạo bộ thẻ theo chủ đề
+                AI tạo bộ thẻ theo chủ đề
                 {!prime && (
                   <span className="prime-badge" aria-hidden="true" title="Nâng cấp để mở khóa">★</span>
                 )}
