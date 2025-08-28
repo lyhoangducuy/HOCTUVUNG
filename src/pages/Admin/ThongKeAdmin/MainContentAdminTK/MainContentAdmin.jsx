@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../../../lib/firebase";
 
-import TopContent from "./TopContentAdmin";
-import AISummary from "./AISummary";
-import MiniCharts from "./MiniCharts";
-import ProAnalytics from "./ProAnalytics";
-
+import TopContent from "./TopContents/TopContentAdmin";
+import AISummary from "./Alsummary/AISummary";
+import AITrendAnalysis from "./AlTrendAnalysis/AITrendAnalysis";
+import AIUserBehavior from "./AIUserBehavior/AIUserBehavior";
+import MiniCharts from "./MiniCharts/MiniCharts";
+import ProAnalytics from "./ProAnalytics/ProAnalytics";
+import "./MainContentAdmin.css"
 /* ---------- Helpers ---------- */
 // dd/mm/yyyy -> Date
 const parseVN = (dmy) => {
@@ -32,7 +34,6 @@ export default function MainContent() {
 
   const load = async () => {
     try {
-      console.log("=== BẮT ĐẦU LOAD DỮ LIỆU ===");
       
       // ===== LẤY DỮ LIỆU TỪ FIRESTORE =====
       const nguoiDungSnap = await getDocs(collection(db, "nguoiDung"));
@@ -47,31 +48,19 @@ export default function MainContent() {
       const donHangSnap = await getDocs(collection(db, "donHangTraPhi"));
       const ordersAll = donHangSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-      console.log("Tổng số đơn hàng:", ordersAll.length);
-      console.log("Sample đơn hàng đầu tiên:", ordersAll[0]);
-
       // ===== THỐNG KÊ =====
       const soNguoiDung = dsNguoiDung.length;
       const soKhoaHoc   = dsKhoaHoc.length;
       const soBoThe     = dsBoThe.length;
 
-      // ===== DOANH THU - IMPROVED VERSION =====
-      console.log("\n=== TÍNH DOANH THU ===");
       
-      // Kiểm tra các trạng thái có trong data
-      const allStatuses = [...new Set(ordersAll.map(o => o.trangThai))];
-      console.log("Các trạng thái đơn hàng có trong DB:", allStatuses);
-      
-      // Lọc đơn hàng đã thanh toán (case-insensitive)
+              // Lọc đơn hàng đã thanh toán (case-insensitive)
       const paidOrders = ordersAll.filter((o) => {
         const status = o.trangThai?.toLowerCase?.();
         return status === "paid" || status === "thành công" || status === "hoàn thành";
       });
       
-      console.log("Số đơn hàng đã thanh toán:", paidOrders.length);
-      if (paidOrders.length > 0) {
-        console.log("Sample đơn hàng đã thanh toán:", paidOrders[0]);
-      }
+      
 
       let total = 0;
       const byMonth = {};
@@ -106,7 +95,7 @@ export default function MainContent() {
         }
 
         const key = ymKey(when);
-        console.log("Key tháng-năm:", key);
+       
 
         // Xác định số tiền - improved
         let amount = 0;
@@ -140,12 +129,7 @@ export default function MainContent() {
       const nowKey = ymKey(new Date());
       const monthRevenue = byMonth[nowKey] || 0;
 
-      console.log("\n=== KẾT QUẢ CUỐI CÙNG ===");
-      console.log("Tháng hiện tại:", nowKey);
-      console.log("Tổng doanh thu:", total.toLocaleString("vi-VN"), "đ");
-      console.log("Doanh thu tháng này:", monthRevenue.toLocaleString("vi-VN"), "đ");
-      console.log("Doanh thu theo tháng:", Object.entries(byMonth).map(([k,v]) => `${k}: ${v.toLocaleString("vi-VN")}đ`));
-      console.log("Debug info:", debugInfo);
+      
 
       // ===== CẬP NHẬT STATE =====
       setUserStats([
@@ -170,17 +154,17 @@ export default function MainContent() {
   }, []);
 
   return (
-    <div>
-      <div style={{ width: "100%", height: "100px" }}>
+    <div className="dashboard">
+      <div className="dashboard-header">
         <h1>THỐNG KÊ</h1>
       </div>
 
-      <div className="Top-Content">
+      <div className="top-content">
         <TopContent userStats={userStats} />
       </div>
 
       {/* [AI] Tóm tắt + dự báo */}
-      <div style={{ marginTop: 24 }}>
+      <div className="section">
         <AISummary
           users={rawUsers}
           classes={rawClasses}
@@ -189,8 +173,27 @@ export default function MainContent() {
         />
       </div>
 
+      {/* [AI] Phân tích xu hướng & Dự báo */}
+      <div className="section">
+        <AITrendAnalysis
+          users={rawUsers}
+          classes={rawClasses}
+          cards={rawCards}
+          revenue={revenue}
+        />
+      </div>
+
+      {/* [AI] Phân tích hành vi người dùng */}
+      <div className="section">
+        <AIUserBehavior
+          users={rawUsers}
+          classes={rawClasses}
+          cards={rawCards}
+        />
+      </div>
+
       {/* [AI] Biểu đồ mini */}
-      <div style={{ marginTop: 16 }}>
+      <div className="section">
         <MiniCharts
           users={rawUsers}
           classes={rawClasses}
@@ -200,7 +203,7 @@ export default function MainContent() {
       </div>
 
       {/* Bộ biểu đồ phân tích nâng cao */}
-      <div style={{ marginTop: 16 }}>
+      <div className="section">
         <ProAnalytics
           users={rawUsers}
           classes={rawClasses}

@@ -15,7 +15,7 @@ import {
   Area,
   LabelList
 } from "recharts";
-
+import "./MiniCharts.css";
 const COLORS = {
   users: "#3b82f6",
   classes: "#10b981",
@@ -137,19 +137,17 @@ export default function MiniCharts({ users = [], classes = [], cards = [], reven
   }, [growthData]);
 
   return (
-    <div style={{
-      background: "#fff",
-      borderRadius: 10,
-      padding: 16,
-      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-    }}>
-      <h3 style={{ margin: 0, marginBottom: 12 }}>Thống kê tổng quan</h3>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+    <div className="stats-container">
+      <h3 className="stats-title">Thống kê tổng quan</h3>
+  
+      <div className="stats-grid">
         {/* Biểu đồ cột: số lượng người dùng / lớp / bộ thẻ (tổng) */}
-        <div style={{ width: "100%", height: 240 }}>
+        <div className="chart-wrapper">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={countData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+            <BarChart
+              data={countData}
+              margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis allowDecimals={false} />
@@ -164,10 +162,7 @@ export default function MiniCharts({ users = [], classes = [], cards = [], reven
           </ResponsiveContainer>
         </div>
       </div>
-
-     
-
-     
     </div>
   );
+  
 }
