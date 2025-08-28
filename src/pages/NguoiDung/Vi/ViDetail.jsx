@@ -18,7 +18,7 @@ import {
 } from "firebase/firestore";
 
 import RutTien from "../../../components/Vi/RutTien/RutTien";
-import BangBienDongVi from "../../../components/Vi/BienDongVi/BienDongVi";
+import BienDongVi from "../../../components/Vi/BienDongVi/BienDongVi";
 import BangRutTien from "../../../components/Vi/BangRutTien/BangRutTien";
 
 import {
@@ -27,6 +27,8 @@ import {
   formatVND,
   isWithdrawType,
 } from "./utils/dinhDang";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
 export default function ViDetail() {
   const navigate = useNavigate();
@@ -42,7 +44,7 @@ export default function ViDetail() {
         try {
           const ss = JSON.parse(sessionStorage.getItem("session") || "null");
           if (ss?.idNguoiDung) setUid(String(ss.idNguoiDung));
-        } catch {}
+        } catch { }
       }
       setAuthReady(true);
     });
@@ -92,7 +94,7 @@ export default function ViDetail() {
         if (data?.nganHang && !wallet.nganHang) {
           setWallet((w) => ({ ...w, nganHang: data.nganHang }));
         }
-      } catch {}
+      } catch { }
     })();
   }, [uid, wallet.nganHang]);
 
@@ -129,20 +131,23 @@ export default function ViDetail() {
     return () => unsub();
   }, [uid]);
 
-  /* JOIN: bdcv -> hoaDon -> nguoiDung (để bảng có buyerName, nội dung…) */
+  /* JOIN: bdcv (KHÔNG gồm rút tiền) -> hoaDon -> nguoiDung */
   const [rows, setRows] = useState([]);
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!bdcv.length) {
+      // 1) Bỏ hết bản ghi rút tiền khỏi biến động ví
+      const bdcvNonWithdraw = bdcv.filter((r) => !isWithdrawType(r.loai));
+      if (!bdcvNonWithdraw.length) {
         setRows([]);
         return;
       }
 
-      // Id hóa đơn cần join
+      // 2) Chỉ lấy idHoaDon của bản ghi KHÔNG rút tiền
       const orderIds = Array.from(
-        new Set(bdcv.map((r) => String(r.idHoaDon || "")).filter(Boolean))
+        new Set(bdcvNonWithdraw.map((r) => String(r.idHoaDon || "")).filter(Boolean))
       );
+
       const orderMap = {};
       for (let i = 0; i < orderIds.length; i += 10) {
         const chunk = orderIds.slice(i, i + 10);
@@ -152,10 +157,10 @@ export default function ViDetail() {
             query(collection(db, "hoaDon"), where(documentId(), "in", chunk))
           );
           rs.forEach((d) => (orderMap[d.id] = { id: d.id, ...(d.data() || {}) }));
-        } catch {}
+        } catch { }
       }
 
-      // Người mua cho các dòng doanh thu
+      // 3) Join người mua
       const buyerIds = Array.from(
         new Set(
           Object.values(orderMap)
@@ -172,43 +177,34 @@ export default function ViDetail() {
             query(collection(db, "nguoiDung"), where(documentId(), "in", chunk))
           );
           rs.forEach((d) => (userMap[d.id] = { id: d.id, ...(d.data() || {}) }));
-        } catch {}
+        } catch { }
       }
 
       if (cancelled) return;
 
-      const joined = bdcv.map((r) => {
+      // 4) Tạo rows cho bảng Biến động ví (chỉ giao dịch không phải rút tiền)
+      const joined = bdcvNonWithdraw.map((r) => {
         const od = orderMap[String(r.idHoaDon)] || {};
-        const withdraw = isWithdrawType(r.loai);
-
-        // số tiền hiển thị: trị tuyệt đối, dấu theo loại & trạng thái
         const raw = Number(r.soTien ?? od.soTienThanhToan ?? 0) || 0;
         const soTienAbs = Math.abs(raw);
 
         const st = String(r.trangThai || "").toLowerCase(); // pending | done | canceled
-        const sign = st === "canceled" ? "" : withdraw ? "-" : "+";
+        const sign = st === "canceled" ? "" : "+"; // không còn withdraw nên mặc định +
 
         const noiDung =
           r.noiDung ||
           r.moTa ||
-          (withdraw
-            ? "Rút tiền"
-            : od.tenGoi
-            ? `Doanh thu: ${od.tenGoi}`
-            : "—");
+          (od.tenGoi ? `Doanh thu: ${od.tenGoi}` : "—");
 
-        const buyer =
-          withdraw ? {} : userMap[String(od.idNguoiDung)] || {};
+        const buyer = userMap[String(od.idNguoiDung)] || {};
 
         return {
           id: r.id,
           ngayTao: r.updatedAt || r.ngayTao,
           trangThai: st,
-          isWithdraw: withdraw,
+          isWithdraw: false,
           noiDung,
-          buyerName: withdraw
-            ? "—"
-            : buyer.tenNguoiDung || buyer.hoTen || "Người dùng",
+          buyerName: buyer.tenNguoiDung || buyer.hoTen || "Người dùng",
           soTien: soTienAbs,
           sign,
         };
@@ -216,9 +212,7 @@ export default function ViDetail() {
 
       setRows(joined);
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [bdcv]);
 
   /* ====== Lịch sử rút tiền ====== */
@@ -277,9 +271,10 @@ export default function ViDetail() {
   }
 
   return (
-    <div className="vi-container">
-      <div className="vi-back" onClick={() => navigate(-1)}>
-        ← Quay lại
+    <>
+      <div className="back" onClick={() => navigate(-1)}>
+        <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
+        Quay lại
       </div>
       <h1 className="vi-title">Ví của tôi</h1>
 
@@ -306,8 +301,8 @@ export default function ViDetail() {
         </div>
       </div>
 
-      {/* BẢNG: Biến động ví */}
-      <BangBienDongVi rows={rows} loading={loadingBdcv} />
+      {/* BẢNG: Biến động ví (đÃ LOẠI rút tiền) */}
+      <BienDongVi rows={rows} loading={loadingBdcv} />
 
       {/* BẢNG: Lịch sử rút tiền */}
       <BangRutTien withdraws={withdraws} loading={loadingWd} />
@@ -320,6 +315,6 @@ export default function ViDetail() {
         uid={uid}
         savedBank={wallet.nganHang || null}
       />
-    </div>
+    </>
   );
 }

@@ -53,6 +53,7 @@ import BoTheDetail from "./pages/NguoiDung/HocBoThe/BoTheDetail";
 // ✅ Thêm 2 trang Admin rút tiền:
 import ViDetail from "./pages/NguoiDung/Vi/viDetail";
 import QuanLyRutTien from "./pages/Admin/ChiTra/ChiTra";
+import Error404 from "./pages/NguoiDung/404/error";
 
 
 export default function App() {
@@ -87,7 +88,7 @@ export default function App() {
             <Route path="/lichSuThanhToan" element={<LichSuThanhToan />} />
             <Route path="/nguoiDung/:uid" element={<NguoiDungDetail />} />
             <Route path="/bothe/:id" element={<BoTheDetail />} />
-            <Route path="/vi" element={<ViDetail />} />
+           
 
             {/* 🔒 Chỉ người có gói trả phí còn hiệu lực mới truy cập được Video */}
               <Route path="/video" element={<VideoLibrary />} />
@@ -95,9 +96,10 @@ export default function App() {
           </Route>
         </Route>
 
-        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN", "ADMIN"]} />}>
+        <Route element={<DangNhapTheoRole allowed={["GIANG_VIEN"]} />}>
           <Route element={<NguoiDungLayout />}>
             <Route path="/newKhoaHoc" element={<NewKhoaHoc />} />
+             <Route path="/vi" element={<ViDetail />} />
           </Route>
         </Route>
 
@@ -119,7 +121,7 @@ export default function App() {
       </Route>
 
       {/* 404 */}
-      <Route path="*" element={<div>404 Not Found</div>} />
+      <Route path="*" element={<Error404/>} />
     </Routes>
   );
 }

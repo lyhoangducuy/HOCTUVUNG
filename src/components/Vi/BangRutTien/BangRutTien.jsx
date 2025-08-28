@@ -4,12 +4,11 @@ import { formatDate, formatVND } from "../../../pages/NguoiDung/Vi/utils/dinhDan
 export default function BangRutTien({
   withdraws = [],
   loading = false,
-  pageSizeDefault = 5, // mặc định 10 dòng/trang
+  pageSizeDefault = 5,
 }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(pageSizeDefault);
 
-  // Khi danh sách hoặc pageSize đổi, đảm bảo page hợp lệ
   const total = withdraws.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   useEffect(() => {
@@ -21,10 +20,6 @@ export default function BangRutTien({
     return withdraws.slice(start, start + pageSize);
   }, [withdraws, page, pageSize]);
 
-  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, total);
-
-  // Tạo danh sách số trang gọn (có dấu …)
   const pages = useMemo(() => {
     const arr = [];
     const push = (v) => arr.push(v);
@@ -32,7 +27,6 @@ export default function BangRutTien({
       for (let i = 1; i <= totalPages; i++) push(i);
       return arr;
     }
-    // nhiều trang: 1 … prev cur next … last
     push(1);
     if (page > 3) push("…");
     const start = Math.max(2, page - 1);
@@ -69,9 +63,10 @@ export default function BangRutTien({
             </thead>
             <tbody>
               {pageRows.map((w) => {
+                // === ĐỔI MÀU Ở ĐÂY: paid -> xanh (plus), canceled/rejected -> đỏ (minus), còn lại -> pending (xám)
                 const badge =
                   w.status === "paid"
-                    ? "vi-badge vi-badge--minus"
+                    ? "vi-badge vi-badge--plus"
                     : w.status === "canceled" || w.status === "rejected"
                     ? "vi-badge vi-badge--minus"
                     : "vi-badge vi-badge--pending";
@@ -118,9 +113,7 @@ export default function BangRutTien({
                     </option>
                   ))}
                 </select>
-
               </label>
-
             </div>
 
             <div className="vi-pages">

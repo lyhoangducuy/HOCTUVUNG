@@ -44,14 +44,14 @@ export default function BangBienDongVi({
   return (
     <div className="vi-table-wrap">
       <div className="vi-table-headline">
-        <h2>Biến động của ví</h2>
+        <h2>Lịch sử thanh toán khóa học</h2>
         <span className="vi-muted">{total} dòng</span>
       </div>
 
       {loading ? (
         <div className="vi-empty">Đang tải…</div>
       ) : total === 0 ? (
-        <div className="vi-empty">Chưa có đối soát nào.</div>
+        <div className="vi-empty">Chưa có giao dịch nào.</div>
       ) : (
         <>
           <table className="vi-table">

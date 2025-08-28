@@ -266,13 +266,10 @@ export default function lichSuThanhToan() {
               Nâng cấp gói trả phí mới
             </Button>
         </div>
-            <button
-              className="ph-page-btn"
-              onClick={() => goPage(page - 1)}
-              disabled={page <= 1}
-            >
-              ← Trước
-            </button>
+            <div className="back" onClick={() => navigate(-1)}>
+                    <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
+                    Quay lại
+                  </div>
             <div className="ph-page-numbers">
               {Array.from({ length: totalPages }).map((_, i) => {
                 const p = i + 1;

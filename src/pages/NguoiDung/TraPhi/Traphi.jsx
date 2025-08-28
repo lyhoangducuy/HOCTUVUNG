@@ -15,6 +15,7 @@ import {
   doc,
   serverTimestamp,
   orderBy,
+  getDocs,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -22,12 +23,38 @@ import { onAuthStateChanged } from "firebase/auth";
 const VN = "vi-VN";
 const toVN = (date) => new Date(date).toLocaleDateString(VN);
 
+// khớp với logic Header (nhận diện “đã hủy”)
+const isCanceled = (s) => {
+  const t = String(s || "").toLowerCase();
+  const noAccent = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (t === "đã hủy" || noAccent === "da huy") return true;
+  return (
+    t.includes("hủy") ||
+    t.includes("huỷ") ||
+    noAccent.includes("huy") ||
+    /cancel|canceled|cancelled/.test(noAccent)
+  );
+};
+const toDateFlexible = (v) => {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  if (typeof v?.toDate === "function") return v.toDate();
+  if (typeof v === "string") {
+    const [d, m, y] = v.split("/").map(Number);
+    if (y) return new Date(y, (m || 1) - 1, d || 1);
+    const dISO = new Date(v);
+    return isNaN(dISO) ? null : dISO;
+  }
+  return null;
+};
+
 function Traphi() {
   const navigate = useNavigate();
 
   const [uid, setUid] = useState(null);
   const [packs, setPacks] = useState([]);
-  const [isPrime, setIsPrime] = useState(false); // ← đọc từ nguoiDung.traPhi
+  const [isPrime, setIsPrime] = useState(false); // đọc từ nguoiDung.traPhi
+  const [cancelling, setCancelling] = useState(false);
 
   // Lấy uid realtime (Auth) + fallback session
   useEffect(() => {
@@ -60,7 +87,7 @@ function Traphi() {
       doc(db, "nguoiDung", String(uid)),
       (snap) => {
         const data = snap.data() || {};
-        setIsPrime(Boolean(data.traPhi)); // chỉ cần boolean
+        setIsPrime(Boolean(data.traPhi));
       },
       () => setIsPrime(false)
     );
@@ -91,6 +118,50 @@ function Traphi() {
     return () => unsub();
   }, []);
 
+  // HỦY NÂNG CẤP (trả lại thường)
+  const cancelPrime = async () => {
+    if (!uid || !isPrime) return;
+    const ok = window.confirm("Bạn chắc chắn muốn hủy nâng cấp tài khoản (Prime) ngay bây giờ?");
+    if (!ok) return;
+
+    setCancelling(true);
+    try {
+      // 1) Tắt cờ traPhi trên hồ sơ
+      await updateDoc(doc(db, "nguoiDung", String(uid)), {
+        traPhi: false,
+        traPhiHuyAt: serverTimestamp(),
+      });
+
+      // 2) Đánh dấu các gói đang hoạt động là canceled
+      const qSubs = query(collection(db, "goiTraPhiCuaNguoiDung"), where("idNguoiDung", "==", String(uid)));
+      const ss = await getDocs(qSubs);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+
+      const tasks = ss.docs.map((d) => {
+        const x = d.data() || {};
+        const end = toDateFlexible(x?.NgayKetThuc);
+        const stillActive = end instanceof Date && !isNaN(end) && end >= today;
+        if (!isCanceled(x?.status) && stillActive) {
+          return updateDoc(d.ref, {
+            status: "canceled",
+            NgayHuy: serverTimestamp(),
+            NgayKetThuc: serverTimestamp(), // cắt hạn ngay
+          });
+        }
+        return Promise.resolve();
+      });
+      await Promise.all(tasks);
+
+      setIsPrime(false);
+      alert("Đã hủy nâng cấp tài khoản. Bạn có thể đăng ký lại bất cứ lúc nào.");
+    } catch (e) {
+      console.error("Hủy nâng cấp lỗi:", e);
+      alert("Không thể hủy nâng cấp. Vui lòng thử lại.");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   // Tạo HÓA ĐƠN pending và điều hướng Checkout (ghi vào collection 'hoaDon')
   const handleSub = async (pack) => {
     if (!uid) return;
@@ -103,19 +174,18 @@ function Traphi() {
       const giaSauGiam = calcDiscounted(pack.giaGoi, pack.giamGia);
 
       const payload = {
-        idHoaDon: "",                          // sẽ set = doc.id ngay sau khi tạo
+        idHoaDon: "",
         idNguoiDung: String(uid),
         idGoi: String(pack.idGoi),
         tenGoi: pack.tenGoi || "",
         giaGoc: Number(pack.giaGoi || 0),
         giamGia: Number(pack.giamGia || 0),
         soTienThanhToan: giaSauGiam,
-        soTienThanhToanThucTe: giaSauGiam,    // thêm cho tương thích nơi khác
+        soTienThanhToanThucTe: giaSauGiam,
         thoiHanNgay: Number(pack.thoiHan || 0),
         trangThai: "pending",
         createdAt: serverTimestamp(),
-
-        loaiThanhToan: "nangCapTraPhi",       // phân loại đơn
+        loaiThanhToan: "nangCapTraPhi",
       };
 
       const ref = await addDoc(collection(db, "hoaDon"), payload);
@@ -142,12 +212,20 @@ function Traphi() {
                 Tài khoản đã kích hoạt <strong>Prime</strong>. Bạn có thể học toàn bộ nội dung dành cho hội viên.
               </div>
             </div>
-            <Button variant="register" disabled>
-              Đã kích hoạt
+
+            {/* chỉ còn 1 nút Hủy nâng cấp */}
+            <Button
+              variant="cancel"
+              onClick={cancelPrime}
+              disabled={cancelling}
+              title="Hủy nâng cấp tài khoản"
+            >
+              {cancelling ? "Đang hủy…" : "Hủy nâng cấp"}
             </Button>
           </div>
         </div>
       )}
+
 
       <div className="traphi-pricing">
         {packs.length === 0 ? (
