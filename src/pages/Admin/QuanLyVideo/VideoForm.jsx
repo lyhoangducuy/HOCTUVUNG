@@ -397,17 +397,14 @@ export default function VideoForm({ video, onClose, onSuccess }) {
                 <div className="transcript-header">
                   <div className="transcript-info">
                     <h3>Quản Lý Transcript</h3>
-                    <p>Thêm và chỉnh sửa các câu transcript với thời gian</p>
+                   
                   </div>
                   <div className="transcript-stats">
                     <div className="stat-item">
                       <span className="stat-label">Tổng câu:</span>
                       <span className="stat-value">{formData.video.transcript.length}</span>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Tổng thời gian:</span>
-                      <span className="stat-value">{formatTime(getTotalDuration())}</span>
-                    </div>
+                   
                   </div>
                 </div>
 
@@ -454,7 +451,7 @@ export default function VideoForm({ video, onClose, onSuccess }) {
                             onChange={(e) => updateTranscript(index, "answers", e.target.value)}
                             className={`content-input ${errors[`transcript_${index}`] ? "error" : ""}`}
                             placeholder="Nhập nội dung câu transcript..."
-                            rows={5}
+                            
                           />
                         </div>
                       </div>
