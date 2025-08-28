@@ -1,4 +1,3 @@
-// src/pages/BoThe/BoTheDetail.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./BoTheDetail.css";
@@ -9,26 +8,34 @@ import { faArrowLeft, faEllipsisH } from "@fortawesome/free-solid-svg-icons";
 import { auth, db } from "../../../../lib/firebase";
 import {
   doc,
-  onSnapshot,
   getDoc,
+  getDocFromCache,
+  serverTimestamp,
   setDoc,
   updateDoc,
-  serverTimestamp,
   increment,
   deleteDoc,
 } from "firebase/firestore";
 
+
+import { formatDateVN } from "./utils/format";
+import BangTuVung from "../../../components/HocBoThe/BangTuVung";
+import TieuDeBoThe from "../../../components/HocBoThe/TieuDeBoThe";
+import TopBar from "../../../components/HocBoThe/TopBar";
+import MetaThongTin from "../../../components/HocBoThe/MetaThongTin";
+
 export default function BoTheDetail() {
-  const { id } = useParams(); // idBoThe (docId = String(idBoThe))
+  const { id } = useParams();
   const navigate = useNavigate();
 
+  // ====== STATE (hook ở file chính) ======
   const [card, setCard] = useState(null);
   const [creator, setCreator] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showAllTerms, setShowAllTerms] = useState(false);
 
-  // menu "..."
+  // UI: menu “…” (đặt state ở file chính luôn)
   const [openMenu, setOpenMenu] = useState(false);
   const menuBtnRef = useRef(null);
   const menuRef = useRef(null);
@@ -47,12 +54,10 @@ export default function BoTheDetail() {
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [openMenu]);
 
+  // uid hiện tại (giữ qua session để F5 không chậm)
   const session = useMemo(() => {
-    try {
-      return JSON.parse(sessionStorage.getItem("session") || "null");
-    } catch {
-      return null;
-    }
+    try { return JSON.parse(sessionStorage.getItem("session") || "null"); }
+    catch { return null; }
   }, []);
   const currentUid = auth.currentUser?.uid || session?.idNguoiDung || null;
 
@@ -61,92 +66,112 @@ export default function BoTheDetail() {
     return String(currentUid) === String(card.idNguoiDung);
   }, [currentUid, card?.idNguoiDung]);
 
-  const formatDate = (v) => {
-    if (!v) return "";
-    const d =
-      typeof v?.toDate === "function" ? v.toDate() : v instanceof Date ? v : new Date(v);
-    return Number.isNaN(d?.getTime?.()) ? "" : d.toLocaleString("vi-VN");
-  };
-
+  // ===== TẢI NHANH: sessionStorage -> Firestore cache -> Server =====
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
-    const unsub = onSnapshot(
-      doc(db, "boThe", String(id)),
-      async (snap) => {
-        if (!snap.exists()) {
-          setNotFound(true);
+    let cancelled = false;
+
+    const cardKey = `boThe_cache_${id}`;
+
+    (async () => {
+      setLoading(true);
+      setNotFound(false);
+
+      // 1) sessionStorage cache (hiển thị tức thời nếu có)
+      try {
+        const cached = JSON.parse(sessionStorage.getItem(cardKey) || "null");
+        if (cached?.card && !cancelled) {
+          setCard(cached.card);
+          if (cached.creator) setCreator(cached.creator);
           setLoading(false);
+        }
+      } catch {}
+
+      // 2) Firestore local cache (nếu có)
+      try {
+        const snapCache = await getDocFromCache(doc(db, "boThe", String(id)));
+        if (snapCache.exists() && !cancelled) {
+          const data = snapCache.data();
+          if (!card) setCard(data);
+          setLoading(false);
+        }
+      } catch {}
+
+      // 3) Server fetch (nguồn chuẩn)
+      try {
+        const snap = await getDoc(doc(db, "boThe", String(id)));
+        if (!snap.exists()) {
+          if (!cancelled) { setNotFound(true); setLoading(false); }
           return;
         }
+
         const data = snap.data();
+        if (cancelled) return;
+
         setCard(data);
         setLoading(false);
 
-        try {
-          if (data?.idNguoiDung) {
-            const u = await getDoc(doc(db, "nguoiDung", String(data.idNguoiDung)));
-            setCreator(u.exists() ? u.data() : null);
-          } else {
-            setCreator(null);
+        // tác giả: lấy từ cache nếu có, không thì fetch
+        let creatorData = null;
+        if (data?.idNguoiDung) {
+          const ck = `user_cache_${data.idNguoiDung}`;
+          try {
+            const cachedU = JSON.parse(sessionStorage.getItem(ck) || "null");
+            if (cachedU) creatorData = cachedU;
+          } catch {}
+
+          if (!creatorData) {
+            try {
+              const uSnap = await getDoc(doc(db, "nguoiDung", String(data.idNguoiDung)));
+              if (uSnap.exists()) creatorData = uSnap.data();
+            } catch {}
           }
-        } catch {
-          setCreator(null);
+          if (!cancelled) setCreator(creatorData);
+          if (creatorData) sessionStorage.setItem(ck, JSON.stringify(creatorData));
         }
-      },
-      () => {
-        setNotFound(true);
-        setLoading(false);
+
+        // lưu cache thẻ
+        sessionStorage.setItem(cardKey, JSON.stringify({ card: data, creator: creatorData, ts: Date.now() }));
+      } catch {
+        if (!cancelled) { setNotFound(true); setLoading(false); }
       }
-    );
-    return () => unsub();
-  }, [id]);
+    })();
+
+    return () => { cancelled = true; };
+  }, [id]); // giữ hook ở đây
 
   const blocked = card?.cheDo === "ca_nhan" && !isOwner;
 
+  // ===== Handlers (ở file chính) =====
+  const goBack = () => navigate(-1);
+
   const goLearn = async () => {
-    if (!currentUid) {
-      navigate("/dang-nhap");
-      return;
-    }
+    if (!currentUid) { navigate("/dang-nhap"); return; }
     const idBoTheValue = Number.isFinite(Number(id)) ? Number(id) : String(id);
     const idTDH = `${currentUid}_${idBoTheValue}`;
 
     try {
       await setDoc(
         doc(db, "tienDoHoc", idTDH),
-        {
-          idTDH,
-          idBoThe: idBoTheValue,
-          idNguoiDung: String(currentUid),
-          ngayHocGanDay: serverTimestamp(),
-        },
+        { idTDH, idBoThe: idBoTheValue, idNguoiDung: String(currentUid), ngayHocGanDay: serverTimestamp() },
         { merge: true }
       );
-
       await updateDoc(doc(db, "boThe", String(id)), {
         luotHoc: increment(1),
         ngayChinhSua: serverTimestamp(),
       });
-
       window.dispatchEvent(new Event("tienDoHocUpdated"));
     } catch (e) {
       console.error("Cập nhật tiến độ/luotHoc thất bại:", e);
     }
-
     navigate(`/flashcard/${id}`);
   };
 
-  const handleEdit = () => {
-    if (!isOwner) return;
-    navigate(`/suabothe/${id}`);
-  };
+  const handleEdit = () => { if (isOwner) navigate(`/suabothe/${id}`); };
 
   const handleDelete = async () => {
     if (!isOwner || !card) return;
-    const ok = window.confirm(
-      `Xoá bộ thẻ "${card.tenBoThe || card.idBoThe}"? Hành động này không thể hoàn tác.`
-    );
+    const ok = window.confirm(`Xoá bộ thẻ "${card.tenBoThe || card.idBoThe}"? Hành động này không thể hoàn tác.`);
     if (!ok) return;
     try {
       await deleteDoc(doc(db, "boThe", String(id)));
@@ -158,10 +183,20 @@ export default function BoTheDetail() {
     }
   };
 
+  // ====== UI states ======
   if (loading) {
     return (
       <div className="bt-wrap">
-        <div className="bt-card">Đang tải bộ thẻ...</div>
+        <div className="bt-card">
+          {/* skeleton */}
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+            <div className="skeleton skeleton-btn" style={{ width: 88, height: 32 }} />
+            <div className="skeleton" style={{ width: 36, height: 36, borderRadius: 8 }} />
+          </div>
+          <div className="skeleton" style={{ width: "60%", height: 24, marginBottom: 8 }} />
+          <div className="skeleton" style={{ width: "40%", height: 16, marginBottom: 16 }} />
+          <div className="skeleton" style={{ width: "100%", height: 120 }} />
+        </div>
       </div>
     );
   }
@@ -170,13 +205,8 @@ export default function BoTheDetail() {
     return (
       <div className="bt-wrap">
         <div className="bt-card">
-          <div
-            className="back"
-            onClick={() => navigate(-1)}
-            style={{ marginBottom: 12 }}
-          >
-            <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
-            Quay lại
+          <div className="back" onClick={goBack} style={{ marginBottom: 12 }}>
+            <FontAwesomeIcon icon={faArrowLeft} className="iconback" /> Quay lại
           </div>
           <h2>Không tìm thấy bộ thẻ</h2>
         </div>
@@ -188,197 +218,60 @@ export default function BoTheDetail() {
     return (
       <div className="bt-wrap">
         <div className="bt-card">
-          <div
-            className="back"
-            onClick={() => navigate(-1)}
-            style={{ marginBottom: 12 }}
-          >
-            <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
-            Quay lại
+          <div className="back" onClick={goBack} style={{ marginBottom: 12 }}>
+            <FontAwesomeIcon icon={faArrowLeft} className="iconback" /> Quay lại
           </div>
-          <h2>
-            Bộ thẻ ở chế độ <em>cá nhân</em>
-          </h2>
+        <h2>Bộ thẻ ở chế độ <em>cá nhân</em></h2>
           <p>Bạn không có quyền xem bộ thẻ này.</p>
         </div>
       </div>
     );
   }
 
-  const {
-    tenBoThe,
-    soTu,
-    idBoThe,
-    idNguoiDung,
-    danhSachThe = [],
-    cheDo,
-    luotHoc = 0,
-    ngayTao,
-    ngayChinhSua,
-  } = card;
-
-  const termsToShow = showAllTerms ? danhSachThe : danhSachThe.slice(0, 10);
+  const { tenBoThe, soTu, idBoThe, cheDo, luotHoc = 0, ngayTao, ngayChinhSua, danhSachThe = [] } = card;
 
   return (
-    <>
-      <div className="bt-card">
-        {/* Hàng trên cùng: Quay lại + menu “…” (chỉ chủ sở hữu) */}
-        <div
-          className="bt-top-row"
-          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
-        >
-          <div className="back" onClick={() => navigate(-1)}>
-            <FontAwesomeIcon icon={faArrowLeft} className="iconback" />
-            Quay lại
-          </div>
+    <div className="bt-card">
+      {/* Top bar: nút quay lại + menu (state ở file chính) */}
+      <TopBar
+        onBack={goBack}
+        isOwner={isOwner}
+        openMenu={openMenu}
+        onToggleMenu={() => setOpenMenu((v) => !v)}
+        menuBtnRef={menuBtnRef}
+        menuRef={menuRef}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
 
-          {isOwner && (
-            <div className="more-wrapper" style={{ position: "relative" }}>
-              <button
-                ref={menuBtnRef}
-                className="more-btn"
-                onClick={() => setOpenMenu((v) => !v)}
-                aria-haspopup="menu"
-                aria-expanded={openMenu}
-                title="Tùy chọn"
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  border: "1px solid var(--line,#e5e7eb)",
-                  background: "white",
-                  display: "grid",
-                  placeItems: "center",
-                  cursor: "pointer",
-                }}
-              >
-                <FontAwesomeIcon icon={faEllipsisH} />
-              </button>
+      {/* Tiêu đề + meta gọn */}
+      <TieuDeBoThe
+        tenBoThe={tenBoThe}
+        idBoThe={idBoThe}
+        cheDo={cheDo}
+        soThe={typeof soTu === "number" ? soTu : danhSachThe.length}
+        luotHoc={luotHoc}
+      />
 
-              {openMenu && (
-                <div
-                  ref={menuRef}
-                  className="more-menu"
-                  style={{
-                    position: "absolute",
-                    top: 44,
-                    right: 0,
-                    background: "white",
-                    border: "1px solid var(--line,#e5e7eb)",
-                    borderRadius: 10,
-                    boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-                    minWidth: 160,
-                    zIndex: 20,
-                    overflow: "hidden",
-                  }}
-                >
-                  <button
-                    className="more-item"
-                    onClick={handleEdit}
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "10px 12px",
-                      background: "white",
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Sửa bộ thẻ
-                  </button>
-                  <button
-                    className="more-item danger"
-                    onClick={handleDelete}
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "10px 12px",
-                      background: "white",
-                      border: "none",
-                      color: "#dc2626",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Xoá bộ thẻ
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+      {/* Grid thông tin cơ bản */}
+      <MetaThongTin
+        idBoThe={idBoThe}
+        creatorName={creator?.tenNguoiDung || creator?.gmail || creator?.email || "Ẩn danh"}
+        ngayTao={formatDateVN(ngayTao)}
+        ngayChinhSua={formatDateVN(ngayChinhSua)}
+      />
 
-        {/* Tiêu đề + meta */}
-        <div className="bt-head-only">
-          <h2 className="bt-title">{tenBoThe || `Bộ thẻ #${idBoThe}`}</h2>
-          <div className="bt-sub">
-            <span className={`chip ${cheDo === "cong_khai" ? "pub" : "pri"}`}>
-              {cheDo === "cong_khai" ? "Công khai" : "Cá nhân"}
-            </span>
-            <span className="sep">•</span>
-            <span>{soTu ?? danhSachThe.length} thẻ</span>
-            <span className="sep">•</span>
-            <span>{luotHoc} lượt học</span>
-          </div>
-        </div>
+      {/* Bảng từ vựng (10 mục đầu, bấm để mở rộng) */}
+      <BangTuVung
+        danhSachThe={danhSachThe}
+        showAll={showAllTerms}
+        onToggle={() => setShowAllTerms((v) => !v)}
+      />
 
-        {/* Thông tin cơ bản */}
-        <div className="bt-grid">
-          <div className="bt-row">
-            <span className="bt-label">Mã bộ thẻ</span>
-            <span>{idBoThe}</span>
-          </div>
-          <div className="bt-row">
-            <span className="bt-label">Người tạo</span>
-            <span>{creator?.tenNguoiDung || creator?.gmail || creator?.email || "Ẩn danh"}</span>
-          </div>
-          <div className="bt-row">
-            <span className="bt-label">Ngày tạo</span>
-            <span>{formatDate(ngayTao)}</span>
-          </div>
-          <div className="bt-row">
-            <span className="bt-label">Chỉnh sửa</span>
-            <span>{formatDate(ngayChinhSua)}</span>
-          </div>
-        </div>
-
-        {/* Danh sách thẻ */}
-        <div className="bt-list">
-          <div className="bt-list-head">
-            <h3>Từ vựng</h3>
-            {danhSachThe.length > 10 && (
-              <button className="btn xs" onClick={() => setShowAllTerms((v) => !v)}>
-                {showAllTerms ? "Thu gọn" : `Xem tất cả (${danhSachThe.length})`}
-              </button>
-            )}
-          </div>
-
-          {danhSachThe.length === 0 ? (
-            <div className="empty">Bộ thẻ chưa có mục nào.</div>
-          ) : (
-            <div className="table">
-              <div className="tr head">
-                <div className="td idx">#</div>
-                <div className="td">Từ</div>
-                <div className="td">Nghĩa</div>
-              </div>
-              {termsToShow.map((t, i) => (
-                <div className="tr" key={`${i}-${t?.tu}-${t?.nghia}`}>
-                  <div className="td idx">{i + 1}</div>
-                  <div className="td">{t?.tu}</div>
-                  <div className="td">{t?.nghia}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Nút học ngay */}
-        <div className="bt-foot center">
-          <button className="btn primary" onClick={goLearn}>
-            Học ngay
-          </button>
-        </div>
+      {/* Nút học ngay */}
+      <div className="bt-foot center">
+        <button className="btn primary" onClick={goLearn}>Học ngay</button>
       </div>
-    </>
+    </div>
   );
 }

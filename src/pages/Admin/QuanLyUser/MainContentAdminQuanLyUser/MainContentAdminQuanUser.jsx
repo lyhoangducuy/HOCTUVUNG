@@ -36,7 +36,7 @@ const ROLE_OPTIONS = [
 ];
 const ROLE_VALUES = ROLE_OPTIONS.map((o) => o.value);
 
-/* ===== Schema validate (không còn field ảnh) ===== */
+/* ===== Schema validate (KHÔNG có traPhi) ===== */
 const EditSchema = Yup.object({
   username: Yup.string().trim().required("Vui lòng nhập Tên đăng nhập").min(3, "Tối thiểu 3 ký tự"),
   fullname: Yup.string().trim().required("Vui lòng nhập Họ tên").min(3, "Tối thiểu 3 ký tự"),
@@ -78,16 +78,18 @@ export default function MainContentAdminQuanUser() {
       collection(db, "nguoiDung"),
       (snap) => {
         const rows = snap.docs.map((d) => {
-          const u = d.data();
+          const u = d.data() || {};
           const created =
             u?.ngayTaoTaiKhoan?.toDate?.() ??
             (typeof u?.ngayTaoTaiKhoan === "string" ? new Date(u.ngayTaoTaiKhoan) : null);
+          const traPhiBool = Boolean(u?.traPhi);
           return {
-            id: d.id, // dùng docId để CRUD
+            id: d.id, // docId để CRUD
             username: u?.tenNguoiDung ?? "",
             fullname: u?.hoten ?? "",
             email: u?.email ?? "",
             role: u?.vaiTro ?? "",
+            traPhiText: traPhiBool ? "Có" : "Không", // hiển thị trong bảng/xuất
             created: created ? toVN(created) : "",
             _raw: u,
           };
@@ -104,23 +106,25 @@ export default function MainContentAdminQuanUser() {
     return () => unsub();
   }, []);
 
-  /* ==== Cột bảng (không có ảnh) ==== */
+  /* ==== Cột bảng ==== */
   const ColumsTable = [
-    { name: "Mã (docId)", key: "id" },
+    { name: "ID", key: "id" },
     { name: "Tên đăng nhập", key: "username" },
     { name: "Họ tên", key: "fullname" },
     { name: "Email", key: "email" },
     { name: "Vai trò", key: "role" },
+    { name: "Trả phí", key: "traPhiText" },   // chỉ hiển thị
     { name: "Ngày tạo", key: "created" },
   ];
 
-  /* ==== Cột form Sửa / Thêm (không có ảnh) ==== */
+  /* ==== Cột form Sửa / Thêm (KHÔNG có traPhi) ==== */
   const ColumsEdit = [
     { name: "Mã (docId)", key: "id" },
     { name: "Tên đăng nhập", key: "username" },
     { name: "Họ tên", key: "fullname" },
     { name: "Email", key: "email" },
     { name: "Vai trò", key: "role", options: ROLE_OPTIONS },
+    { name: "Trả phí", key: "traPhiText" },
     { name: "Ngày tạo", key: "created" },
   ];
 
@@ -138,6 +142,7 @@ export default function MainContentAdminQuanUser() {
     { name: "Họ tên", key: "fullname" },
     { name: "Email", key: "email" },
     { name: "Vai trò", key: "role" },
+    { name: "Trả phí", key: "traPhiText" },  // dạng "Có/Không"
     { name: "Ngày tạo", key: "created" },
   ];
 
@@ -168,8 +173,9 @@ export default function MainContentAdminQuanUser() {
     if (!user) return;
     setSelectedUser(user);
     setShowEdit(true);
-    setIsEditMode(false);
+    setIsEditMode(false); // 👈 mở modal là cho sửa luôn
   };
+
 
   const handleUserDetailClose = () => {
     setShowEdit(false);
@@ -184,13 +190,12 @@ export default function MainContentAdminQuanUser() {
     }
     if (!updatedUser?.id) return;
 
+    // KHÔNG ghi đè traPhi
     const payload = sanitize({
       tenNguoiDung: trimStr(updatedUser.username),
       hoten: trimStr(updatedUser.fullname),
       email: trimStr(updatedUser.email),
       vaiTro: updatedUser.role || "HOC_VIEN",
-      // KHÔNG đụng tới ảnh
-      // KHÔNG ghi đè ngày tạo / mật khẩu
     });
 
     try {
@@ -214,18 +219,16 @@ export default function MainContentAdminQuanUser() {
         hoten: trimStr(newUser?.fullname || ""),
         email: trimStr(newUser?.email || ""),
         vaiTro: newUser?.role || "HOC_VIEN",
+        traPhi: false, // 👈 mặc định false, KHÔNG cho chọn
         ngayTaoTaiKhoan: serverTimestamp(),
-        // KHÔNG có ảnh
       });
 
       if (id) {
-        // Tự đặt docId = id
         await setDoc(doc(db, "nguoiDung", id), {
           ...basePayload,
           idNguoiDung: id,
         });
       } else {
-        // Tạo doc auto-id, rồi cập nhật idNguoiDung = doc.id
         const ref = await addDoc(collection(db, "nguoiDung"), basePayload);
         await updateDoc(ref, { idNguoiDung: ref.id });
       }
@@ -269,7 +272,13 @@ export default function MainContentAdminQuanUser() {
         <Search Data={data} onResult={setFilteredData} />
       </div>
 
-      <TableAdmin Colums={ColumsTable} Data={filteredData} Action={Action} />
+      <TableAdmin
+        Colums={ColumsTable}
+        Data={filteredData}
+        Action={Action}
+        pageSizeDefault={5}
+        pageSizeOptions={[5, 10, 20, 50]}
+      />
 
       {/* Delete */}
       {showDeleteDialog && (
@@ -289,9 +298,8 @@ export default function MainContentAdminQuanUser() {
           onSave={handleUserDetailSave}
           isEditMode={isEditMode}
           Colums={ColumsEdit}
-          showAvatar={false}            // ẨN avatar/ảnh
-          readOnlyKeys={["id", "created"]}
-          selectFields={{ role: ROLE_OPTIONS }}
+          showAvatar={false}
+          readOnlyKeys={["id", "created"]}  // 👈 KHÔNG có traPhi
           validationSchema={EditSchema}
           validateOnChange={true}
         />
@@ -303,8 +311,8 @@ export default function MainContentAdminQuanUser() {
           onClose={handleAddClose}
           onSave={handleAddSave}
           Colums={ColumsAdd}
-          showAvatar={false}            // ẨN avatar/ảnh
-          selectFields={{ role: ROLE_OPTIONS }}
+          showAvatar={false}
+          selectFields={{ role: ROLE_OPTIONS }}   // 👈 KHÔNG có traPhi
           validationSchema={AddSchema}
           validateOnChange={true}
         />

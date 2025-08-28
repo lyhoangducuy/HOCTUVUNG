@@ -36,7 +36,7 @@ export default function FeeConfig({
         { phiPhanTram: pct, updatedAt: serverTimestamp() },
         { merge: true }
       );
-      alert("Đã lưu phí mặc định.");
+      alert("Đã lưu phí mới.");
     } catch (e) {
       console.error(e);
       alert("Không thể lưu phí. Vui lòng thử lại.");
@@ -47,7 +47,7 @@ export default function FeeConfig({
 
   return (
     <div className="rt-config-left">
-      <label className="rt-label">Phí mặc định (%)</label>
+      <label className="rt-label">Phí hiện tại (%)</label>
       <input
         className="rt-input2"
         type="number"
