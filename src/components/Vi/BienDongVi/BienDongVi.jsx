@@ -5,11 +5,46 @@ export default function BangBienDongVi({
   rows = [],
   loading = false,
   pageSizeDefault = 5,
+  // Các loại “mua khóa học” mặc định (tùy schema của bạn):
+  allowedLoai = ["MUA_KHOA_HOC", "COURSE_PURCHASE"],
+  // Nếu muốn tự lọc chi tiết, truyền filterLoai: (row) => boolean
+  filterLoai,
 }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(pageSizeDefault);
 
-  const total = rows.length;
+  // --- Chỉ lấy hóa đơn mua khóa học ---
+  const filteredRows = useMemo(() => {
+    const isCoursePurchase = (r) => {
+      // Ưu tiên trường “loại” nếu có
+      const loaiRaw =
+        r.loai || r.type || r.loaiGiaoDich || r.kind || r.category || "";
+      const loai = String(loaiRaw).toUpperCase();
+
+      // Một số hệ thống lưu “mã dịch vụ” cho khóa học
+      const mdvRaw = r.maDichVu || r.dichVu || "";
+      const mdv = String(mdvRaw).toUpperCase();
+
+      // Heuristic theo nội dung mô tả
+      const nd = String(r.noiDung || "").toLowerCase();
+
+      return (
+        (allowedLoai?.length && loai && allowedLoai.includes(loai)) ||
+        mdv === "KHOA_HOC" ||
+        mdv === "COURSE" ||
+        nd.includes("khóa học") ||
+        nd.includes("khoa hoc") ||
+        nd.includes("course")
+      );
+    };
+
+    if (typeof filterLoai === "function") {
+      return rows.filter(filterLoai);
+    }
+    return rows.filter(isCoursePurchase);
+  }, [rows, allowedLoai, filterLoai]);
+
+  const total = filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
@@ -18,8 +53,8 @@ export default function BangBienDongVi({
 
   const pageRows = useMemo(() => {
     const start = (page - 1) * pageSize;
-    return rows.slice(start, start + pageSize);
-  }, [rows, page, pageSize]);
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, page, pageSize]);
 
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
@@ -45,13 +80,15 @@ export default function BangBienDongVi({
     <div className="vi-table-wrap">
       <div className="vi-table-headline">
         <h2>Lịch sử thanh toán khóa học</h2>
-        <span className="vi-muted">{total} dòng</span>
+        <span className="vi-muted">
+          {total} dòng{total ? ` • ${from}-${to}` : ""}
+        </span>
       </div>
 
       {loading ? (
         <div className="vi-empty">Đang tải…</div>
       ) : total === 0 ? (
-        <div className="vi-empty">Chưa có giao dịch nào.</div>
+        <div className="vi-empty">Chưa có giao dịch mua khóa học.</div>
       ) : (
         <>
           <table className="vi-table">

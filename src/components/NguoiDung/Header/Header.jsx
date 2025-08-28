@@ -1,7 +1,7 @@
 // src/components/Header/Header.jsx  (đường dẫn của bạn)
 import "./header.css";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import SearchBox from "./components/SearchBox";
 import PlusMenu from "./components/PlusMenu";
@@ -10,6 +10,12 @@ import AccountMenu from "./components/AccountMenu";
 import { auth, db } from "../../../../lib/firebase";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { signOut } from "firebase/auth";
+
+// đầu file
+import logo from "../../../assets/image/logo.jpg"; // chỉnh đúng relative từ Header.jsx
+
+
+
 
 /* ===== Helpers riêng của Header ===== */
 const userRef = (id) => doc(db, "nguoiDung", String(id));
@@ -122,15 +128,14 @@ export default function Header() {
     }
   };
 
-  const role = String(user?.vaiTro || "").toUpperCase();      // "GIANG_VIEN" | "HOC_VIEN" | ...
-  const isTeacher = role === "GIANG_VIEN";
-  const isStudent = role === "HOC_VIEN";
 
   // === QUY TẮC HIỂN THỊ THEO YÊU CẦU ===
   // Giảng viên: luôn hiện nút nâng cấp; KHÔNG hiện sao (kể cả đã nâng cấp)
   // Học viên:   nếu chưa nâng cấp -> hiện nút; nếu đã nâng cấp -> ẩn nút + hiện sao
-  const showUpgradeButton = isTeacher ? true : !primeActive;
-  const showPrimeBadge   = isTeacher ? false : !!primeActive;
+// mới
+const showUpgradeButton = primeActive;
+const showPrimeBadge   = !primeActive;
+
 
   const balanceText = formatVND(user?.soDu);
 
@@ -138,7 +143,9 @@ export default function Header() {
     <div className="header-container">
       {/* Left */}
       <div className="left-section">
-        <img src="src/assets/image/logo.jpg" alt="Logo" style={{ height: "60px" }} />
+         <Link to="/trangchu" className="logo-link" aria-label="Về trang chủ">
+          <img src={logo} alt="Logo" style={{ height: "60px" }} />
+        </Link>
       </div>
 
       {/* Search */}

@@ -9,6 +9,23 @@
   --ai-shadow: 0 10px 30px rgba(0,0,0,.16);
   --ai-ring: 0 0 0 3px color-mix(in srgb, var(--ai-primary) 25%, transparent);
 }
+/* AIButton.css - thêm */
+.ai-item.disabled { opacity: 0.6; pointer-events: auto; cursor: not-allowed; }
+.ai-note { padding: 8px 10px; font-size: 12px; border-bottom: 1px dashed #555; opacity: 0.9; }
+.ai-badge { margin-left: 8px; font-size: 11px; padding: 2px 6px; border: 1px solid #888; border-radius: 999px; }
+.ai-upgrade-cta { margin-top: 6px; padding: 8px 10px; font-weight: 600; text-align: center; border-top: 1px dashed #555; cursor: pointer; }
+.ai-upgrade-cta:hover { text-decoration: underline; }
+/* AIButton.css (bổ sung) */
+.ai-item.disabled { opacity: 0.6; cursor: not-allowed; }
+.ai-badge { margin-left: 8px; font-size: 11px; padding: 2px 6px; border: 1px solid #888; border-radius: 999px; }
+.prime-badge {
+  font-size: 12px;
+  display: inline-block;
+  line-height: 1;
+  transform: translateY(-1px);
+  margin-bottom: 14px;
+  margin-right: 25px;
+}
 
 @media (prefers-color-scheme: dark) {
   :root {

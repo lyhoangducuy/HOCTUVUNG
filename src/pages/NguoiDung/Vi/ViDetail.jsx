@@ -18,7 +18,6 @@ import {
 } from "firebase/firestore";
 
 import RutTien from "../../../components/Vi/RutTien/RutTien";
-import BienDongVi from "../../../components/Vi/BienDongVi/BienDongVi";
 import BangRutTien from "../../../components/Vi/BangRutTien/BangRutTien";
 
 import {
@@ -29,6 +28,7 @@ import {
 } from "./utils/dinhDang";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import BangBienDongVi from "../../../components/Vi/BienDongVi/BienDongVi";
 
 export default function ViDetail() {
   const navigate = useNavigate();
@@ -183,34 +183,41 @@ export default function ViDetail() {
       if (cancelled) return;
 
       // 4) Tạo rows cho bảng Biến động ví (chỉ giao dịch không phải rút tiền)
-      const joined = bdcvNonWithdraw.map((r) => {
-        const od = orderMap[String(r.idHoaDon)] || {};
-        const raw = Number(r.soTien ?? od.soTienThanhToan ?? 0) || 0;
-        const soTienAbs = Math.abs(raw);
+      // ...
+      const joined = bdcvNonWithdraw
+        .map((r) => {
+          const od = orderMap[String(r.idHoaDon)] || {};
+          const isCourse =
+            String(od.loai || od.loaiGiaoDich || "").toUpperCase() === "MUA_KHOA_HOC" ||
+            String(od.maDichVu || od.dichVu || "").toUpperCase() === "KHOA_HOC" ||
+            String(od.loaiSanPham || "").toUpperCase() === "COURSE";
 
-        const st = String(r.trangThai || "").toLowerCase(); // pending | done | canceled
-        const sign = st === "canceled" ? "" : "+"; // không còn withdraw nên mặc định +
+          if (!isCourse) return null;
 
-        const noiDung =
-          r.noiDung ||
-          r.moTa ||
-          (od.tenGoi ? `Doanh thu: ${od.tenGoi}` : "—");
+          const raw = Number(r.soTien ?? od.soTienThanhToan ?? 0) || 0;
+          const soTienAbs = Math.abs(raw);
+          const st = String(r.trangThai || "").toLowerCase(); // pending|done|canceled
+          const sign = st === "canceled" ? "" : "+";
 
-        const buyer = userMap[String(od.idNguoiDung)] || {};
+          const noiDung =
+            r.noiDung || r.moTa || (od.tenGoi ? `Doanh thu: ${od.tenGoi}` : "—");
 
-        return {
-          id: r.id,
-          ngayTao: r.updatedAt || r.ngayTao,
-          trangThai: st,
-          isWithdraw: false,
-          noiDung,
-          buyerName: buyer.tenNguoiDung || buyer.hoTen || "Người dùng",
-          soTien: soTienAbs,
-          sign,
-        };
-      });
+          const buyer = userMap[String(od.idNguoiDung)] || {};
 
+          return {
+            id: r.id,
+            ngayTao: r.updatedAt || r.ngayTao,
+            trangThai: st,
+            isWithdraw: false,
+            noiDung,
+            buyerName: buyer.tenNguoiDung || buyer.hoten || buyer.hoTen || "Người dùng",
+            soTien: soTienAbs,
+            sign,
+          };
+        })
+        .filter(Boolean);
       setRows(joined);
+
     })();
     return () => { cancelled = true; };
   }, [bdcv]);
@@ -301,8 +308,9 @@ export default function ViDetail() {
         </div>
       </div>
 
-      {/* BẢNG: Biến động ví (đÃ LOẠI rút tiền) */}
-      <BienDongVi rows={rows} loading={loadingBdcv} />
+
+
+      <BangBienDongVi rows={rows} allowedLoai={["MUA_KHOA_HOC"]} />
 
       {/* BẢNG: Lịch sử rút tiền */}
       <BangRutTien withdraws={withdraws} loading={loadingWd} />
