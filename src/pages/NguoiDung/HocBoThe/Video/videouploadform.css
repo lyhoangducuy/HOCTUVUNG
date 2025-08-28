@@ -1,0 +1,211 @@
+/* Container chính cho form */
+.video-form-container {
+    width: 80%;
+    margin: 40px auto;
+    padding: 24px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    
+    height: auto;
+    min-height: max-content;
+}
+
+.video-form-container h2 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 24px;
+}
+
+/* Nhóm các phần tử trong form (label + input) */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+/* Style chung cho các ô input và textarea */
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+/* Khu vực quản lý transcript */
+.transcript-section {
+    margin-bottom: 20px;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 20px;
+}
+
+.transcript-section h3 {
+    margin-top: 0;
+}
+
+.transcript-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.transcript-time-input {
+    width: 120px;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+}
+
+.transcript-answer-input {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+}
+
+/* Các nút bấm */
+.btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-add {
+    background-color: #22c55e; /* Green */
+    color: white;
+}
+.btn-add:hover {
+    background-color: #16a34a;
+}
+
+.btn-remove {
+    background-color: #ef4444; /* Red */
+    color: white;
+}
+.btn-remove:hover {
+    background-color: #dc2626;
+}
+
+.btn-submit {
+    width: 100%;
+    font-size: 16px;
+    padding: 12px;
+    background-color: #4f46e5; /* Indigo */
+    color: white;
+}
+.btn-submit:hover {
+    background-color: #4338ca;
+}
+.btn-submit:disabled {
+    background-color: #a5b4fc;
+    cursor: not-allowed;
+}
+
+
+/* Thanh tiến trình và thông báo lỗi */
+.progress-wrapper {
+    margin-bottom: 15px;
+}
+
+.progress-wrapper progress {
+    width: 100%;
+}
+
+.error-message {
+    color: #ef4444;
+}
+/* ======================================= */
+/* ====== RESPONSIVE DESIGN STYLES ====== */
+/* ======================================= */
+
+/* Cho màn hình nhỏ hơn hoặc bằng 768px (Tablet dọc, điện thoại ngang và dọc) */
+@media (max-width: 768px) {
+    .video-form-container {
+        margin: 20px auto; /* Giảm margin cho màn hình nhỏ hơn */
+        padding: 18px;
+        border-radius: 10px;
+    }
+
+    .video-form-container h2 {
+        font-size: 24px; /* Giảm kích thước tiêu đề */
+        margin-bottom: 20px;
+    }
+
+    .form-control,
+    .transcript-time-input,
+    .transcript-answer-input {
+        padding: 8px; /* Giảm padding input */
+        font-size: 15px;
+    }
+
+    .btn {
+        padding: 9px 16px;
+        font-size: 14px;
+    }
+
+    /* Điều chỉnh layout transcript cho màn hình nhỏ */
+    .transcript-row {
+        flex-direction: column; /* Xếp các input theo chiều dọc */
+        align-items: stretch; /* Kéo dài các phần tử để đầy chiều ngang */
+        gap: 8px; /* Giảm khoảng cách */
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px dashed #f0f0f0; /* Thêm đường phân cách */
+    }
+
+    .transcript-time-input,
+    .transcript-answer-input,
+    .btn-remove {
+        width: 100%; /* Cho input và nút chiếm toàn bộ chiều ngang */
+        box-sizing: border-box; /* Đảm bảo padding không làm tràn ra ngoài */
+    }
+
+    .btn-remove {
+        margin-top: 5px; /* Thêm khoảng cách trên nút xóa */
+    }
+}
+
+/* Cho màn hình rất nhỏ (điện thoại dưới 480px) */
+@media (max-width: 480px) {
+    .video-form-container {
+        margin: 10px; /* Bỏ margin ngang, chỉ giữ margin dọc */
+        padding: 15px;
+        border-radius: 8px;
+    }
+
+    .video-form-container h2 {
+        font-size: 20px;
+        margin-bottom: 18px;
+    }
+
+    .form-group label {
+        font-size: 14px;
+    }
+
+    .form-control,
+    .transcript-time-input,
+    .transcript-answer-input {
+        padding: 7px;
+        font-size: 14px;
+    }
+
+    .btn {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+
+    .btn-submit {
+        padding: 10px;
+        font-size: 15px;
+    }
+}

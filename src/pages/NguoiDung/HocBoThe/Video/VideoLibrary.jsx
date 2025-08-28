@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllVideos } from "../../../../services/videoService";
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 export default function VideoLibrary() {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
+  const [hienDropdown, setHienDropdown] = useState(false);
   useEffect(() => {
     loadVideos();
   }, []);
@@ -42,10 +43,24 @@ export default function VideoLibrary() {
       </div>
     );
   }
-
+  const doiTrangThaiDropdown = () => setHienDropdown((prev) => !prev);
   return (
     <div className="video-page" style={{ padding: 16 }}>
-      <h2 style={{ marginBottom: 12 }}>Thư viện bài học video</h2>
+      <div className="video-page-head" style={{ display: "flex", justifyContent: "space-between" }}>
+        <h2 style={{ marginBottom: 12 }}>Thư viện bài học video</h2>
+        <div style={{ position: "relative" }}>
+                <button className="btn-them" onClick={doiTrangThaiDropdown}>
+                  <FontAwesomeIcon icon={faPlus} className="icon" />
+                </button>
+                {hienDropdown && (
+                  <div className="dropdown-menu" style={{marginTop : "-30px"}}>
+                    <button onClick={() => { setHienDropdown(false); navigate("/videoupload"); }}>
+                      Thêm bài học video
+                    </button>
+                  </div>
+                )}
+          </div>
+      </div>
       {lessons.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📹</div>

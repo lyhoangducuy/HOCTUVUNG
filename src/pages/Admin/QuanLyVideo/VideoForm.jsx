@@ -37,8 +37,8 @@ export default function VideoForm({ video, onClose, onSuccess }) {
         tenBoThe: video.tenBoThe || "",
         moTa: video.moTa || "",
         video: {
-          src: video.video?.src || "",
-          transcript: video.video?.transcript || []
+          src: video?.videoUrl || "",
+          transcript: video?.transcript || []
         }
       });
     }

@@ -33,6 +33,7 @@
   margin-bottom: 24px;
   padding-bottom: 16px;
   border-bottom: 2px solid #e5e7eb;
+  align-items: space-between;
 }
 
 .back-button {

@@ -46,9 +46,9 @@ export default function QuanLyVideo() {
     
     // Apply additional filters
     if (activeFilter === "withTranscript") {
-      filtered = filtered.filter(video => video.video?.transcript?.length > 0);
+      filtered = filtered.filter(video => video?.transcript?.length > 0);
     } else if (activeFilter === "noTranscript") {
-      filtered = filtered.filter(video => !video.video?.transcript || video.video.transcript.length === 0);
+      filtered = filtered.filter(video => !video?.transcript || video.transcript.length === 0);
     }
     
     // Sort videos
@@ -136,7 +136,7 @@ export default function QuanLyVideo() {
   };
 
   const getTotalTranscripts = () => {
-    return videos.reduce((total, video) => total + (video.video?.transcript?.length || 0), 0);
+    return videos.reduce((total, video) => total + (video?.transcript.length || 0), 0);
   };
 
   const getAverageTranscripts = () => {
@@ -246,18 +246,7 @@ export default function QuanLyVideo() {
                   <FontAwesomeIcon icon={faFilter} />
                   Tất cả
                 </button>
-                <button
-                  className={`filter-button ${activeFilter === "withTranscript" ? "active" : ""}`}
-                  onClick={() => handleFilterChange("withTranscript")}
-                >
-                  Có Transcript
-                </button>
-                <button
-                  className={`filter-button ${activeFilter === "noTranscript" ? "active" : ""}`}
-                  onClick={() => handleFilterChange("noTranscript")}
-                >
-                  Không Transcript
-                </button>
+                
                 <button
                   className={`filter-button ${sortBy === "newest" ? "active" : ""}`}
                   onClick={() => handleSortChange("newest")}
@@ -311,6 +300,7 @@ export default function QuanLyVideo() {
                     <thead>
                       <tr>
                         <th>Video</th>
+                        <th>id Người Tạo</th>
                         <th>Tên Bộ Thẻ</th>
                         <th>Mô Tả</th>
                         <th>Transcript</th>
@@ -328,6 +318,11 @@ export default function QuanLyVideo() {
                           </td>
                           <td>
                             <div className="font-medium text-gray-900">
+                              {video.idNguoiDung}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="font-medium text-gray-900">
                               {video.tenBoThe}
                             </div>
                           </td>
@@ -338,7 +333,7 @@ export default function QuanLyVideo() {
                           </td>
                           <td>
                             <div className="text-gray-900">
-                              {video.video?.transcript?.length || 0} câu
+                              {video?.transcript?.length || 0} câu
                             </div>
                           </td>
                           <td>
@@ -352,7 +347,7 @@ export default function QuanLyVideo() {
                           <td>
                             <div className="action-buttons">
                               <button
-                               
+                                onClick={() => handleViewVideo(video)}
                                 className="action-button view"
                                 title="Xem chi tiết"
                               >

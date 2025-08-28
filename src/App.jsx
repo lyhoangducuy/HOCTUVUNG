@@ -47,6 +47,8 @@ import CheckoutResult from "./pages/NguoiDung/Checkout/checkoutResult";
 import LichSuThanhToan from "./pages/NguoiDung/TraPhi/lichSuThanhToan";
 import NguoiDungDetail from "./pages/NguoiDung/NguoiDungDetail/NguoiDungDetail";
 import BoTheDetail from "./pages/NguoiDung/HocBoThe/BoTheDetail";
+import VideoUploadForm from "./pages/NguoiDung/HocBoThe/Video/videouploadform";
+import EditVideoLesson from "./pages/NguoiDung/HocBoThe/Video/videoupdate";
 // ✅ Sửa đúng hoa/thường:
 
 
@@ -92,6 +94,8 @@ export default function App() {
             {/* 🔒 Chỉ người có gói trả phí còn hiệu lực mới truy cập được Video */}
               <Route path="/video" element={<VideoLibrary />} />
               <Route path="/video/:id" element={<Video />} />
+              <Route path="/videoupload" element={<VideoUploadForm />} />
+              <Route path="/edit-video/:id" element={<EditVideoLesson />} />
           </Route>
         </Route>
 
