@@ -65,8 +65,16 @@ const SidebarAdmin = () => {
                 <span>Chi trả (Payouts)</span>
               </NavLink>
             </li>
+             <li>
+            <NavLink className="menu-link" to="/admin/quan-ly-video">
+                <span className="sidebar-icon"><FaVideo /></span>
+                <span>Quản Lý Video</span>
+              </NavLink>
+          </li>
           </ul>
         </nav>
+
+         
       </div>
     </aside>
   );
