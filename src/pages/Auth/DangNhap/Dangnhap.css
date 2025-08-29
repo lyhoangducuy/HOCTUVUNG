@@ -9,7 +9,7 @@
   --text:#111827;
   --muted:#6b7280;
   --border:#e5e7eb;
-  --accent:#1565ff;
+  --accent:#1565ff !important;
   --accent-2:#0d47a1;
   --ring: rgba(21,101,255,.18);
   --radius:16px;
@@ -70,7 +70,7 @@ a{ text-decoration:none; color:inherit }
   transition:color .18s ease, border-color .18s ease, transform .18s ease;
 }
 .login-tabs span:hover{ color:var(--accent) }
-.login-tabs span.active{ color:var(--accent); border-bottom-color:var(--accent) }
+.login-tabs span.active{ color:var(--accent); border-bottom-color:var(--accent)  }
 
 /* ---------- Form ---------- */
 .login-form{
