@@ -168,7 +168,7 @@ export default function Lop() {
 
   /* ===== 6) Giá / thời hạn / định dạng ===== */
   const getGiaThamGia = (kh) => {
-    const v = kh?.giaThamGia ?? kh?.hocPhi ?? kh?.giaKhoaHoc ?? 0;
+    const v = kh.giaSauGiam;
     return Number(v) || 0;
   };
   const getThoiHanNgay = (kh) => {
