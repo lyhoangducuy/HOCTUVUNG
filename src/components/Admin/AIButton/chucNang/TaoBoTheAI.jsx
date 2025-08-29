@@ -62,10 +62,7 @@ export default function TaoBoTheAI({ open, onClose, user, onBusyChange }) {
 
   const handleSubmitCreate = async (e) => {
     e.preventDefault();
-    if (!user?.idNguoiDung) {
-      alert("Vui lòng đăng nhập để tạo bộ thẻ.");
-      return;
-    }
+
     const num = Number(count);
     if (!Number.isInteger(num) || num <= 0) {
       setError("Số lượng phải là số nguyên dương.");
@@ -121,7 +118,6 @@ export default function TaoBoTheAI({ open, onClose, user, onBusyChange }) {
       .filter((t) => t.tu && t.nghia);
 
     if (!valid.length) return alert("Danh sách thẻ trống hoặc không hợp lệ.");
-    if (!userCreated) return alert("Vui lòng đăng nhập.");
 
     try {
       const idBoThe = await genUniqueIdBoThe();

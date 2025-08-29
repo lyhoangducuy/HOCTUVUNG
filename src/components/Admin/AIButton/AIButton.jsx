@@ -23,11 +23,11 @@ export default function AIButton() {
   const [showForm, setShowForm] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
-  // giống Sidebar: theo dõi user + traPhi
+  // theo dõi user + Prime
   const [user, setUser] = useState(null);
   const [prime, setPrime] = useState(false);
 
-  // NEW: phát hiện ADMIN để bypass prime
+  // ADMIN được bypass prime
   const [isAdmin, setIsAdmin] = useState(false);
 
   // --- Auth ---
@@ -47,15 +47,12 @@ export default function AIButton() {
       doc(db, "nguoiDung", String(user.uid)),
       (snap) => {
         const data = snap.data() || {};
-        setPrime(Boolean(data.traPhi)); // true => Prime
-
-        // cố gắng bắt nhiều kiểu lưu role khác nhau
+        setPrime(Boolean(data.traPhi));
         const adminLike = (data.role || data.vaiTro || data.quyen || "").toString().toUpperCase();
         const isAdminComputed =
           adminLike === "ADMIN" ||
           data.isAdmin === true ||
           (Array.isArray(data.roles) && data.roles.some((r) => String(r).toUpperCase() === "ADMIN"));
-
         setIsAdmin(Boolean(isAdminComputed));
       },
       () => {
@@ -82,24 +79,24 @@ export default function AIButton() {
     setOpen(false);
   };
 
-  // Tạo bộ thẻ: ADMIN được vào không cần prime
+  // Tạo bộ thẻ: BỎ BẮT ĐĂNG NHẬP
+  // - Nếu CHƯA đăng nhập: cho mở form tự do (không chặn)
+  // - Nếu ĐÃ đăng nhập: chỉ chặn khi KHÔNG prime & KHÔNG admin
   const openCreateForm = () => {
     if (loading) return;
-    if (!user) {
-      alert("Vui lòng đăng nhập để dùng tính năng Tạo bộ thẻ.");
-      navigate("/dang-nhap");
-      return;
-    }
-    if (!prime && !isAdmin) {
+
+    if (user && !prime && !isAdmin) {
       alert("Bạn cần nâng cấp tài khoản để dùng tính năng Tạo bộ thẻ.");
       navigate("/tra-phi");
       return;
     }
+
     setShowForm(true);
     setOpen(false);
   };
 
-  const lockedByPlan = !prime && !isAdmin; // dùng cho title/badge UI
+  // Khoá badge chỉ hiển thị khi user đã đăng nhập mà không có quyền
+  const lockedByPlan = user ? (!prime && !isAdmin) : false;
 
   return (
     <div className="ai-button-container" ref={menuRef}>
@@ -119,11 +116,15 @@ export default function AIButton() {
             Chat trợ giúp
           </div>
 
-          {/* Tạo bộ thẻ: cần Prime, ngoại trừ ADMIN */}
+          {/* Tạo bộ thẻ: cho khách mở tự do; user thường cần Prime; ADMIN bypass */}
           <div
             className={`ai-item${loading ? " disabled" : ""}`}
             onClick={!loading ? openCreateForm : undefined}
-            title={lockedByPlan ? "Cần nâng cấp để mở" : "Tạo bộ thẻ theo chủ đề"}
+            title={
+              user
+                ? (lockedByPlan ? "Cần nâng cấp để mở" : "Tạo bộ thẻ theo chủ đề")
+                : "Tạo bộ thẻ theo chủ đề"
+            }
           >
             {loading ? (
               "Đang tạo..."
@@ -144,7 +145,7 @@ export default function AIButton() {
       <TaoBoTheAI
         open={showForm}
         onClose={() => setShowForm(false)}
-        user={user}
+        user={user || auth.currentUser /* có thể là null nếu khách */}
         onBusyChange={setLoading}
       />
     </div>
