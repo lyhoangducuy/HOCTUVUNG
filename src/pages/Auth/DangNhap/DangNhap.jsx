@@ -19,12 +19,14 @@ export default function DangNhap() {
       if (!user) return;
       try {
         const snap = await getDoc(doc(db, "nguoiDung", user.uid));
-        const role = snap.exists() ? (snap.data()?.vaiTro || "HOC_VIEN") : "HOC_VIEN";
+        const role = snap.exists()
+          ? snap.data()?.vaiTro || "HOC_VIEN"
+          : "HOC_VIEN";
         // giữ session để các phần cũ còn dùng
         sessionStorage.setItem(
           "session",
           JSON.stringify({ idNguoiDung: user.uid, vaiTro: role })
-        );  
+        );
         // navigate(role === "ADMIN" ? "/admin" : "/trangchu", { replace: true });
       } catch {
         // navigate("/trangchu", { replace: true });
@@ -51,31 +53,34 @@ export default function DangNhap() {
   }, [navigate]);
 
   const onSubmit = async (form) => {
-  setLoginError("");
-  try {
-    const cred = await signInWithEmailAndPassword(auth, form.email, form.matkhau);
+    setLoginError("");
+    try {
+      const cred = await signInWithEmailAndPassword(
+        auth,
+        form.email,
+        form.matkhau
+      );
 
       // Lấy hồ sơ người dùng để biết vai trò
-      console.log(db);
-      
+
       const snap = await getDoc(doc(db, "nguoiDung", cred.user.uid));
       if (!snap.exists()) throw new Error("Không tìm thấy hồ sơ người dùng!");
 
-    const profile = snap.data();
-    const role = profile?.vaiTro || "HOC_VIEN";
+      const profile = snap.data();
+      const role = profile?.vaiTro || "HOC_VIEN";
 
-    // Save session
-    const session = { idNguoiDung: cred.user.uid, vaiTro: role };
-    sessionStorage.setItem("session", JSON.stringify(session));
+      // Save session
+      const session = { idNguoiDung: cred.user.uid, vaiTro: role };
+      sessionStorage.setItem("session", JSON.stringify(session));
 
-    // Notify other tabs using a custom event instead of localStorage
-    window.dispatchEvent(new CustomEvent('auth:login', { detail: session }));
+      // Notify other tabs using a custom event instead of localStorage
+      window.dispatchEvent(new CustomEvent("auth:login", { detail: session }));
 
-    navigate(role === "ADMIN" ? "/admin" : "/trangchu");
-  } catch (e) {
-    setLoginError(e?.message || "Email hoặc mật khẩu không đúng.");
-  }
-};
+      navigate(role === "ADMIN" ? "/admin" : "/trangchu");
+    } catch (e) {
+      setLoginError(e?.message || "Email hoặc mật khẩu không đúng.");
+    }
+  };
 
   return (
     <div className="login-container">
@@ -85,7 +90,10 @@ export default function DangNhap() {
         </div>
         <div className="login-right">
           <div className="login-tabs">
-            <span onClick={() => navigate("/dang-ky")} style={{ cursor: "pointer" }}>
+            <span
+              onClick={() => navigate("/dang-ky")}
+              style={{ cursor: "pointer" }}
+            >
               Đăng ký
             </span>
             <span className="active" style={{ cursor: "pointer" }}>
@@ -100,7 +108,9 @@ export default function DangNhap() {
             <label>Mật khẩu</label>
             <input type="password" {...register("matkhau")} />
 
-            {loginError && <span className="error">{"email hoặc mật khẩu sai"}</span>}
+            {loginError && (
+              <span className="error">{"email hoặc mật khẩu sai"}</span>
+            )}
 
             <div className="forgot">
               <Link to="/quen-mat-khau">Quên mật khẩu</Link>

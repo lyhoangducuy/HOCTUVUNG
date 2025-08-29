@@ -47,12 +47,18 @@ export default function AIButton() {
       doc(db, "nguoiDung", String(user.uid)),
       (snap) => {
         const data = snap.data() || {};
-        setPrime(Boolean(data.traPhi));
-        const adminLike = (data.role || data.vaiTro || data.quyen || "").toString().toUpperCase();
+        setPrime(Boolean(data.traPhi)); // true => Prime
+
+        // cố gắng bắt nhiều kiểu lưu role khác nhau
+        const adminLike = (data.role || data.vaiTro || data.quyen || "")
+          .toString()
+          .toUpperCase();
         const isAdminComputed =
           adminLike === "ADMIN" ||
           data.isAdmin === true ||
-          (Array.isArray(data.roles) && data.roles.some((r) => String(r).toUpperCase() === "ADMIN"));
+          (Array.isArray(data.roles) &&
+            data.roles.some((r) => String(r).toUpperCase() === "ADMIN"));
+
         setIsAdmin(Boolean(isAdminComputed));
       },
       () => {
@@ -66,7 +72,8 @@ export default function AIButton() {
   // --- outside click ---
   useEffect(() => {
     const onClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target))
+        setOpen(false);
     };
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
@@ -85,7 +92,12 @@ export default function AIButton() {
   const openCreateForm = () => {
     if (loading) return;
 
-    if (user && !prime && !isAdmin) {
+    if (!user) {
+      alert("Vui lòng đăng nhập để dùng tính năng Tạo bộ thẻ.");
+      navigate("/dang-nhap");
+      return;
+    }
+    if (!prime && !isAdmin) {
       alert("Bạn cần nâng cấp tài khoản để dùng tính năng Tạo bộ thẻ.");
       navigate("/tra-phi");
       return;
@@ -96,7 +108,7 @@ export default function AIButton() {
   };
 
   // Khoá badge chỉ hiển thị khi user đã đăng nhập mà không có quyền
-  const lockedByPlan = user ? (!prime && !isAdmin) : false;
+  const lockedByPlan = user ? !prime && !isAdmin : false;
 
   return (
     <div className="ai-button-container" ref={menuRef}>
@@ -121,9 +133,7 @@ export default function AIButton() {
             className={`ai-item${loading ? " disabled" : ""}`}
             onClick={!loading ? openCreateForm : undefined}
             title={
-              user
-                ? (lockedByPlan ? "Cần nâng cấp để mở" : "Tạo bộ thẻ theo chủ đề")
-                : "Tạo bộ thẻ theo chủ đề"
+              lockedByPlan ? "Cần nâng cấp để mở" : "Tạo bộ thẻ theo chủ đề"
             }
           >
             {loading ? (
@@ -132,7 +142,13 @@ export default function AIButton() {
               <>
                 AI tạo bộ thẻ theo chủ đề
                 {lockedByPlan && (
-                  <span className="prime-badge" aria-hidden="true" title="Nâng cấp để mở khóa">★</span>
+                  <span
+                    className="prime-badge"
+                    aria-hidden="true"
+                    title="Nâng cấp để mở khóa"
+                  >
+                    ★
+                  </span>
                 )}
               </>
             )}
