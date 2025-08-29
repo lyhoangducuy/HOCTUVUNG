@@ -21,6 +21,25 @@
 .sidebar_container.is-closed{
   transform: translateX(-110%);
 }
+/* ===== Force notification on top of everything ===== */
+.sidebar_container{
+  position: relative;     /* tạo stacking context riêng cho sidebar */
+  z-index: 1000;          /* nổi hơn phần còn lại của layout */
+  overflow: visible;      /* tránh bị cắt bo góc/overflow của container */
+}
+
+.noti-wrapper{
+  position: relative;     /* neo vị trí mũi tên + dropdown */
+  z-index: 1001;          /* cao hơn sidebar một chút */
+}
+
+.noti-dropdown{
+  z-index: 2147483647;    /* max int: nằm trên mọi layer khác */
+}
+
+.noti-dropdown::before{
+  z-index: 2147483646;    /* mũi tên ngay dưới dropdown một tick */
+}
 
 @media (max-width: 768px){
   .sidebar_container{

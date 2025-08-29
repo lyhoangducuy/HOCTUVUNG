@@ -26,7 +26,10 @@ export default function Landingpage() {
                 </p>
                 <div className="cta-buttons">
                     <button className="btn-primary" onClick={() => navigate("/dang-ky")}>Đăng ký miễn phí</button>
-                    <a href="#" className="link-secondary" onClick={() => navigate("/dang-ky")}>Tôi là giảng viên</a>
+                    <button className="btn-primary" onClick={() => navigate("/dang-ky")}>Tôi là giảng viên</button>
+                </div>
+                <div className="cta-buttons2">
+                    <a href="#" className="link-secondary" onClick={() => navigate("/dang-nhap")}>Tôi đã có tài khoản</a>
                 </div>
             </section>
 

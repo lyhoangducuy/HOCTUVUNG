@@ -225,6 +225,10 @@ export default function Lop() {
         setLoadingFirst(true);
         setFirstDeck(null);
         setFirstCards([]);
+
+        // Nếu đã tham gia (hoặc là chủ) thì KHÔNG load preview
+        if (!chiTietKhoaHoc || canViewInside) { setLoadingFirst(false); return; }
+
         const ids = Array.isArray(chiTietKhoaHoc?.boTheIds) ? chiTietKhoaHoc.boTheIds : [];
         const firstId = ids.length ? String(ids[0]) : null;
         if (!firstId) { setLoadingFirst(false); return; }
@@ -234,6 +238,7 @@ export default function Lop() {
 
         const data = snap.data() || {};
         const danhSachThe = Array.isArray(data.danhSachThe) ? data.danhSachThe : [];
+
         setFirstDeck({
           idBoThe: data.idBoThe ?? firstId,
           tenBoThe: data.tenBoThe || `Bộ thẻ #${firstId}`,
@@ -249,17 +254,19 @@ export default function Lop() {
           return { front: f || fallback || "—", back: b };
         };
 
-        setFirstCards(danhSachThe.slice(0, 6).map(pickPair));
+        // Có thể chỉnh số dòng preview tại đây
+        const MAX_PREVIEW_ROWS = 20;
+        setFirstCards(danhSachThe.slice(0, MAX_PREVIEW_ROWS).map(pickPair));
       } catch (e) {
         console.error("Load first deck failed:", e);
         setFirstDeck(null);
         setFirstCards([]);
       } finally {
-               setLoadingFirst(false);
+        setLoadingFirst(false);
       }
     };
     loadFirstDeck();
-  }, [chiTietKhoaHoc]);
+  }, [chiTietKhoaHoc, canViewInside]);
 
   /* ===== 9) Hiển thị thông tin khóa học + preview ===== */
   const ThongTinKhoaHoc = () => {
@@ -353,7 +360,9 @@ export default function Lop() {
   };
 
   const FirstDeckPreview = () => {
-    if (!canViewInside) return null;
+    // CHỈ hiển thị khi CHƯA tham gia/không phải chủ
+    if (canViewInside) return null;
+
     if (loadingFirst) {
       return (
         <div style={{
@@ -383,7 +392,7 @@ export default function Lop() {
       }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
-            Xem trước bộ thẻ đầu tiên: {firstDeck.tenBoThe}
+            Xem trước bộ thẻ trong khóa học: {firstDeck.tenBoThe}
           </h3>
           <span style={{ color: "#6b7280" }}>{firstDeck.soTu} thẻ</span>
         </div>
@@ -391,29 +400,30 @@ export default function Lop() {
         {firstCards.length === 0 ? (
           <div style={{ marginTop: 8, color: "#6b7280" }}>Bộ thẻ này chưa có thẻ nào.</div>
         ) : (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-            gap: 10,
-            marginTop: 12
-          }}>
-            {firstCards.map((c, i) => (
-              <div key={i} style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 10,
-                padding: 10,
-                background: "#fafafa"
-              }}>
-                <div style={{ fontWeight: 700, color: "#111827", marginBottom: 6 }}>
-                  {c.front || "—"}
-                </div>
-                {c.back ? (
-                  <div style={{ color: "#374151", fontSize: 14 }}>{c.back}</div>
-                ) : (
-                  <div style={{ color: "#9ca3af", fontSize: 13 }}>—</div>
-                )}
-              </div>
-            ))}
+          <div style={{ overflowX: "auto", marginTop: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #e5e7eb" }}>#</th>
+                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #e5e7eb" }}>Từ</th>
+                  <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #e5e7eb" }}>Nghĩa</th>
+                </tr>
+              </thead>
+              <tbody>
+                {firstCards.map((c, i) => (
+                  <tr key={i} style={{ background: i % 2 ? "#fafafa" : "transparent" }}>
+                    <td style={{ padding: "8px", borderBottom: "1px solid #f3f4f6", color: "#6b7280" }}>{i + 1}</td>
+                    <td style={{ padding: "8px", borderBottom: "1px solid #f3f4f6", fontWeight: 600, color: "#111827" }}>
+                      {c.front || "—"}
+                    </td>
+                    <td style={{ padding: "8px", borderBottom: "1px solid #f3f4f6", color: "#374151" }}>
+                      {c.back || <span style={{ color: "#9ca3af" }}>—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {/* Gợi ý: chỉnh số hàng preview ở MAX_PREVIEW_ROWS trong effect phía trên */}
           </div>
         )}
       </div>
@@ -468,7 +478,7 @@ export default function Lop() {
               idKhoaHoc={chiTietKhoaHoc?.idKhoaHoc}
               isOwner={isOwner}
               canLeave={canLeave}
-              onLeft={() => {}}
+              onLeft={() => { }}
             />
           </div>
         </div>
@@ -506,8 +516,8 @@ export default function Lop() {
             {/* Thông tin khóa học luôn hiển thị */}
             <ThongTinKhoaHoc />
 
-            {/* Preview bộ thẻ đầu tiên (chỉ khi đã tham gia/chủ) */}
-            <FirstDeckPreview />
+            {/* Preview bộ thẻ đầu tiên (chỉ khi CHƯA tham gia/chưa là chủ) */}
+            {!canViewInside && <FirstDeckPreview />}
 
             {canViewInside ? (
               <ThuVienLop
@@ -515,6 +525,7 @@ export default function Lop() {
                 onCapNhat={(khMoi) => setChiTietKhoaHoc(khMoi)}
               />
             ) : null}
+
           </div>
         )}
 
