@@ -50,11 +50,14 @@ export default function AIButton() {
         setPrime(Boolean(data.traPhi)); // true => Prime
 
         // cố gắng bắt nhiều kiểu lưu role khác nhau
-        const adminLike = (data.role || data.vaiTro || data.quyen || "").toString().toUpperCase();
+        const adminLike = (data.role || data.vaiTro || data.quyen || "")
+          .toString()
+          .toUpperCase();
         const isAdminComputed =
           adminLike === "ADMIN" ||
           data.isAdmin === true ||
-          (Array.isArray(data.roles) && data.roles.some((r) => String(r).toUpperCase() === "ADMIN"));
+          (Array.isArray(data.roles) &&
+            data.roles.some((r) => String(r).toUpperCase() === "ADMIN"));
 
         setIsAdmin(Boolean(isAdminComputed));
       },
@@ -69,7 +72,8 @@ export default function AIButton() {
   // --- outside click ---
   useEffect(() => {
     const onClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target))
+        setOpen(false);
     };
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
@@ -85,6 +89,7 @@ export default function AIButton() {
   // Tạo bộ thẻ: ADMIN được vào không cần prime
   const openCreateForm = () => {
     if (loading) return;
+
     if (!user) {
       alert("Vui lòng đăng nhập để dùng tính năng Tạo bộ thẻ.");
       navigate("/dang-nhap");
@@ -123,7 +128,9 @@ export default function AIButton() {
           <div
             className={`ai-item${loading ? " disabled" : ""}`}
             onClick={!loading ? openCreateForm : undefined}
-            title={lockedByPlan ? "Cần nâng cấp để mở" : "Tạo bộ thẻ theo chủ đề"}
+            title={
+              lockedByPlan ? "Cần nâng cấp để mở" : "Tạo bộ thẻ theo chủ đề"
+            }
           >
             {loading ? (
               "Đang tạo..."
@@ -131,7 +138,13 @@ export default function AIButton() {
               <>
                 AI tạo bộ thẻ theo chủ đề
                 {lockedByPlan && (
-                  <span className="prime-badge" aria-hidden="true" title="Nâng cấp để mở khóa">★</span>
+                  <span
+                    className="prime-badge"
+                    aria-hidden="true"
+                    title="Nâng cấp để mở khóa"
+                  >
+                    ★
+                  </span>
                 )}
               </>
             )}
