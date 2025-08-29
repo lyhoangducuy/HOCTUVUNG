@@ -27,16 +27,20 @@ export default function AIButton() {
   const [user, setUser] = useState(null);
   const [prime, setPrime] = useState(false);
 
+  // NEW: phát hiện ADMIN để bypass prime
+  const [isAdmin, setIsAdmin] = useState(false);
+
   // --- Auth ---
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (u) => setUser(u || null));
     return () => unsubAuth();
   }, []);
 
-  // --- traPhi từ hồ sơ ---
+  // --- traPhi & role từ hồ sơ ---
   useEffect(() => {
     if (!user?.uid) {
       setPrime(false);
+      setIsAdmin(false);
       return;
     }
     const unsub = onSnapshot(
@@ -44,8 +48,20 @@ export default function AIButton() {
       (snap) => {
         const data = snap.data() || {};
         setPrime(Boolean(data.traPhi)); // true => Prime
+
+        // cố gắng bắt nhiều kiểu lưu role khác nhau
+        const adminLike = (data.role || data.vaiTro || data.quyen || "").toString().toUpperCase();
+        const isAdminComputed =
+          adminLike === "ADMIN" ||
+          data.isAdmin === true ||
+          (Array.isArray(data.roles) && data.roles.some((r) => String(r).toUpperCase() === "ADMIN"));
+
+        setIsAdmin(Boolean(isAdminComputed));
       },
-      () => setPrime(false)
+      () => {
+        setPrime(false);
+        setIsAdmin(false);
+      }
     );
     return () => unsub();
   }, [user?.uid]);
@@ -66,7 +82,7 @@ export default function AIButton() {
     setOpen(false);
   };
 
-  // Tạo bộ thẻ: giống gotoVideo()
+  // Tạo bộ thẻ: ADMIN được vào không cần prime
   const openCreateForm = () => {
     if (loading) return;
     if (!user) {
@@ -74,7 +90,7 @@ export default function AIButton() {
       navigate("/dang-nhap");
       return;
     }
-    if (!prime) {
+    if (!prime && !isAdmin) {
       alert("Bạn cần nâng cấp tài khoản để dùng tính năng Tạo bộ thẻ.");
       navigate("/tra-phi");
       return;
@@ -82,6 +98,8 @@ export default function AIButton() {
     setShowForm(true);
     setOpen(false);
   };
+
+  const lockedByPlan = !prime && !isAdmin; // dùng cho title/badge UI
 
   return (
     <div className="ai-button-container" ref={menuRef}>
@@ -100,18 +118,19 @@ export default function AIButton() {
           <div className="ai-item" onClick={openHelpChat}>
             Chat trợ giúp
           </div>
-          {/* Tạo bộ thẻ: cần Prime */}
+
+          {/* Tạo bộ thẻ: cần Prime, ngoại trừ ADMIN */}
           <div
             className={`ai-item${loading ? " disabled" : ""}`}
             onClick={!loading ? openCreateForm : undefined}
-            title={!prime ? "Cần nâng cấp để mở" : "Tạo bộ thẻ theo chủ đề"}
+            title={lockedByPlan ? "Cần nâng cấp để mở" : "Tạo bộ thẻ theo chủ đề"}
           >
             {loading ? (
               "Đang tạo..."
             ) : (
               <>
                 AI tạo bộ thẻ theo chủ đề
-                {!prime && (
+                {lockedByPlan && (
                   <span className="prime-badge" aria-hidden="true" title="Nâng cấp để mở khóa">★</span>
                 )}
               </>
@@ -128,7 +147,6 @@ export default function AIButton() {
         user={user}
         onBusyChange={setLoading}
       />
-
     </div>
   );
 }
