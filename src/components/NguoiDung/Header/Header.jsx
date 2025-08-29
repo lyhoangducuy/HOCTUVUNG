@@ -14,9 +14,6 @@ import { signOut } from "firebase/auth";
 // đầu file
 import logo from "../../../assets/image/logo.jpg"; // chỉnh đúng relative từ Header.jsx
 
-
-
-
 /* ===== Helpers riêng của Header ===== */
 const userRef = (id) => doc(db, "nguoiDung", String(id));
 const subCol = () => collection(db, "goiTraPhiCuaNguoiDung");
@@ -63,14 +60,19 @@ export default function Header() {
     const init = async () => {
       const ss = JSON.parse(sessionStorage.getItem("session") || "null");
       const uid = auth.currentUser?.uid || ss?.idNguoiDung;
-      if (!uid) { setUser(null); setPrimeActive(false); return; }
+      if (!uid) {
+        setUser(null);
+        setPrimeActive(false);
+        return;
+      }
 
       // user
       unsubUser = onSnapshot(
         userRef(uid),
         (snap) => {
           if (snap.exists()) setUser({ idNguoiDung: uid, ...snap.data() });
-          else setUser({ idNguoiDung: uid, tenNguoiDung: "Người dùng", soDu: 0 });
+          else
+            setUser({ idNguoiDung: uid, tenNguoiDung: "Người dùng", soDu: 0 });
         },
         () => setUser({ idNguoiDung: uid, tenNguoiDung: "Người dùng", soDu: 0 })
       );
@@ -81,7 +83,8 @@ export default function Header() {
       unsubSub = onSnapshot(
         qSubs,
         (ssnap) => {
-          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
           const hasActive = ssnap.docs.some((d) => {
             const row = d.data();
             if (isCanceled(row?.status)) return false;
@@ -99,8 +102,10 @@ export default function Header() {
 
     init();
     return () => {
-      unsubUser?.(); unsubSub?.();
-      unsubUserRef.current = null; unsubSubRef.current = null;
+      unsubUser?.();
+      unsubSub?.();
+      unsubUserRef.current = null;
+      unsubSubRef.current = null;
     };
   }, []);
 
@@ -109,9 +114,12 @@ export default function Header() {
     const onStorage = (e) => {
       if (e.key === "auth:logout") {
         sessionStorage.removeItem("session");
-        unsubSubRef.current?.(); unsubSubRef.current = null;
-        unsubUserRef.current?.(); unsubUserRef.current = null;
-        setUser(null); setPrimeActive(false);
+        unsubSubRef.current?.();
+        unsubSubRef.current = null;
+        unsubUserRef.current?.();
+        unsubUserRef.current = null;
+        setUser(null);
+        setPrimeActive(false);
         navigate("/dang-nhap", { replace: true });
       }
     };
@@ -120,26 +128,25 @@ export default function Header() {
   }, [navigate]);
 
   const logout = async () => {
-    try { await signOut(auth); }
-    finally {
+    try {
+      await signOut(auth);
+    } finally {
       sessionStorage.removeItem("session");
       localStorage.setItem("auth:logout", String(Date.now()));
       navigate("/dang-nhap", { replace: true });
     }
   };
 
-
   // === QUY TẮC HIỂN THỊ THEO YÊU CẦU ===
   // Giảng viên: luôn hiện nút nâng cấp; KHÔNG hiện sao (kể cả đã nâng cấp)
   // Học viên:   nếu chưa nâng cấp -> hiện nút; nếu đã nâng cấp -> ẩn nút + hiện sao
-// mới
-// === QUY TẮC HIỂN THỊ ===
-// Cả giảng viên & học viên như nhau:
-// - Chưa nâng cấp  -> hiện nút Nâng cấp, không hiện sao
-// - Đã nâng cấp    -> ẩn nút Nâng cấp, hiện sao
-const showUpgradeButton = !primeActive;
-const showPrimeBadge   = !!primeActive;
-
+  // mới
+  // === QUY TẮC HIỂN THỊ ===
+  // Cả giảng viên & học viên như nhau:
+  // - Chưa nâng cấp  -> hiện nút Nâng cấp, không hiện sao
+  // - Đã nâng cấp    -> ẩn nút Nâng cấp, hiện sao
+  const showUpgradeButton = primeActive;
+  const showPrimeBadge = !primeActive;
 
   const balanceText = formatVND(user?.soDu);
 
@@ -147,7 +154,7 @@ const showPrimeBadge   = !!primeActive;
     <div className="header-container">
       {/* Left */}
       <div className="left-section">
-         <Link to="/trangchu" className="logo-link" aria-label="Về trang chủ">
+        <Link to="/trangchu" className="logo-link" aria-label="Về trang chủ">
           <img src={logo} alt="Logo" style={{ height: "60px" }} />
         </Link>
       </div>
