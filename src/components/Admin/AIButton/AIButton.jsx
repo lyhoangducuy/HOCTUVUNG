@@ -23,11 +23,11 @@ export default function AIButton() {
   const [showForm, setShowForm] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
-  // giống Sidebar: theo dõi user + traPhi
+  // theo dõi user + Prime
   const [user, setUser] = useState(null);
   const [prime, setPrime] = useState(false);
 
-  // NEW: phát hiện ADMIN để bypass prime
+  // ADMIN được bypass prime
   const [isAdmin, setIsAdmin] = useState(false);
 
   // --- Auth ---
@@ -86,7 +86,9 @@ export default function AIButton() {
     setOpen(false);
   };
 
-  // Tạo bộ thẻ: ADMIN được vào không cần prime
+  // Tạo bộ thẻ: BỎ BẮT ĐĂNG NHẬP
+  // - Nếu CHƯA đăng nhập: cho mở form tự do (không chặn)
+  // - Nếu ĐÃ đăng nhập: chỉ chặn khi KHÔNG prime & KHÔNG admin
   const openCreateForm = () => {
     if (loading) return;
 
@@ -100,11 +102,13 @@ export default function AIButton() {
       navigate("/tra-phi");
       return;
     }
+
     setShowForm(true);
     setOpen(false);
   };
 
-  const lockedByPlan = !prime && !isAdmin; // dùng cho title/badge UI
+  // Khoá badge chỉ hiển thị khi user đã đăng nhập mà không có quyền
+  const lockedByPlan = user ? !prime && !isAdmin : false;
 
   return (
     <div className="ai-button-container" ref={menuRef}>
@@ -124,7 +128,7 @@ export default function AIButton() {
             Chat trợ giúp
           </div>
 
-          {/* Tạo bộ thẻ: cần Prime, ngoại trừ ADMIN */}
+          {/* Tạo bộ thẻ: cho khách mở tự do; user thường cần Prime; ADMIN bypass */}
           <div
             className={`ai-item${loading ? " disabled" : ""}`}
             onClick={!loading ? openCreateForm : undefined}
@@ -157,7 +161,7 @@ export default function AIButton() {
       <TaoBoTheAI
         open={showForm}
         onClose={() => setShowForm(false)}
-        user={user}
+        user={user || auth.currentUser /* có thể là null nếu khách */}
         onBusyChange={setLoading}
       />
     </div>
