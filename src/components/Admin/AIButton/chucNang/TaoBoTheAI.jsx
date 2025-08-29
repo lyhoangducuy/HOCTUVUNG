@@ -53,6 +53,12 @@ export default function TaoBoTheAI({ open, onClose, user, onBusyChange }) {
   const [previewTopic, setPreviewTopic] = useState("");
   const [previewList, setPreviewList] = useState([]); // [{tu, nghia}]
 
+  // ✅ Lấy đúng userId để lưu (ưu tiên UID, fallback idNguoiDung)
+  const userId = useMemo(() => {
+    if (!user) return null;
+    return user.uid || user.idNguoiDung || user.id || null;
+  }, [user]);
+
   const canSubmit = useMemo(() => {
     if (!topic.trim()) return false;
     if (!count || Number(count) <= 0) return false;
@@ -69,7 +75,7 @@ export default function TaoBoTheAI({ open, onClose, user, onBusyChange }) {
       return;
     }
     if (num > 9) {
-      setError("Số lượng tối đa là 9."); // giữ hạn mức cũ
+      setError("Số lượng tối đa là 9.");
       return;
     }
     if (langSrc === langDst) {
@@ -106,9 +112,8 @@ export default function TaoBoTheAI({ open, onClose, user, onBusyChange }) {
 
   const onCancelPreview = () => setPreviewOpen(false);
 
+  // ✅ SỬA: dùng userId (UID) để pass security rules khi lưu
   const onSavePreview = async () => {
-    const userCreated = user?.idNguoiDung;
-
     // lọc thẻ hợp lệ
     const valid = previewList
       .map((t) => ({
@@ -126,12 +131,16 @@ export default function TaoBoTheAI({ open, onClose, user, onBusyChange }) {
         doc(db, "boThe", String(idBoThe)),
         {
           idBoThe,
-          tenBoThe: String(previewTopic || "").trim(),
+          tenBoThe: String(previewTopic || "").trim() || `Bộ thẻ ${idBoThe}`,
           soTu: valid.length,
-          idNguoiDung: String(userCreated),
+
+          // quan trọng: lưu owner theo UID để khớp security rules
+          idNguoiDung: userId ? String(userId) : null,
+          ownerUid: user?.uid ? String(user.uid) : (userId ? String(userId) : null),
+
           danhSachThe: valid,
           luotHoc: 0,
-          cheDo,                          // "cong_khai" | "ca_nhan"
+          cheDo, // "cong_khai" | "ca_nhan"
           ngayTao: serverTimestamp(),
           ngayChinhSua: serverTimestamp(),
         },
@@ -141,10 +150,10 @@ export default function TaoBoTheAI({ open, onClose, user, onBusyChange }) {
       window.dispatchEvent(new Event("boTheUpdated"));
       setPreviewOpen(false);
       onClose?.();
-      alert("Đã lưu bộ thẻ: " + previewTopic);
+      alert("Đã lưu bộ thẻ: " + (previewTopic || `#${idBoThe}`));
     } catch (e) {
       console.error("Lưu bộ thẻ thất bại:", e);
-      alert("Không thể lưu bộ thẻ. Vui lòng thử lại.");
+      alert("Không thể lưu bộ thẻ. Có thể do chưa đăng nhập hoặc thiếu quyền Firestore.");
     }
   };
 
