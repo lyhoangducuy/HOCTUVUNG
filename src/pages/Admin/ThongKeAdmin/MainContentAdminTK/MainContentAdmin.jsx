@@ -11,10 +11,6 @@ import "./MainContentAdmin.css";
 export default function MainContent() {
   // UI State
   const [userStats, setUserStats] = useState([]);
-  const [rawUsers, setRawUsers] = useState([]);
-  const [rawClasses, setRawClasses] = useState([]);
-  const [rawCards, setRawCards] = useState([]);
-  const [rawSciences, setRawSciences] = useState([]);
   const [feePct, setFeePct] = useState(0);
   // Firestore Data
   const [dsNguoiDung, setDsNguoiDung] = useState([]);
@@ -128,11 +124,6 @@ export default function MainContent() {
               "Tổng doanh thu tháng hiện tại (đơn đã thanh toán + 10% khóa học)",
           },
         ]);
-
-        setRawUsers(dsNguoiDung);
-        setRawClasses(dsKhoaHoc);
-        setRawCards(dsBoThe);
-        setRawSciences(dsKhoaHoc);
       } catch (error) {
         console.error("Lỗi khi load dữ liệu:", error);
       }
@@ -160,19 +151,9 @@ export default function MainContent() {
       {/* [AI] Tóm tắt + dự báo */}
       <div className="section">
         <AISummary
-          users={rawUsers}
-          classes={rawClasses}
-          cards={rawCards}
-          revenue={{ total: 0 }}
-        />
-      </div>
-
-      {/* [AI] Phân tích xu hướng & Dự báo */}
-      <div className="section">
-        <AITrendAnalysis
-          users={rawUsers}
-          classes={rawClasses}
-          cards={rawCards}
+          users={dsNguoiDung}
+          classes={dsKhoaHoc}
+          cards={dsBoThe}
           revenue={{ total: 0 }}
         />
       </div>
@@ -180,20 +161,15 @@ export default function MainContent() {
       {/* [AI] Phân tích hành vi người dùng */}
       <div className="section">
         <AIUserBehavior
-          users={rawUsers}
-          classes={rawClasses}
-          cards={rawCards}
+          users={dsNguoiDung}
+          classes={dsKhoaHoc}
+          cards={dsBoThe}
         />
       </div>
 
       {/* [AI] Biểu đồ mini */}
       <div className="section">
-        <MiniCharts
-          users={rawUsers}
-          classes={rawClasses}
-          sciences={rawSciences}
-          cards={rawCards}
-        />
+        <MiniCharts users={dsNguoiDung} classes={dsKhoaHoc} cards={dsBoThe} />
       </div>
     </div>
   );

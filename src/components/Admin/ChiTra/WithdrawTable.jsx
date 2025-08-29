@@ -25,8 +25,6 @@ export default function WithdrawTable({
   pageSizeDefault = 5,
   pageSizeOptions = [5, 10, 20, 50],
 }) {
-  console.log(rows, nameById, onApprove, onPaid, onCancel);
-
   /* ===== Pagination state ===== */
   const [pageSize, setPageSize] = useState(pageSizeDefault);
   const [page, setPage] = useState(1);
