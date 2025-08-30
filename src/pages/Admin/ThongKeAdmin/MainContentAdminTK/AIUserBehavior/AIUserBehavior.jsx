@@ -73,8 +73,10 @@ DỮ LIỆU KHÓA HỌC:
 - Tổng khóa học: ${data.classes.length}
 
 Hãy phân tích và đưa ra:
-
-1. PHÂN TÍCH HÀNH VI NGƯỜI DÙNG:
+1️⃣ Phân tích xu hướng & điểm chính.  
+2️⃣ Đề xuất 2–3 giải pháp ngắn gọn.  
+3️⃣ Cảnh báo rủi ro nếu không cải thiện.  
+4. PHÂN TÍCH HÀNH VI NGƯỜI DÙNG:
    - Mức độ hoạt động của người dùng
    - Xu hướng tạo nội dung (bộ thẻ, khóa học)
    - Sự tương tác giữa các vai trò

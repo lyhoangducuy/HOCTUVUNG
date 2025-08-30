@@ -17,12 +17,7 @@ const COLORS = {
   cards: "#f59e0b",
 };
 
-export default function MiniCharts({
-  users = [],
-  classes = [],
-  cards = [],
-  sciences = [],
-}) {
+export default function MiniCharts({ users = [], classes = [], cards = [] }) {
   const countData = useMemo(
     () => [
       {
@@ -36,19 +31,12 @@ export default function MiniCharts({
         key: "classes",
       },
       {
-        name: "Khóa học",
-        value: Array.isArray(sciences)
-          ? sciences.length
-          : Number(sciences || 0),
-        key: "sciences",
-      },
-      {
         name: "Bộ thẻ",
         value: Array.isArray(cards) ? cards.length : Number(cards || 0),
         key: "cards",
       },
     ],
-    [users, classes, sciences, cards]
+    [users, classes, cards]
   );
 
   return (

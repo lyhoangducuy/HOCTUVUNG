@@ -14,12 +14,22 @@ const fmtMoney = (n, donVi = "VND") => {
   return `${v.toLocaleString(VN)} ${donVi}`;
 };
 
-export default function AccountMenu({ user, prime, balanceText, onLogout, navigate }) {
+export default function AccountMenu({
+  user,
+  prime,
+  balanceText,
+  onLogout,
+  navigate,
+}) {
   const ref = useRef(null);
   const [open, setOpen] = useState(false);
 
   // ví realtime từ collection 'vi'
-  const [wallet, setWallet] = useState({ soDu: null, donVi: "VND", _loaded: false });
+  const [wallet, setWallet] = useState({
+    soDu: null,
+    donVi: "VND",
+    _loaded: false,
+  });
 
   useEffect(() => {
     const onClickOutside = (e) => {
@@ -33,7 +43,10 @@ export default function AccountMenu({ user, prime, balanceText, onLogout, naviga
   const uid = user?.idNguoiDung || user?.uid || null;
 
   useEffect(() => {
-    if (!uid) { setWallet({ soDu: null, donVi: "VND", _loaded: false }); return; }
+    if (!uid) {
+      setWallet({ soDu: null, donVi: "VND", _loaded: false });
+      return;
+    }
 
     // 🔁 subscribe ví: vi/{uid}
     const unsub = onSnapshot(
@@ -65,7 +78,9 @@ export default function AccountMenu({ user, prime, balanceText, onLogout, naviga
   const isTeacher = role === "GIANG_VIEN";
 
   // Text số dư: ưu tiên dữ liệu từ 'vi'; fallback prop cũ nếu chưa load
-  const soDuText = wallet._loaded ? fmtMoney(wallet.soDu, wallet.donVi) : (balanceText || "—");
+  const soDuText = wallet._loaded
+    ? fmtMoney(wallet.soDu, wallet.donVi)
+    : balanceText || "—";
 
   return (
     <div className="inforContainer" ref={ref}>
@@ -77,7 +92,11 @@ export default function AccountMenu({ user, prime, balanceText, onLogout, naviga
             {(displayName || "U").charAt(0).toUpperCase()}
           </div>
         )}
-        {prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
+        {prime && (
+          <span className="prime-badge" title="Tài khoản Prime">
+            ★
+          </span>
+        )}
       </div>
 
       {open && (
@@ -91,7 +110,11 @@ export default function AccountMenu({ user, prime, balanceText, onLogout, naviga
                   {(displayName || "U").charAt(0).toUpperCase()}
                 </div>
               )}
-              {prime && <span className="prime-badge" title="Tài khoản Prime">★</span>}
+              {prime && (
+                <span className="prime-badge" title="Tài khoản Prime">
+                  ★
+                </span>
+              )}
             </div>
             <h2 className="tittle">{displayName}</h2>
           </div>
@@ -103,11 +126,20 @@ export default function AccountMenu({ user, prime, balanceText, onLogout, naviga
             <>
               <div
                 className="confirg"
-                onClick={() => { setOpen(false); navigate("/vi"); }}
+                onClick={() => {
+                  setOpen(false);
+                  navigate("/vi");
+                }}
               >
-                <FontAwesomeIcon icon={faWallet} className="icon icon-setting" />
+                <FontAwesomeIcon
+                  icon={faWallet}
+                  className="icon icon-setting"
+                />
                 <span className="confirg-text">Ví</span>
-                <span className="balance-text" style={{ marginLeft: 8, fontWeight: 600 }}>
+                <span
+                  className="balance-text"
+                  style={{ marginLeft: 8, fontWeight: 600 }}
+                >
                   {soDuText}
                 </span>
               </div>
@@ -115,20 +147,34 @@ export default function AccountMenu({ user, prime, balanceText, onLogout, naviga
             </>
           )}
 
-          <div className="confirg" onClick={() => { setOpen(false); navigate("/setting"); }}>
+          <div
+            className="confirg"
+            onClick={() => {
+              setOpen(false);
+              navigate("/setting");
+            }}
+          >
             <FontAwesomeIcon icon={faGear} className="icon icon-setting" />
-            <span className="confirg-text">Cài đặt</span>
+            <span className="confirg-text">Thông tin cá nhân</span>
           </div>
 
           <div className="divide" />
 
-          <div className="confirg" onClick={() => { setOpen(false); navigate("/lichSuThanhToan"); }}>
+          <div
+            className="confirg"
+            onClick={() => {
+              setOpen(false);
+              navigate("/lichSuThanhToan");
+            }}
+          >
             <FontAwesomeIcon icon={faReceipt} className="icon icon-setting" />
             <span className="confirg-text">Lịch sử thanh toán</span>
           </div>
 
           <div className="divide" />
-          <div className="loggout" onClick={onLogout}>Đăng xuất</div>
+          <div className="loggout" onClick={onLogout}>
+            Đăng xuất
+          </div>
         </div>
       )}
     </div>

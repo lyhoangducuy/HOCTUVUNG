@@ -66,7 +66,9 @@ export default function HeaderAdmin({ handleShowSidebar }) {
         // 1) Thử cache Firestore trước (hiển thị siêu nhanh nếu đã có)
         let profile = null;
         try {
-          const snapLocal = await getDocFromCache(doc(db, "nguoiDung", user.uid));
+          const snapLocal = await getDocFromCache(
+            doc(db, "nguoiDung", user.uid)
+          );
           if (snapLocal.exists()) profile = snapLocal.data();
         } catch {}
 
@@ -147,7 +149,10 @@ export default function HeaderAdmin({ handleShowSidebar }) {
           <FaBars />
         </button>
         <div className="admin-user-menu">
-          <div className="avatar skeleton" style={{ width: 36, height: 36, borderRadius: 999 }} />
+          <div
+            className="avatar skeleton"
+            style={{ width: 36, height: 36, borderRadius: 999 }}
+          />
         </div>
         <Suspense fallback={<div style={{ width: 36, height: 36 }} />}>
           <AIButton />
@@ -161,12 +166,20 @@ export default function HeaderAdmin({ handleShowSidebar }) {
 
   return (
     <div className="header-admin-container">
-      <button className="icon-btn" onClick={handleShowSidebar} aria-label="Toggle sidebar">
+      <button
+        className="icon-btn"
+        onClick={handleShowSidebar}
+        aria-label="Toggle sidebar"
+      >
         <FaBars />
       </button>
 
       <div className="admin-user-menu" ref={menuWrapRef}>
-        <button className="icon-btn" onClick={() => setOpen((v) => !v)} aria-label="Open user menu">
+        <button
+          className="icon-btn"
+          onClick={() => setOpen((v) => !v)}
+          aria-label="Open user menu"
+        >
           <img src={avatarSrc} alt="avatar" className="avatar" />
         </button>
 
@@ -187,7 +200,7 @@ export default function HeaderAdmin({ handleShowSidebar }) {
               }}
             >
               <span className="icon">⚙️</span>
-              <span style={{ color: "black" }}>Cài đặt</span>
+              <span style={{ color: "black" }}>Thông tin cá nhân</span>
             </div>
 
             <div className="dropdown-divider" />
