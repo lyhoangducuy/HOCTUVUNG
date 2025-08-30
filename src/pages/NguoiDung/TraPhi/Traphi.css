@@ -1,0 +1,217 @@
+/* Font Việt ổn định cho dấu */
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700;800;900&display=swap");
+
+:root{
+  --ui-font: "Be Vietnam Pro", "Inter", "Roboto", "Noto Sans", "Segoe UI",
+             system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ===== Container ===== */
+.traphi-container {
+  max-width: 980px;
+  margin: 40px auto;
+  padding: 20px;
+  font-family: var(--ui-font);
+  text-align: center;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.traphi-container h2 {
+  font-size: 34px;
+  line-height: 1.3;          /* giúp dấu không đè */
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 28px;
+  /* ❌ bỏ uppercase + letter-spacing để không làm hỏng dấu */
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ===== Active subscription panel ===== */
+.active-sub {
+  background: #f0f7ff;
+  border: 1px solid #cfe3ff;
+  border-left: 6px solid #2563eb;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+  text-align: left;
+  line-height: 1.45; /* tăng nhẹ */
+}
+
+.active-sub__title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1f2937;
+  opacity: .8;
+  /* ❌ */
+  text-transform: none;
+  letter-spacing: 0;
+  margin-bottom: 8px;
+}
+
+.active-sub__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.active-sub__name {
+  font-size: 20px;
+  line-height: 1.35;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.active-sub__desc {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #334155;
+}
+
+/* ===== Pricing Layout ===== */
+.traphi-pricing {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  justify-content: center;
+}
+
+/* ===== Pricing Card ===== */
+.pricing-card {
+  background: #fff;
+  border: 2px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 24px 18px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+
+.pricing-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+  border-color: #4f46e5;
+}
+
+.pricing-title {
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 6px;
+  letter-spacing: 0; /* giữ nguyên để dấu không bị tách */
+}
+
+.pricing-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #6b7280;
+  min-height: 34px;
+}
+
+/* ===== Giá & Giảm giá ===== */
+.pricing-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 6px;
+}
+
+.price-old {
+  font-size: 16px;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.price-new {
+  font-size: 26px;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #111827;
+}
+
+.price-badge {
+  background: #dcfce7;
+  color: #16a34a;
+  font-weight: 800;
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.pricing-term {
+  margin: 6px 0 10px;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* ===== Buttons ===== */
+button[variant="register"],
+.btn.register {
+  background: linear-gradient(90deg, #6366f1, #4f46e5);
+  border: none;
+  padding: 12px 18px;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 800;
+  color: #fff;
+  transition: transform .2s ease, filter .2s ease, background .2s ease;
+  width: 100%;
+}
+
+button[variant="register"]:hover,
+.btn.register:hover {
+  background: linear-gradient(90deg, #4f46e5, #4338ca);
+  transform: translateY(-2px);
+}
+
+/* Disabled */
+button[variant="register"][disabled],
+.btn.register[disabled] {
+  opacity: .6;
+  cursor: not-allowed;
+  filter: grayscale(30%);
+  transform: none;
+}
+
+button[variant="cancel"],
+.btn.cancel {
+  background: #dc2626;
+  border: none;
+  padding: 12px 18px;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 800;
+  color: #fff;
+  transition: transform .2s ease, background .2s ease;
+}
+
+button[variant="cancel"]:hover,
+.btn.cancel:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .traphi-container {
+    padding: 12px;
+  }
+  .traphi-container h2 {
+    font-size: 28px;
+    margin-bottom: 22px;
+  }
+  .active-sub__row {
+    gap: 10px;
+  }
+  .price-new {
+    font-size: 24px;
+  }
+}

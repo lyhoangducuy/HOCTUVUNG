@@ -1,0 +1,80 @@
+/* Overlay + modal */
+.ctl-overlay{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.45);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1200;
+}
+.ctl-modal{
+  width:640px; max-width:96vw;
+  background:#fff; border-radius:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,.22);
+  display:flex; flex-direction:column;
+  max-height:92vh;                    /* chống tràn */
+  animation:ctlPop .12s ease-out;
+}
+@keyframes ctlPop{ from{opacity:0;transform:translateY(4px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+/* Header */
+.ctl-header{
+  padding:14px 16px; border-bottom:1px solid #e5e7eb;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.ctl-header h3{ margin:0; font-size:18px; font-weight:800; color:#111827; }
+.ctl-close{ background:transparent; border:0; font-size:20px; cursor:pointer; line-height:1; }
+
+/* Body (scrollable) */
+.ctl-body{
+  padding:14px 16px;
+  overflow:auto;                      /* cuộn nội dung */
+  display:grid; gap:12px;
+}
+
+/* Form controls */
+.ctl-row{ display:grid; gap:8px; }
+.ctl-label{ font-size:13px; color:#6b7280; font-weight:600; }
+.ctl-input, .ctl-textarea, .ctl-body select{
+  width:100%; padding:10px 12px; border:1.5px solid #e5e7eb; border-radius:10px;
+  outline:none; background:#fff; color:#111827; transition:border-color .18s, box-shadow .18s;
+}
+.ctl-input:focus, .ctl-textarea:focus, .ctl-body select:focus{
+  border-color:#2563eb; box-shadow:0 0 0 4px rgba(37,99,235,.18);
+}
+.ctl-textarea{ resize:vertical; }
+.ctl-hint{ font-size:12px; color:#6b7280; margin-top:2px; }
+
+.ctl-radio-group{ display:flex; gap:18px; }
+.ctl-radio, .ctl-check{ display:flex; align-items:center; gap:8px; color:#111827; }
+
+.ctl-grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+/* Stats */
+.ctl-split{ height:1px; background:#e5e7eb; margin:6px 0; }
+.ctl-stats{ display:flex; gap:12px; }
+.ctl-stat-item{
+  flex:1; display:flex; align-items:center; justify-content:space-between;
+  background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:10px 12px;
+}
+.ctl-stat-label{ color:#6b7280; font-size:13px; }
+.ctl-stat-value{ color:#111827; font-weight:800; }
+
+/* Footer */
+.ctl-footer{
+  padding:12px 16px; border-top:1px solid #e5e7eb;
+  display:flex; justify-content:flex-end; gap:8px;
+}
+.btn-primary{
+  background:#2563eb; color:#fff; border:0; padding:10px 14px; border-radius:10px; font-weight:700;
+  cursor:pointer; transition:background .18s, transform .06s, box-shadow .18s; box-shadow:0 2px 6px rgba(0,0,0,.06);
+}
+.btn-primary:hover{ background:#1d4ed8; transform:translateY(-1px); }
+.btn-cancel-outline{
+  background:#fff; color:#2563eb; border:1.5px solid #2563eb; padding:10px 14px; border-radius:10px; font-weight:700;
+  cursor:pointer; transition:background .18s, transform .06s, box-shadow .18s;
+}
+.btn-cancel-outline:hover{ background:#eff6ff; transform:translateY(-1px); }
+
+@media (max-width:560px){
+  .ctl-grid-2{ grid-template-columns:1fr; }
+}
+/* Xoá lớp */

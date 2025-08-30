@@ -1,0 +1,99 @@
+.footer {
+  background: #f3f4f6; /* nền xám nhạt */
+  color: #000000;
+  padding: 40px 20px 20px;
+  font-family: "Segoe UI", sans-serif;
+  margin-left: 260px;
+}
+
+.footer-container {
+  display: flex;
+  justify-content: center;   /* căn giữa */
+  align-items: flex-start;
+  gap: 80px;                 /* khoảng cách giữa các cột */
+  max-width: 1000px;
+  margin: 0 auto;            /* căn giữa toàn bộ */
+}
+
+.footer-col {
+  flex: 1;
+  min-width: 220px;
+}
+
+.footer-logo {
+  font-size: 22px;
+  font-weight: 700;
+  color: #3b82f6; /* logo xanh */
+  margin-bottom: 10px;
+}
+
+.footer-col h4 {
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.footer-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-col ul li {
+  margin-bottom: 8px;
+}
+
+.footer-col ul li a {
+  color: #000000;
+  text-decoration: none;
+  transition: color .2s;
+}
+
+.footer-col ul li a:hover {
+  color: #3b82f6;
+}
+
+.footer-col p a {
+  color: #000000;
+  text-decoration: none;
+}
+.footer-col p a:hover {
+  color: #3b82f6;
+}
+
+.social-icons {
+  margin-top: 10px;
+}
+.social-icons a {
+  color: #000000;
+  margin-right: 12px;
+  font-size: 18px;
+  transition: color .2s;
+}
+.social-icons a:hover {
+  color: #3b82f6;
+}
+
+.footer-bottom {
+  margin-top: 20px;
+  padding-top: 12px;
+  text-align: center;
+  font-size: 14px;
+  border-top: 1px solid #d1d5db;
+  color: #6b7280;
+}
+.footer,
+.footer p,
+.footer a {
+  color: #000; /* chữ đen */
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .footer-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 30px;
+  }
+}

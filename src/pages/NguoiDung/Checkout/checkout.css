@@ -1,0 +1,115 @@
+/* ===== Container ===== */
+.checkout-container {
+  max-width: 780px;
+  margin: 32px auto;
+  padding: 16px;
+  font-family: inherit;
+  color: #111;
+}
+
+/* ===== Back ===== */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #555;
+  margin-bottom: 10px;
+}
+.back .iconback { font-size: 14px; }
+.back:hover { color: #111; }
+
+/* ===== Title ===== */
+.checkout-title {
+  margin: 0 0 16px 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* ===== Card ===== */
+.checkout-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+
+/* ===== Rows ===== */
+.row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  column-gap: 12px;
+  row-gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f2f2f2;
+}
+.row:last-child { border-bottom: none; padding-bottom: 0; }
+
+.label {
+  color: #666;
+  font-size: 14px;
+}
+
+.value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+}
+
+/* Mã hoá đơn (code) */
+.value.code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  padding: 3px 6px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+/* ===== Trạng thái ===== */
+.value.status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700; /* mặc định: pending */
+  color: #8a5a00;
+  
+}
+
+/* Nếu dùng thêm class phụ trong JSX */
+.value.status.status--paid {
+  color: #065f46;
+}
+.value.status.status--pending {
+  color: #8a5a00;
+;
+}
+.value.status.status--canceled {
+  color: #991b1b;
+}
+
+/* ===== Actions ===== */
+.checkout-actions { margin-top: 14px; }
+.checkout-actions button,
+.checkout-actions > * > * {
+  min-width: 180px;
+  height: 40px;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 14px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+  .checkout-container { padding: 12px; }
+  .checkout-title { font-size: 20px; }
+  .checkout-card { padding: 14px; }
+  .row { grid-template-columns: 1fr; }
+  .label { font-size: 13px; }
+  .value { font-size: 15px; }
+  .checkout-actions button,
+  .checkout-actions > * > * {
+    width: 100%;
+    min-width: 0;
+  }
+}

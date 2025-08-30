@@ -1,0 +1,124 @@
+.userpage-wrap {
+  max-width: 980px;
+  margin: 20px auto;
+  padding: 0 16px;
+}
+
+.user-head {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.user-head .avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #eee center/cover no-repeat;
+  flex-shrink: 0;
+}
+
+.user-info .user-username {
+  margin: 0;
+  font-size: 22px;
+}
+
+.user-info .user-fullname {
+  color: #444;
+  margin-top: 2px;
+}
+
+.user-info .user-email {
+  color: #666;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.user-role {
+  margin-top: 8px;
+  display: inline-block;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+}
+.user-role.giang_vien { background: #ecfeff; color: #155e75; }
+.user-role.admin { background: #fee2e2; color: #991b1b; }
+
+.block { margin-top: 28px; }
+.block-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.block-title { margin: 0; font-size: 18px; }
+.block-sub { color: #666; font-size: 13px; }
+
+.empty {
+  color: #666;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  padding: 16px;
+  border-radius: 10px;
+}
+
+.grid-cards, .grid-courses {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.card, .course {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: box-shadow .15s ease, transform .05s ease;
+}
+.card:hover, .course:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  transform: translateY(-1px);
+}
+
+.card-title, .course-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.card-sub, .course-sub {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.card-actions, .course-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  cursor: pointer;
+}
+.btn.ghost {
+  background: #fff;
+  border-color: #e5e7eb;
+  color: #111;
+}
+
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.tag {
+  font-size: 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: #334155;
+}

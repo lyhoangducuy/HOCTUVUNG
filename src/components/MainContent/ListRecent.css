@@ -1,0 +1,38 @@
+.list-recent-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.list-recent-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.list-recent-item {
+  display: flex;
+  align-items: center;
+  background: #f7f8fa;
+  border-radius: 10px;
+  min-width: 0;
+  padding: 12px 18px;
+  box-shadow: 0 2px 8px #f0f0f0;
+  border: none;
+}
+.list-recent-icon {
+  font-size: 32px;
+  margin-right: 12px;
+  color: #888;
+}
+.list-recent-name {
+  font-size: 20px;
+  color: #888;
+  font-weight: 500;
+}
+.list-recent-icon {
+  font-size: 32px;
+  margin-right: 8px;
+}
+.list-recent-name {
+  font-size: 20px;
+  color: #555;
+}

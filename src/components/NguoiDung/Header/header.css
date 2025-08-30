@@ -1,0 +1,268 @@
+/* ====== Header container ====== */
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .05);
+}
+
+/* Left / Right sections */
+.left-section,
+.right-section {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 0 12px;
+}
+
+/* ====== Icons ====== */
+.icon {
+  font-size: 22px;
+  color: #111827;
+  transition: transform .2s ease, color .2s ease;
+  cursor: pointer;
+}
+.icon:hover {
+  color: #2563eb;
+  transform: scale(1.06);
+}
+
+/* ====== Search ====== */
+.search-section {
+  /* Đặt một bề rộng chuẩn cho cả input & dropdown */
+  --search-width: 520px;     /* bạn có thể đổi 520px → 480px, 600px, v.v. */
+  width: var(--search-width);
+  max-width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input,
+.search-result {
+  width: 100%;
+  box-sizing: border-box;  
+  margin-top: 10px;   /* đảm bảo border/padding không làm tràn rộng */
+}
+
+/* phần còn lại giữ nguyên */
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.search-input {
+  padding: 10px 12px 10px 38px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
+  width: 100%;
+}
+
+/* ====== Search Result Dropdown ====== */
+.search-result {
+  position: absolute;
+  top: 44px;
+  left: 0;
+  /* width: 100%;  <-- giữ nhưng đã kiểm soát bởi box-sizing ở trên */
+  max-height: 320px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .08);
+  z-index: 1000;
+  padding: 8px;
+}
+
+
+/* ====== Upgrade Button ====== */
+.btn-upgrade {
+  background: #f59e0b;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .15s ease, background .2s ease;
+}
+.btn-upgrade:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+/* ====== Avatar & Account Menu ====== */
+.inforContainer {
+  position: relative;
+}
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+  transition: box-shadow .2s ease;
+  cursor: pointer;
+}
+.avatar:hover {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .18);
+}
+.prime-badge {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 5px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.12);
+}
+
+/* Dropdown menu */
+.setting {
+  position: absolute;
+  right: 0;
+  top: 52px;
+  width: 260px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
+  padding: 12px;
+  z-index: 999;
+}
+.infor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+.infor .tittle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+.divide {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 8px 0;
+}
+.confirg {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .2s ease;
+}
+.confirg .icon-setting {
+  color: #2563eb;
+  font-size: 16px;
+}
+.confirg:hover {
+  color: #2563eb;
+}
+.loggout {
+  text-align: center;
+  padding: 10px;
+  border-radius: 8px;
+  color: #ef4444;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.loggout:hover {
+  background: #fee2e2;
+}
+
+/* ====== Plus Menu ====== */
+.plus-container {
+  position: relative;
+  display: inline-block;
+}
+.plus-icon {
+  font-size: 22px;
+  color: #111827;
+}
+.plus-icon:hover {
+  color: #2563eb;
+}
+.plus {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  width: 220px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .06);
+  padding: 8px 0;
+  z-index: 999;
+}
+.plus-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #111827;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.plus-item:hover {
+  background: #f3f4f6;
+}
+.plus-item svg {
+  font-size: 18px;
+  color: #374151;
+}
+
+/* ====== Responsive ====== */
+@media (max-width: 768px) {
+  .header-container {
+    padding: 8px 12px;
+    border-radius: 8px;
+  }
+  .left-section,
+  .right-section {
+    gap: 12px;
+    margin: 0 6px;
+  }
+  .search-section {
+    max-width: none;
+  }
+  .btn-upgrade {
+    display: none;
+  }
+}

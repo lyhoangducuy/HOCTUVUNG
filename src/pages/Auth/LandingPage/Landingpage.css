@@ -1,0 +1,179 @@
+/* Tổng thể */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  font-family: "Inter", sans-serif;
+  color: #1f2937;
+}
+
+/* Hero section */
+.hero-section {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.hero-section h1 {
+  font-size: 40px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #111827;
+}
+
+.hero-section p {
+  font-size: 18px;
+  color: #4b5563;
+  max-width: 700px;
+  margin: 0 auto 24px;
+  line-height: 1.6;
+}
+
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.3s;
+}
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.link-secondary {
+  font-size: 16px;
+  color: #2563eb;
+  text-decoration: none;
+  align-self: center;
+  transition: color 0.3s;
+}
+.link-secondary:hover {
+  color: #1d4ed8;
+}
+
+/* Features section */
+.features-section {
+  position: relative;
+  margin: 60px 0;
+  overflow: hidden;
+}
+
+.features-grid {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 20px 0;
+}
+
+.feature-card {
+  flex: 0 0 280px;
+  min-height: 180px;
+  padding: 20px;
+  border-radius: 16px;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+
+.card-blue { background: #2563eb; }
+.card-orange { background: #f97316; }
+.card-green { background: #16a34a; }
+.card-lightblue { background: #0ea5e9; }
+.card-pink { background: #ec4899; }
+.card-yellow { background: #eab308; }
+
+.feature-card h3 {
+  font-size: 20px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.feature-card p {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.slider-arrow {
+  position: absolute;
+  top: 40%;
+  transform: translateY(-50%);
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 50%;
+  font-size: 20px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  transition: all 0.3s;
+  z-index: 10;
+}
+.slider-arrow:hover {
+  background: #f3f4f6;
+}
+.arrow-left { left: 10px; }
+.arrow-right { right: 10px; }
+
+/* AI section */
+.ai-section {
+  padding: 80px 20px;
+  background: #f9fafb;
+  text-align: center;
+  border-radius: 16px;
+  margin-bottom: 60px;
+}
+
+.ai-section h2 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #111827;
+}
+
+.ai-section p {
+  font-size: 16px;
+  margin-bottom: 20px;
+  color: #374151;
+}
+
+.ai-section ul {
+  max-width: 700px;
+  margin: 0 auto;
+  text-align: left;
+  padding: 0;
+  list-style: none;
+}
+.ai-section li {
+  margin-bottom: 12px;
+  font-size: 15px;
+  line-height: 1.6;
+  padding-left: 20px;
+  position: relative;
+}
+.ai-section li::before {
+  content: "✔";
+  color: #2563eb;
+  position: absolute;
+  left: 0;
+}
+.feature-card h3,
+.feature-card p {
+  color: #fff !important; /* ép chữ trong card thành trắng */
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-section h1 { font-size: 28px; }
+  .hero-section p { font-size: 15px; }
+  .features-grid { gap: 12px; }
+  .feature-card { flex: 0 0 240px; }
+}

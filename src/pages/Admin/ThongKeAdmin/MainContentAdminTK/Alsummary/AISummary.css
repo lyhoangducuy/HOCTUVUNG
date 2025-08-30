@@ -1,0 +1,109 @@
+.aisummary-container {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e1e5e9;
+    min-height: 200px;
+  }
+  
+  .aisummary-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  
+  .aisummary-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .aisummary-title {
+    margin: 0;
+    color: #1f2937;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .aisummary-button {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .aisummary-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  .aisummary-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 16px;
+    color: #dc2626;
+    font-size: 14px;
+  }
+  
+  .aisummary-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #6b7280;
+  }
+  
+  .aisummary-result {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    line-height: 1.6;
+    font-size: 14px;
+    color: #374151;
+    white-space: pre-wrap;
+  }
+  
+  .aisummary-updated {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #6b7280;
+    text-align: right;
+  }
+  
+  .aisummary-fallback {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    line-height: 1.6;
+    font-size: 14px;
+    color: #374151;
+    white-space: pre-wrap;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  
+  /* Animation spinner */
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+  

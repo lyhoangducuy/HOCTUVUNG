@@ -1,0 +1,68 @@
+/* SidebarAdmin.css — simple version */
+
+.sidebar-container{
+  width:260px;
+  height:100vh;
+  position:sticky;
+  top:0;
+  background:#2d2d2d;
+  color:#fff;
+  padding:20px 14px;
+  display:flex;
+}
+
+.sidebar-content{ width:100%; }
+
+.sidebar-logo{
+  font-size:1.5rem;
+  font-weight:700;
+  margin:0 0 16px;
+}
+
+#trangChuAdmin{
+  color:#fff;
+  text-decoration:none;
+}
+
+.sidebar-menu{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.menu-link{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 12px;
+  border-radius:10px;
+  color:#fff;
+  text-decoration:none;
+  background:transparent;
+  transition:background .15s ease;
+}
+
+.menu-link:hover{ background:rgba(255,255,255,.08); }
+
+/* NavLink tự thêm class "active" khi trùng route */
+.menu-link.active{
+  background:rgba(255,255,255,.12);
+  border-left:3px solid #22c55e;
+}
+
+.sidebar-icon{
+  width:22px;
+  display:inline-flex;
+  justify-content:center;
+  font-size:1.2rem;
+}
+
+@media (max-width:900px){
+  .sidebar-container{ width:220px; }
+}
+@media (max-width:760px){
+  .sidebar-container{ position:fixed; z-index:50; }
+}

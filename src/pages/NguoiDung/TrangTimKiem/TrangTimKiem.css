@@ -1,0 +1,117 @@
+/* --- Bố cục chung --- */
+.search-container {
+    max-width: 900px;
+    margin: 24px auto;
+    padding: 0 16px;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* --- Khu vực các Tab tìm kiếm --- */
+.type-search ul {
+    display: flex;
+    list-style-type: none;
+    padding: 0;
+    margin: 0 0 32px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.type-search li {
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #6c757d;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s ease-in-out;
+}
+
+.type-search li:hover {
+    color: #0d6efd;
+}
+
+/* Thêm class 'active' để làm nổi bật tab đang được chọn */
+/* Xem gợi ý ở cuối để biết cách thêm class này vào JSX */
+.type-search li.active {
+    color: #0d6efd;
+    border-bottom: 3px solid #0d6efd;
+}
+
+/* --- Danh sách kết quả --- */
+.list-Search {
+    display: flex;
+    flex-direction: column;
+    gap: 16px; /* Khoảng cách giữa các thẻ kết quả */
+}
+
+/* --- Kiểu dáng cho một thẻ kết quả (Card) --- */
+.item-Search {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.item-Search:hover {
+    cursor: pointer;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.item-Search h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+}
+
+.item-Search p {
+    font-size: 14px;
+    color: #6c757d;
+    margin: 0 0 12px 0;
+}
+
+/* --- Khu vực thông tin người dùng --- */
+.user-item {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Khoảng cách giữa avatar và tên */
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.mini-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #e9ecef; /* Màu nền mặc định */
+    background-size: cover;
+    background-position: center;
+}
+
+/* --- Nút bấm --- */
+.btn-hoc {
+    border: none;
+    background-color: #0d6efd;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-left: 20px; /* Tạo khoảng cách với nội dung bên trái */
+}
+
+.btn-hoc:hover {
+    background-color: #0b5ed7;
+}
+
+/* --- Sắp xếp lại bố cục cho thẻ itemBoThe --- */
+/* Cần một div bọc nội dung bên trái để tách biệt với nút */
+.item-Search .content-wrapper {
+    flex-grow: 1;
+}

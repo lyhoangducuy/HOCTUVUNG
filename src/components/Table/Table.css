@@ -1,0 +1,15 @@
+.table-wrapper { overflow-x: auto; }
+.custom-table { width: 100%; border-collapse: collapse; }
+.table-header { user-select: none; white-space: nowrap; }
+.table-header.sortable { cursor: pointer; }
+.table-header .sort-indicator { margin-left: 6px; font-size: 0.85em; opacity: .6; }
+.table-header.sorted-asc .sort-indicator,
+.table-header.sorted-desc .sort-indicator { opacity: 1; }
+.table-cell.align-right { text-align: right; }
+.table-cell.align-center { text-align: center; }
+.clickable { cursor: pointer; }
+.skeleton {
+  height: 12px; border-radius: 4px; background: linear-gradient(90deg,#eee,#f6f6f6,#eee);
+  background-size: 200% 100%; animation: sk 1.2s infinite linear;
+}
+@keyframes sk { from { background-position: 200% 0; } to { background-position: -200% 0; } }

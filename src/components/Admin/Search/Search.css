@@ -1,0 +1,14 @@
+
+.search-input {
+  width: 100%;
+  max-width: 360px;   /* đổi 300–420px tuỳ layout */
+  height: 36px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  outline: none;
+}
+.search-input:focus {
+  border-color: #007bff;
+}

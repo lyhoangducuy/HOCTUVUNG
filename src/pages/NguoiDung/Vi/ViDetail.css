@@ -1,0 +1,133 @@
+/* Container */
+.vi-container{max-width:1100px;margin:24px auto;padding:0 16px;}
+.vi-back{display:inline-block;margin-bottom:10px;cursor:pointer;color:#111827;}
+.vi-title{margin:0 0 12px;font-size:22px;font-weight:800;}
+.vi-muted{color:#6b7280;font-size:12px;}
+
+/* Balance card */
+.vi-balance-card{
+  background:#fff;border:1px solid #e5e7eb;border-radius:12px;
+  padding:16px;box-shadow:0 6px 16px rgba(0,0,0,.04);margin-bottom:16px;
+}
+.vi-balance-label{color:#6b7280;font-size:14px;margin-bottom:8px;}
+.vi-balance-value{font-size:28px;font-weight:800;color:#111827;}
+.vi-balance-sub{color:#6b7280;font-size:12px;margin-top:2px;}
+.vi-actions{margin-top:12px;}
+.vi-btn-primary{
+  border:1px solid #2563eb;background:#2563eb;color:#fff;border-radius:10px;
+  padding:8px 12px;cursor:pointer;font-weight:600;
+}
+
+/* Table shell */
+.vi-table-wrap{
+  background:#fff;border:1px solid #e5e7eb;border-radius:12px;
+  padding:12px;box-shadow:0 6px 16px rgba(0,0,0,.04);
+}
+.vi-table-headline{display:flex;align-items:center;justify-content:space-between;}
+.vi-table-headline h2{margin:0;font-size:18px;font-weight:800;}
+.vi-empty{padding:18px;text-align:center;color:#6b7280;}
+
+.vi-table{width:100%;border-collapse:collapse;margin-top:10px;background:#fff;}
+.vi-table thead th{
+  text-align:left;padding:12px 10px;border-bottom:1px solid #eee;
+  font-weight:700;background:#fafafa;white-space:nowrap;font-size:13px;color:#111827;
+}
+.vi-table tbody td{
+  padding:12px 10px;border-bottom:1px solid #f3f4f6;vertical-align:middle;
+  font-size:14px;color:#111827;
+  /* CHỐNG CSS TOÀN CỤC ẢNH HƯỞNG */
+  float:none !important; position:static !important;
+}
+
+/* Code (id hóa đơn) */
+.vi-code{
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New",monospace;
+  white-space:nowrap;font-size:12px;color:#374151;
+}
+
+/* Amount (tiền) */
+.vi-amount{font-weight:700;text-align:left;}
+.vi-amount--plus{color:#059669;}
+.vi-amount--minus{color:#dc2626;}
+.vi-amount--pending{color:#374151;}
+
+/* Badge (trạng thái) */
+.vi-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;line-height:1;
+}
+.vi-badge--plus{background:#ecfdf5;color:#059669;}
+.vi-badge--minus{background:#fef2f2;color:#dc2626;}
+.vi-badge--pending{background:#f3f4f6;color:#374151;}
+/* Cho ô "Số tiền" kế thừa màu riêng thay vì bị rule chung của td đè */
+.vi-table tbody td.vi-amount { color: inherit; }
+
+/* Tăng specificity để chắc thắng rule .vi-table tbody td */
+.vi-table tbody td.vi-amount.vi-amount--plus   { color: #059669; }  /* + xanh */
+.vi-table tbody td.vi-amount.vi-amount--minus  { color: #dc2626; }  /* - đỏ */
+.vi-table tbody td.vi-amount.vi-amount--pending{ color: #374151; }  /* chờ - trung tính */
+
+/* Amount (tiền) — luôn override màu trong <td> */
+.vi-table tbody td.vi-amount{
+  font-weight:700;
+  text-align:left;
+  color:inherit;               /* kế thừa mặc định trong table */
+}
+
+/* Trạng thái số tiền: dùng specificity cao + !important để không bị rule khác đè */
+.vi-table tbody td.vi-amount.vi-amount--plus{
+  color:#059669 !important;    /* + xanh */
+}
+.vi-table tbody td.vi-amount.vi-amount--minus{
+  color:#dc2626 !important;    /* − đỏ (rút tiền / canceled) */
+}
+.vi-table tbody td.vi-amount.vi-amount--pending{
+  color:#374151 !important;    /* chờ duyệt */
+}
+/* Pager */
+.vi-pager{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; margin-top:10px; flex-wrap:wrap;
+}
+.vi-pagesize{ display:flex; align-items:center; gap:10px; color:#374151; font-size:13px; }
+.vi-pagesize select{
+  appearance:none; border:1px solid #e5e7eb; border-radius:8px;
+  padding:6px 8px; background:#fff; font-size:13px; color:#111827;
+}
+.vi-pager-range{ color:#6b7280; }
+
+.vi-pages{ display:flex; align-items:center; gap:6px; }
+.vi-pagebtn{
+  min-width:32px; height:32px; padding:0 8px;
+  border:1px solid #e5e7eb; background:#fff; border-radius:8px;
+  cursor:pointer; font-size:13px; color:#111827;
+}
+.vi-pagebtn:hover{ background:#f9fafb; }
+.vi-pagebtn[disabled]{ opacity:.5; cursor:not-allowed; }
+.vi-pagebtn--active{
+  background:#2563eb; color:#fff; border-color:#2563eb;
+}
+.vi-pagebtn--dots{
+  min-width:auto; padding:0 4px; color:#6b7280; border:none; background:transparent;
+}
+
+/* Responsive: gom hàng trên màn nhỏ */
+@media (max-width: 640px){
+  .vi-pager{ flex-direction:column; align-items:flex-start; }
+}
+
+/* Responsive: stack rows on small screens */
+@media (max-width: 860px){
+  .vi-table thead{display:none;}
+  .vi-table, .vi-table tbody, .vi-table tr, .vi-table td{display:block;width:100%;}
+  .vi-table tbody tr{
+    border:1px solid #eef2f7;border-radius:12px;margin-bottom:12px;background:#fff;padding:6px 0;
+  }
+  .vi-table tbody td{
+    border-bottom:none;position:relative;padding-left:120px;min-height:34px;
+  }
+  .vi-table tbody td::before{
+    content:attr(data-label);
+    position:absolute;left:10px;top:12px;width:100px;color:#6b7280;font-size:12px;font-weight:600;white-space:nowrap;
+  }
+}

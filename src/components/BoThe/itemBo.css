@@ -1,0 +1,32 @@
+.bo-card{
+  background:#fff;border:1px solid #eee;border-radius:14px;padding:14px;
+  box-shadow:0 6px 20px rgba(0,0,0,.06);cursor:pointer;transition:.15s;
+}
+.bo-card:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,.08);}
+.bo-title{font-weight:800;font-size:18px;margin-bottom:6px;color:#0f172a;}
+.bo-meta{color:#64748b;margin-bottom:10px;}
+.bo-author{display:flex;align-items:center;gap:10px;margin:10px 0 14px;}
+.bo-avatar{
+  width:28px;height:28px;border-radius:50%;background:#e5e7eb;background-size:cover;background-position:center;
+  border:1px solid #e5e7eb;
+}
+.bo-name{color:#0f172a;}
+.bo-btn{
+  width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;
+  font-weight:700;cursor:pointer;
+}
+.bo-btn:hover{background:#f8fafc;}
+/* nhóm nút khi hiển thị trong khóa học */
+.bo-actions{
+  display:flex;
+  gap:8px;
+}
+
+/* nút gỡ dạng danger */
+.bo-btn-danger{
+  border-color:#ef4444;
+  color:#b91c1c;
+}
+.bo-btn-danger:hover{
+  background:#fef2f2;
+}

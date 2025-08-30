@@ -1,0 +1,146 @@
+/* =========================
+   Match Game — Refreshed CSS
+   ========================= */
+
+/* ---------- Variables ---------- */
+:root{
+  --bg:#f8f9fa;
+  --card:#ffffff;
+  --text:#111827;
+  --muted:#6b7280;
+  --border:#e5e7eb;
+  --primary:#2563eb;
+  --primary-2:#1d4ed8;
+  --ok:#16a34a;
+  --warn:#dc2626;
+  --ring: rgba(37,99,235,.18);
+}
+
+/* ---------- Base ---------- */
+*{ box-sizing:border-box }
+html,body{ margin:0; background:var(--bg); color:var(--text); font-family:"Segoe UI", system-ui, -apple-system, Roboto, sans-serif }
+
+/* ---------- Page Container ---------- */
+.container{
+  max-width:960px;
+  margin:0 auto;
+  padding:20px;
+}
+
+/* ---------- Back button ---------- */
+.back{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:16px; font-weight:700; color:#333;
+  background:#f6f6f6; padding:10px 16px; border-radius:12px;
+  border:1px solid var(--border); cursor:pointer;
+  transition:all .2s ease;
+  margin-bottom:16px;
+}
+.back:hover{ background:#e9ecef; transform:translateX(-2px); color:#111 }
+
+/* ---------- Mode Switch (chips) ---------- */
+.studyChange{
+  display:flex; align-items:center; justify-content:center;
+  gap:12px; padding:20px 0; overflow-x:auto; scrollbar-width:none
+}
+.studyChange::-webkit-scrollbar{ display:none }
+
+.studyBtn{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 18px; border:1.5px solid var(--border);
+  border-radius:999px; background:#fff; color:var(--text);
+  font-weight:600; font-size:14px; white-space:nowrap;
+  cursor:pointer; transition:all .2s ease;
+  box-shadow:0 1px 2px rgba(0,0,0,.04)
+}
+.studyBtn:hover{ background:#f3f4f6; transform:translateY(-1px) }
+.studyBtn.active{ background:#111827; color:#fff; border-color:#111827 }
+.studyBtn svg{ font-size:16px }
+
+/* ---------- Title ---------- */
+.header{
+  font-size:24px; font-weight:800; text-align:center;
+  margin:8px 0 20px; color:#111
+}
+
+/* ---------- Study Area ---------- */
+.study{
+  display:flex; flex-direction:column; align-items:center; gap:20px
+}
+
+/* ---------- Grid of Items ---------- */
+.question{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap:14px; width:100%; margin-bottom:12px;
+}
+@media (max-width:900px){ .question{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (max-width:640px){ .question{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+
+.question-item{
+  padding:14px 12px;
+  background:#fff;
+  border:2px solid var(--border);
+  border-radius:12px;
+  text-align:center;
+  font-size:18px; font-weight:600;
+  cursor:pointer; user-select:none;
+  transition:transform .12s ease, box-shadow .18s ease, border-color .12s ease, background .12s ease, opacity .18s ease;
+  box-shadow:0 2px 4px rgba(0,0,0,.05);
+}
+.question-item:hover{
+  transform:translateY(-1px);
+  box-shadow:0 10px 24px rgba(0,0,0,.06);
+  border-color:#cfd6dd;
+}
+
+/* Selected state */
+.question-item.selected{
+  background:#eef4ff;
+  border-color:var(--primary);
+  box-shadow:0 0 0 4px var(--ring);
+}
+
+/* Matched (disabled) */
+.question-item.matched{
+  opacity:.45; background:#f3f4f6; border-color:#e3e6ea;
+  pointer-events:none; transform:scale(.98);
+}
+
+/* Optional flash states (add/remove class ngắn hạn nếu muốn) */
+.question-item.flash-correct{ background:#e8fbea; border-color:#b7efc1 }
+.question-item.flash-wrong{ background:#ffecec; border-color:#ffc9c9 }
+
+/* ---------- Feedback ---------- */
+.display{
+  min-height:34px; font-size:18px; font-weight:800; text-align:center;
+}
+.feedback{
+  display:inline-block;
+  padding:10px 14px; border-radius:10px;
+  background:#fef3c7; color:#92400e; /* default (neutral) */
+}
+.display.correct .feedback{ background:#d1fae5; color:#065f46; }
+.display.wrong .feedback{ background:#fee2e2; color:#991b1b; }
+
+/* ---------- Focus Ring ---------- */
+button:focus-visible, .studyBtn:focus-visible, .back:focus-visible, .question-item:focus-visible{
+  outline:none; box-shadow:0 0 0 4px var(--ring)
+}
+
+/* ---------- Reduced Motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  .question-item, .studyBtn, .back{ transition:none !important }
+}
+/* Giữ chỗ nhưng ẩn nội dung */
+.question-item.gone{
+  visibility: hidden;   /* vẫn chiếm chỗ trong grid */
+  pointer-events: none;
+}
+
+/* (tuỳ chọn) hiệu ứng mờ dần trước khi ẩn
+.question-item.gone{
+  animation: vanish .18s ease forwards;
+}
+@keyframes vanish{ to{ opacity:0; } }
+*/
